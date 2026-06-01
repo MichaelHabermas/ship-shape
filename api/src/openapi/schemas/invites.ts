@@ -3,7 +3,7 @@
  */
 
 import { z, registry } from '../registry.js';
-import { DateTimeSchema } from './common.js';
+import { ApiErrorResponseSchema, DateTimeSchema } from './common.js';
 import { jsonResponse, successEnvelope, TokenParamSchema } from './route-helpers.js';
 
 const InviteDetailsSchema = z.object({
@@ -15,7 +15,7 @@ const InviteDetailsSchema = z.object({
   alreadyMember: z.boolean(),
 }).openapi('InviteDetails');
 
-const InviteDetailsResponseSchema = successEnvelope(InviteDetailsSchema, 'InviteDetailsResponse');
+export const InviteDetailsResponseSchema = successEnvelope(InviteDetailsSchema, 'InviteDetailsResponse');
 registry.register('InviteDetailsResponse', InviteDetailsResponseSchema);
 
 const InviteAcceptRequestSchema = z.object({
@@ -38,7 +38,7 @@ const InviteAcceptDataSchema = z.object({
   }),
 }).openapi('InviteAcceptData');
 
-const InviteAcceptResponseSchema = successEnvelope(InviteAcceptDataSchema, 'InviteAcceptResponse');
+export const InviteAcceptResponseSchema = successEnvelope(InviteAcceptDataSchema, 'InviteAcceptResponse');
 registry.register('InviteAcceptResponse', InviteAcceptResponseSchema);
 
 registry.registerPath({
@@ -50,8 +50,8 @@ registry.registerPath({
   request: { params: TokenParamSchema },
   responses: {
     200: jsonResponse(InviteDetailsResponseSchema, 'Invite details'),
-    400: { description: 'Invite used or expired' },
-    404: { description: 'Invalid invite' },
+    400: jsonResponse(ApiErrorResponseSchema, 'Invite used or expired'),
+    404: jsonResponse(ApiErrorResponseSchema, 'Invalid invite'),
     500: { description: 'Internal server error' },
   },
 });
@@ -72,8 +72,8 @@ registry.registerPath({
   },
   responses: {
     201: jsonResponse(InviteAcceptResponseSchema, 'Invite accepted'),
-    400: { description: 'Validation error' },
-    404: { description: 'Invalid invite' },
+    400: jsonResponse(ApiErrorResponseSchema, 'Validation error'),
+    404: jsonResponse(ApiErrorResponseSchema, 'Invalid invite'),
     500: { description: 'Internal server error' },
   },
 });

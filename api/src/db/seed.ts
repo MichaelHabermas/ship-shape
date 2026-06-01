@@ -1,3 +1,4 @@
+// Idempotent dev/test database seed: users, programs, sprints, issues, and accountability fixtures.
 import { config } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -10,6 +11,19 @@ import { databaseSslOptions } from '../config/runtime.js';
 import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from './welcomeDocument.js';
 import { IdRow, MaxTicketRow, SprintStartDateRow } from '../test/pg-result.js';
 import { requireFirstRow } from '../utils/query-rows.js';
+
+type SeedUserRow = {
+  id: string;
+  name: string;
+  person_doc_id: string | null;
+};
+
+function seedAt<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`Seed invariant violated: ${label}`);
+  }
+  return value;
+}
 
 const { Pool } = pg;
 
@@ -140,7 +154,7 @@ async function seed() {
     // Note: These are independent - no coupling via person_document_id
     let membershipsCreated = 0;
     let personDocsCreated = 0;
-    const allUsersForMembership = await pool.query(
+    const allUsersForMembership = await pool.query<{ id: string; email: string; name: string }>(
       'SELECT id, email, name FROM users'
     );
 
@@ -215,7 +229,7 @@ async function seed() {
     let reportsToSet = 0;
     for (const [email, managers] of Object.entries(reportingHierarchy)) {
       if (managers.length === 0) continue; // Root has no manager
-      const managerEmail = managers[0]!;
+      const managerEmail = seedAt(managers[0], 'reportingHierarchy manager');
       const managerId = emailToUserId.get(managerEmail);
       const userId = emailToUserId.get(email);
       if (managerId && userId) {
@@ -233,7 +247,7 @@ async function seed() {
 
     // Get all user IDs for assignment (join through workspace_memberships)
     // Also get person document IDs for team allocation
-    const allUsersResult = await pool.query(
+    const allUsersResult = await pool.query<SeedUserRow>(
       `SELECT u.id, u.name, d.id as person_doc_id FROM users u
        JOIN workspace_memberships wm ON wm.user_id = u.id
        LEFT JOIN documents d ON d.workspace_id = wm.workspace_id
@@ -366,7 +380,7 @@ async function seed() {
         } else {
           // Assign owner rotating through team members
           const ownerIdx = (programs.indexOf(program) * projectTemplates.length + projectTemplates.indexOf(template)) % allUsers.length;
-          const owner = allUsers[ownerIdx]!;
+          const owner = seedAt(allUsers[ownerIdx], `allUsers[${ownerIdx}]`);
 
           // Calculate target date (2-4 weeks from now based on project type)
           const targetDate = new Date();
@@ -434,16 +448,16 @@ async function seed() {
     // Sprints are distributed among the program's projects
     const sprintsToCreate: Array<{ programId: string; projectId: string; number: number; ownerIdx: number }> = [];
     for (const program of programs) {
-      const team = programTeams[program.id]!;
+      const team = seedAt(programTeams[program.id], `programTeams[${program.id}]`);
       // Get projects for this program to distribute sprints among them
       const programProjects = projects.filter(p => p.programId === program.id);
       let projectIdx = 0;
       for (let sprintNum = currentSprintNumber - 3; sprintNum <= currentSprintNumber + 3; sprintNum++) {
         if (sprintNum > 0) {
           // Round-robin assign sprints to projects within the program
-          const project = programProjects[projectIdx % programProjects.length]!;
+          const project = seedAt(programProjects[projectIdx % programProjects.length], 'program project');
           // Owner rotates within the program's team
-          const ownerIdx = team[(sprintNum - 1) % team.length]!;
+          const ownerIdx = seedAt(team[(sprintNum - 1) % team.length], 'sprint owner index');
           sprintsToCreate.push({
             programId: program.id,
             projectId: project.id,
@@ -459,7 +473,7 @@ async function seed() {
     let sprintsCreated = 0;
 
     for (const sprint of sprintsToCreate) {
-      const owner = allUsers[sprint.ownerIdx]!;
+      const owner = seedAt(allUsers[sprint.ownerIdx], `allUsers[${sprint.ownerIdx}]`);
 
       // Check for existing sprint by sprint_number and project (via junction table)
       const existingSprint = await pool.query<IdRow>(
@@ -510,9 +524,9 @@ async function seed() {
         else baseConfidence = 40; // Future sprints - lower confidence
 
         // Other assignee comes from the same program team (not global +1)
-        const team = programTeams[sprint.programId]!;
-        const otherIdx = team.find(idx => idx !== sprint.ownerIdx) ?? team[0]!;
-        const otherUser = allUsers[otherIdx]!;
+        const team = seedAt(programTeams[sprint.programId], `programTeams[${sprint.programId}]`);
+        const otherIdx = team.find(idx => idx !== sprint.ownerIdx) ?? seedAt(team[0], 'team[0]');
+        const otherUser = seedAt(allUsers[otherIdx], `allUsers[${otherIdx}]`);
         // Set sprint status based on timing so action items don't fire for past sprints
         let sprintStatus: string | undefined;
         if (sprintOffset < 0) sprintStatus = 'completed';
@@ -558,7 +572,7 @@ async function seed() {
     }
 
     // Get Ship Core program for comprehensive sprint testing
-    const shipCoreProgram = programs.find(p => p.prefix === 'SHIP')!;
+    const shipCoreProgram = seedAt(programs.find(p => p.prefix === 'SHIP'), 'SHIP program');
 
     // Comprehensive issue templates for Ship Core covering all sprint/state combinations
     // This gives us realistic data to test all views
@@ -659,10 +673,11 @@ async function seed() {
     }
 
     // Seed Ship Core issues with comprehensive sprint coverage
-    const shipCoreTeam = programTeams[shipCoreProgram.id]!;
+    const shipCoreTeam = seedAt(programTeams[shipCoreProgram.id], 'shipCore team');
     for (let i = 0; i < shipCoreIssues.length; i++) {
-      const issue = shipCoreIssues[i]!;
-      const assignee = allUsers[shipCoreTeam[i % shipCoreTeam.length]!]!;
+      const issue = seedAt(shipCoreIssues[i], `shipCoreIssues[${i}]`);
+      const shipCoreAssigneeIdx = seedAt(shipCoreTeam[i % shipCoreTeam.length], 'shipCoreTeam assignee index');
+      const assignee = seedAt(allUsers[shipCoreAssigneeIdx], `allUsers[${shipCoreAssigneeIdx}]`);
 
       // Find the sprint based on offset
       let sprintId: string | null = null;
@@ -684,7 +699,7 @@ async function seed() {
       );
 
       if (!existingIssue.rows[0]) {
-        maxTickets[shipCoreProgram.id]!++;
+        maxTickets[shipCoreProgram.id] = (maxTickets[shipCoreProgram.id] ?? 0) + 1;
         const issueProperties: Record<string, unknown> = {
           state: issue.state,
           priority: issue.priority,
@@ -719,7 +734,7 @@ async function seed() {
           // For backlog issues without sprints, assign to a random project in the program
           const programProjects = projects.filter(p => p.programId === shipCoreProgram.id);
           if (programProjects.length > 0) {
-            const randomProject = programProjects[issuesCreated % programProjects.length]!;
+            const randomProject = seedAt(programProjects[issuesCreated % programProjects.length], 'random program project');
             await createAssociation(pool, issueId, randomProject.id, 'project');
           }
         }
@@ -731,10 +746,11 @@ async function seed() {
     // Seed generic issues for other programs
     const otherPrograms = programs.filter(p => p.prefix !== 'SHIP');
     for (const program of otherPrograms) {
-      const team = programTeams[program.id]!;
+      const team = seedAt(programTeams[program.id], `programTeams[${program.id}]`);
       for (let i = 0; i < genericIssueTemplates.length; i++) {
-        const template = genericIssueTemplates[i]!;
-        const assignee = allUsers[team[i % team.length]!]!;
+        const template = seedAt(genericIssueTemplates[i], `genericIssueTemplates[${i}]`);
+        const memberIdx = seedAt(team[i % team.length], 'generic issue team member index');
+        const assignee = seedAt(allUsers[memberIdx], `allUsers[${memberIdx}]`);
 
         // Find the sprint based on offset (same pattern as Ship Core issues)
         let sprintId: string | null = null;
@@ -756,7 +772,7 @@ async function seed() {
         );
 
         if (!existingIssue.rows[0]) {
-          maxTickets[program.id]!++;
+          maxTickets[program.id] = (maxTickets[program.id] ?? 0) + 1;
           const issueProperties = {
             state: template.state,
             priority: template.priority,
@@ -788,7 +804,7 @@ async function seed() {
             // For backlog issues without sprints, assign to a random project in the program
             const programProjects = projects.filter(p => p.programId === program.id);
             if (programProjects.length > 0) {
-              const randomProject = programProjects[issuesCreated % programProjects.length]!;
+              const randomProject = seedAt(programProjects[issuesCreated % programProjects.length], 'random program project');
               await createAssociation(pool, issueId, randomProject.id, 'project');
             }
           }
@@ -864,7 +880,7 @@ async function seed() {
 
     let standaloneDocsCreated = 0;
     for (let i = 0; i < standaloneWikiDocs.length; i++) {
-      const doc = standaloneWikiDocs[i]!;
+      const doc = seedAt(standaloneWikiDocs[i], `standaloneWikiDocs[${i}]`);
       const existingDoc = await pool.query<IdRow>(
       'SELECT id FROM documents WHERE workspace_id = $1 AND document_type = $2 AND title = $3 AND parent_id IS NULL',
         [workspaceId, 'wiki', doc.title]
@@ -941,8 +957,8 @@ async function seed() {
           ];
 
           for (let i = 0; i < standupAuthors.length; i++) {
-            const author = standupAuthors[i]!;
-            const message = standupMessages[i]!;
+            const author = seedAt(standupAuthors[i], `standupAuthors[${i}]`);
+            const message = seedAt(standupMessages[i], `standupMessages[${i}]`);
             const daysAgo = i; // Stagger the standups over recent days
             const properties = { author_id: author.id };
 
@@ -1003,7 +1019,7 @@ async function seed() {
             ],
           };
 
-          const owner = allUsers[sprint.number % allUsers.length]!;
+          const owner = seedAt(allUsers[sprint.number % allUsers.length], 'standup sprint owner');
           // Create sprint review document without legacy sprint_id column
           const reviewResult = await pool.query<IdRow>(
             `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
@@ -1104,16 +1120,16 @@ async function seed() {
 
     // Iterate through sprint assignments and create plans/retros
     for (let i = 0; i < sprintsToCreate.length; i++) {
-      const sprintDef = sprintsToCreate[i]!;
+      const sprintDef = seedAt(sprintsToCreate[i], `sprintsToCreate[${i}]`);
       const matchingSprint = sprints.find(
         s => s.programId === sprintDef.programId && s.number === sprintDef.number
       );
       if (!matchingSprint) continue;
 
-      const owner = allUsers[sprintDef.ownerIdx]!;
-      const team = programTeams[sprintDef.programId]!;
-      const otherIdx = team.find(idx => idx !== sprintDef.ownerIdx) ?? team[0]!;
-      const otherUser = allUsers[otherIdx]!;
+      const owner = seedAt(allUsers[sprintDef.ownerIdx], `allUsers[${sprintDef.ownerIdx}]`);
+      const team = seedAt(programTeams[sprintDef.programId], `programTeams[${sprintDef.programId}]`);
+      const otherIdx = team.find(idx => idx !== sprintDef.ownerIdx) ?? seedAt(team[0], 'team[0]');
+      const otherUser = seedAt(allUsers[otherIdx], `allUsers[${otherIdx}]`);
       const assignees = [
         { personDocId: owner.person_doc_id, userId: owner.id },
         { personDocId: otherUser.person_doc_id, userId: otherUser.id },
@@ -1122,7 +1138,7 @@ async function seed() {
       const sprintOffset = sprintDef.number - currentSprintNumber;
 
       for (let p = 0; p < assignees.length; p++) {
-        const assignee = assignees[p]!;
+        const assignee = seedAt(assignees[p], `assignees[${p}]`);
         const contentIdx = (i + p) % planContentPools.length;
 
         // Deterministic skip patterns for realistic gaps in past data
@@ -1151,7 +1167,7 @@ async function seed() {
                 [
                   workspaceId,
                   `Week ${sprintDef.number} Plan`,
-                  JSON.stringify(makePlanContent(planContentPools[contentIdx]!)),
+                  JSON.stringify(makePlanContent(seedAt(planContentPools[contentIdx], 'planContentPools'))),
                   JSON.stringify({
                     person_id: assignee.personDocId,
                     project_id: sprintDef.projectId,
@@ -1181,7 +1197,7 @@ async function seed() {
                 [
                   workspaceId,
                   `Week ${sprintDef.number} Retro`,
-                  JSON.stringify(makeRetroContent(retroContentPools[contentIdx]!)),
+                  JSON.stringify(makeRetroContent(seedAt(retroContentPools[contentIdx], 'retroContentPools'))),
                   JSON.stringify({
                     person_id: assignee.personDocId,
                     project_id: sprintDef.projectId,
@@ -1213,7 +1229,7 @@ async function seed() {
               [
                 workspaceId,
                 `Week ${sprintDef.number} Plan`,
-                JSON.stringify(makePlanContent(planContentPools[contentIdx]!)),
+                JSON.stringify(makePlanContent(seedAt(planContentPools[contentIdx], 'planContentPools'))),
                 JSON.stringify({
                   person_id: assignee.personDocId,
                   project_id: sprintDef.projectId,

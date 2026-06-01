@@ -1,6 +1,14 @@
+/** E2E tests for changes-requested accountability notifications and persistence. */
 import { test, expect } from './fixtures/isolated-env';
 import { loginAsAdminWithUser, loginViaApi } from './fixtures/api-auth';
-
+import { readJsonAs } from './fixtures/typed-json';
+import type {
+  AccountabilityActionItem,
+  ActionItemsResponse,
+  PersonDocument,
+  WeekSprintResponse,
+  WeeksWithIdListResponse,
+} from './fixtures/e2e-api-types';
 
 /**
  * E2E tests for Changes Requested Notifications.
@@ -21,11 +29,14 @@ async function getPersonIdForUser(
 ): Promise<string> {
   const response = await page.request.get(`${apiUrl}/api/documents?document_type=person`);
   expect(response.ok()).toBe(true);
-  const docs = await response.json();
+  const docs = await readJsonAs<PersonDocument[]>(response);
   const person = docs.find(
-    (d: { properties?: { user_id?: string } }) => d.properties?.user_id === userId
+    (d) => d.properties?.user_id === userId
   );
   expect(person, 'User should have an associated person document').toBeTruthy();
+  if (!person) {
+    throw new Error('User should have an associated person document');
+  }
   return person.id;
 }
 
@@ -37,7 +48,7 @@ test.describe('Changes Requested Notifications', () => {
     // Get a sprint to request changes on
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
     expect(weeksResponse.ok()).toBe(true);
-    const weeksData = await weeksResponse.json();
+    const weeksData = await readJsonAs<WeeksWithIdListResponse>(weeksResponse);
     expect(weeksData.weeks.length, 'Need at least one sprint for notification test').toBeGreaterThan(0);
 
     const sprintId = weeksData.weeks[0].id;
@@ -59,15 +70,15 @@ test.describe('Changes Requested Notifications', () => {
     );
     expect(actionItemsResponse.ok(), 'Action items endpoint should return 200').toBe(true);
 
-    const actionItemsData = await actionItemsResponse.json();
-    const actionItems = actionItemsData.items || actionItemsData;
+    const actionItemsData = await readJsonAs<ActionItemsResponse>(actionItemsResponse);
+    const actionItems: AccountabilityActionItem[] = actionItemsData.items;
     expect(Array.isArray(actionItems), 'Action items should be an array').toBe(true);
 
     // Look for a changes_requested_plan item
     const changesRequestedItem = actionItems.find(
-      (item: { accountability_type?: string; id?: string }) =>
+      (item) =>
         item.accountability_type === 'changes_requested_plan' ||
-        (item.id && item.id.startsWith('changes_requested_plan-'))
+        (item.id?.startsWith('changes_requested_plan-') ?? false)
     );
 
     // The item may not appear if the current user is not the sprint assignee.
@@ -89,7 +100,7 @@ test.describe('Changes Requested Notifications', () => {
     // Get a sprint
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
     expect(weeksResponse.ok()).toBe(true);
-    const weeksData = await weeksResponse.json();
+    const weeksData = await readJsonAs<WeeksWithIdListResponse>(weeksResponse);
     expect(weeksData.weeks.length, 'Need at least one sprint for notification test').toBeGreaterThan(0);
 
     const sprintId = weeksData.weeks[0].id;
@@ -110,15 +121,15 @@ test.describe('Changes Requested Notifications', () => {
     );
     expect(actionItemsResponse.ok(), 'Action items endpoint should return 200').toBe(true);
 
-    const actionItemsData = await actionItemsResponse.json();
-    const actionItems = actionItemsData.items || actionItemsData;
+    const actionItemsData = await readJsonAs<ActionItemsResponse>(actionItemsResponse);
+    const actionItems: AccountabilityActionItem[] = actionItemsData.items;
     expect(Array.isArray(actionItems), 'Action items should be an array').toBe(true);
 
     // Look for a changes_requested_retro item
     const changesRequestedItem = actionItems.find(
-      (item: { accountability_type?: string; id?: string }) =>
+      (item) =>
         item.accountability_type === 'changes_requested_retro' ||
-        (item.id && item.id.startsWith('changes_requested_retro-'))
+        (item.id?.startsWith('changes_requested_retro-') ?? false)
     );
 
     // Same note as above: item only appears if current user is the assignee
@@ -137,7 +148,7 @@ test.describe('Changes Requested Notifications', () => {
     // Get a sprint
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
     expect(weeksResponse.ok()).toBe(true);
-    const weeksData = await weeksResponse.json();
+    const weeksData = await readJsonAs<WeeksWithIdListResponse>(weeksResponse);
     expect(weeksData.weeks.length, 'Need at least one sprint').toBeGreaterThan(0);
 
     const sprintId = weeksData.weeks[0].id;
@@ -156,11 +167,11 @@ test.describe('Changes Requested Notifications', () => {
       `${apiServer.url}/api/accountability/action-items`
     );
     expect(actionItemsResponse.ok()).toBe(true);
-    const actionItemsData = await actionItemsResponse.json();
-    const actionItems = actionItemsData.items || actionItemsData;
+    const actionItemsData = await readJsonAs<ActionItemsResponse>(actionItemsResponse);
+    const actionItems = actionItemsData.items;
 
     // Verify the general structure of action items (even if no changes_requested item exists)
-    for (const item of (Array.isArray(actionItems) ? actionItems : [])) {
+    for (const item of actionItems) {
       expect(item, 'Action item should have id').toHaveProperty('id');
       expect(item, 'Action item should have title').toHaveProperty('title');
       expect(typeof item.title, 'Title should be a string').toBe('string');
@@ -174,7 +185,7 @@ test.describe('Changes Requested Notifications', () => {
     // Get a sprint
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
     expect(weeksResponse.ok()).toBe(true);
-    const weeksData = await weeksResponse.json();
+    const weeksData = await readJsonAs<WeeksWithIdListResponse>(weeksResponse);
     expect(weeksData.weeks.length, 'Need at least one sprint').toBeGreaterThan(0);
 
     const sprintId = weeksData.weeks[0].id;
@@ -193,11 +204,11 @@ test.describe('Changes Requested Notifications', () => {
     // Verify feedback is persisted by fetching the sprint
     const sprintResponse = await page.request.get(`${apiServer.url}/api/weeks/${sprintId}`);
     expect(sprintResponse.ok()).toBe(true);
-    const sprint = await sprintResponse.json();
+    const sprint = await readJsonAs<WeekSprintResponse>(sprintResponse);
 
     expect(sprint.plan_approval, 'Sprint should have plan_approval').toBeTruthy();
-    expect(sprint.plan_approval.state).toBe('changes_requested');
-    expect(sprint.plan_approval.feedback, 'Feedback should match what was submitted').toBe(feedbackText);
-    expect(sprint.plan_approval.approved_at, 'Should have a timestamp').toBeTruthy();
+    expect(sprint.plan_approval?.state).toBe('changes_requested');
+    expect(sprint.plan_approval?.feedback, 'Feedback should match what was submitted').toBe(feedbackText);
+    expect(sprint.plan_approval?.approved_at, 'Should have a timestamp').toBeTruthy();
   });
 });

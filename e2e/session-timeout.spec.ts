@@ -1,5 +1,7 @@
+/** E2E session timeout UX: warning modal, countdown, logout, and session info API. */
 import { test, expect } from './fixtures/isolated-env';
 import { login } from './fixtures/api-auth';
+import type { AuthSessionResponse } from './fixtures/e2e-api-types';
 
 
 /**
@@ -1034,8 +1036,11 @@ test.describe('Edge Cases', () => {
     // If z-index was wrong, the button would not be clickable
     const boundingBox = await button.boundingBox();
     expect(boundingBox).toBeTruthy();
-    expect(boundingBox!.width).toBeGreaterThan(0);
-    expect(boundingBox!.height).toBeGreaterThan(0);
+    if (!boundingBox) {
+      throw new Error('expected stay-logged-in button bounding box');
+    }
+    expect(boundingBox.width).toBeGreaterThan(0);
+    expect(boundingBox.height).toBeGreaterThan(0);
   });
 
   test('modal does not conflict with command palette', async ({ page }) => {
@@ -1069,9 +1074,9 @@ test.describe('Session Info API', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
     // Call the session info endpoint using page.evaluate (shares session cookie)
-    const response = await page.evaluate(async () => {
+    const response = await page.evaluate(async (): Promise<{ status: number; data: AuthSessionResponse }> => {
       const res = await fetch('/api/auth/session');
-      return { status: res.status, data: await res.json() };
+      return { status: res.status, data: (await res.json()) as AuthSessionResponse };
     });
 
     // Verify response structure
@@ -1098,9 +1103,9 @@ test.describe('Session Info API', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
     // Get session info
-    const response = await page.evaluate(async () => {
+    const response = await page.evaluate(async (): Promise<AuthSessionResponse> => {
       const res = await fetch('/api/auth/session');
-      return res.json();
+      return (await res.json()) as AuthSessionResponse;
     });
 
     expect(response.success).toBe(true);
@@ -1133,12 +1138,15 @@ test.describe('Visual Verification', () => {
     const viewport = page.viewportSize();
     expect(modalBox).toBeTruthy();
     expect(viewport).toBeTruthy();
+    if (!modalBox || !viewport) {
+      throw new Error('expected modal bounding box and viewport size');
+    }
 
     // Modal should be roughly centered (within 50px tolerance for different screen sizes)
-    const horizontalCenter = (viewport!.width - modalBox!.width) / 2;
-    const verticalCenter = (viewport!.height - modalBox!.height) / 2;
-    expect(Math.abs(modalBox!.x - horizontalCenter)).toBeLessThan(50);
-    expect(Math.abs(modalBox!.y - verticalCenter)).toBeLessThan(50);
+    const horizontalCenter = (viewport.width - modalBox.width) / 2;
+    const verticalCenter = (viewport.height - modalBox.height) / 2;
+    expect(Math.abs(modalBox.x - horizontalCenter)).toBeLessThan(50);
+    expect(Math.abs(modalBox.y - verticalCenter)).toBeLessThan(50);
   });
 
   test('warning modal has visible backdrop', async ({ page }) => {

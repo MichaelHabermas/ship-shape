@@ -37,6 +37,10 @@ const SESSION_EXPIRED_MESSAGES: Record<SessionExpiredReason, string> = {
   inactivity_timeout: 'Session expired due to inactivity',
 };
 
+type WorkspaceMembershipRoleRow = {
+  role: string;
+};
+
 function isSessionExpiredReason(reason: SessionValidationFailure): reason is SessionExpiredReason {
   return reason in SESSION_EXPIRED_MESSAGES;
 }
@@ -90,9 +94,7 @@ export async function authMiddleware(
   }
 
   // Fall back to session cookie auth
-  const sessionId = req.cookies?.session_id;
-
-  if (!sessionId) {
+  if (typeof req.cookies?.session_id !== 'string') {
     res.status(HTTP_STATUS.UNAUTHORIZED).json({
       success: false,
       error: {
@@ -103,11 +105,17 @@ export async function authMiddleware(
     return;
   }
 
+  const sessionId = req.cookies.session_id;
+
   try {
     const userAgentHeader = req.headers?.['user-agent'];
     const validation = await validateAuthenticatedSession(sessionId, {
       updateActivity: true,
-      userAgent: Array.isArray(userAgentHeader) ? userAgentHeader[0] : userAgentHeader || null,
+      userAgent: Array.isArray(userAgentHeader)
+        ? String(userAgentHeader[0])
+        : typeof userAgentHeader === 'string'
+          ? userAgentHeader
+          : null,
       ipAddress: req.ip || req.socket?.remoteAddress || null,
     });
 
@@ -241,7 +249,7 @@ export async function workspaceAdminMiddleware(
   }
 
   try {
-    const result = await pool.query(
+    const result = await pool.query<WorkspaceMembershipRoleRow>(
       'SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
       [workspaceId, req.userId]
     );
@@ -274,4 +282,3 @@ export async function workspaceAdminMiddleware(
     });
   }
 }
-

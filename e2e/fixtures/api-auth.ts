@@ -3,6 +3,9 @@
  */
 import { expect, type Page } from '@playwright/test';
 
+import { readJsonAs } from './typed-json';
+import type { AuthMeResponse } from './e2e-api-types';
+
 export const E2E_LOGIN_EMAIL = 'dev@ship.local';
 export const E2E_LOGIN_PASSWORD = 'admin123';
 export const E2E_MEMBER_EMAIL = 'bob.martinez@ship.local';
@@ -18,8 +21,32 @@ export async function login(
   await page.locator('#email').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#email').fill(email);
   await page.locator('#password').fill(password);
+  const loginResponsePromise = page.waitForResponse(
+    (response) => response.url().includes('/api/auth/login'),
+    { timeout: 15000 }
+  ).catch(() => null);
+
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 15000 });
+  const loginResponse = await loginResponsePromise;
+  const navigated = await page.waitForURL(
+    (url) => url.pathname !== '/login',
+    { timeout: 15000 }
+  ).then(() => true).catch(() => false);
+
+  if (!navigated) {
+    const loginStatus = loginResponse ? String(loginResponse.status()) : 'no /api/auth/login response';
+    const loginBody = loginResponse ? await loginResponse.text().catch(() => '<unreadable response>') : '';
+    const alertText = await page.locator('[role="alert"]').allTextContents().catch(() => []);
+    throw new Error(
+      [
+        `Login did not leave /login for ${email}.`,
+        `URL: ${page.url()}`,
+        `Login response: ${loginStatus}`,
+        `Login body: ${loginBody.slice(0, 500)}`,
+        `Alerts: ${alertText.join(' | ') || '<none>'}`,
+      ].join('\n')
+    );
+  }
 }
 
 export async function loginAsSuperAdmin(page: Page): Promise<void> {
@@ -34,7 +61,7 @@ export async function getCsrfToken(page: Page, apiUrl?: string): Promise<string>
   const base = apiUrl ?? '';
   const response = await page.request.get(`${base}/api/csrf-token`);
   expect(response.ok()).toBeTruthy();
-  const { token } = await response.json();
+  const { token } = await readJsonAs<{ token: string }>(response);
   return token;
 }
 
@@ -73,7 +100,7 @@ export async function loginAsAdminWithUser(
   }
   const meResponse = await page.request.get(`${apiUrl}/api/auth/me`);
   expect(meResponse.ok()).toBeTruthy();
-  const meData = await meResponse.json();
+  const meData = await readJsonAs<AuthMeResponse>(meResponse);
   return { csrfToken: auth.csrfToken, userId: meData.data.user.id };
 }
 

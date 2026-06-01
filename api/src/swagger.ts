@@ -88,10 +88,11 @@ function jsonToYaml(obj: unknown, indent = 0): string {
     if (entries.length === 0) return '{}';
     return entries.map(([key, value]) => {
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        if (Object.keys(value).length === 0) {
+        const nested = value as Record<string, unknown>;
+        if (Object.keys(nested).length === 0) {
           return `${spaces}${key}: {}`;
         }
-        return `${spaces}${key}:\n${jsonToYaml(value, indent + 1)}`;
+        return `${spaces}${key}:\n${jsonToYaml(nested, indent + 1)}`;
       } else if (Array.isArray(value)) {
         if (value.length === 0) {
           return `${spaces}${key}: []`;

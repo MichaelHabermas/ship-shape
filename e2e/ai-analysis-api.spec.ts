@@ -1,10 +1,15 @@
+/** E2E tests for AI analysis API endpoints (status, validation, rate limits). */
 import { test, expect } from './fixtures/isolated-env';
 import { loginAsAdmin, loginViaApi } from './fixtures/api-auth';
-
+import { readJsonAs } from './fixtures/typed-json';
+import type {
+  AiAnalyzeResultResponse,
+  AiStatusResponse,
+  AiValidationErrorResponse,
+  SimpleErrorBody,
+} from './fixtures/e2e-api-types';
 
 /**
- * E2E tests for AI Analysis API endpoints.
- *
  * Tests:
  * 1. GET /api/ai/status — returns { available: boolean }
  * 2. POST /api/ai/analyze-plan — requires content field (400 if missing)
@@ -29,7 +34,7 @@ test.describe('AI Status API', () => {
     const response = await page.request.get(`${apiServer.url}/api/ai/status`);
     expect(response.ok(), 'AI status endpoint should return 200').toBe(true);
 
-    const data = await response.json();
+    const data = await readJsonAs<AiStatusResponse>(response);
     expect(data, 'Response should have available property').toHaveProperty('available');
     expect(typeof data.available, 'available should be a boolean').toBe('boolean');
   });
@@ -52,7 +57,7 @@ test.describe('AI Analyze Plan API', () => {
     });
 
     expect(response.status(), 'Should return 400 when content is missing').toBe(400);
-    const result = await response.json();
+    const result = await readJsonAs<AiValidationErrorResponse>(response);
     expect(result.error).toBe('Invalid input');
     expect(JSON.stringify(result.details), 'Validation details should mention content').toContain('content');
   });
@@ -71,7 +76,7 @@ test.describe('AI Analyze Plan API', () => {
     // Either way, the endpoint should not return 400/500
     expect(response.ok(), 'Endpoint should return 200 even if AI is unavailable').toBe(true);
 
-    const result = await response.json();
+    const result = await readJsonAs<AiAnalyzeResultResponse>(response);
     // The response should be either a valid analysis or an error indicator
     const isAnalysis = result.overall_score !== undefined;
     const isUnavailable = result.error === 'ai_unavailable';
@@ -101,7 +106,7 @@ test.describe('AI Analyze Retro API', () => {
     });
 
     expect(response.status(), 'Should return 400 when retro_content is missing').toBe(400);
-    const result = await response.json();
+    const result = await readJsonAs<AiValidationErrorResponse>(response);
     expect(result.error).toBe('Invalid input');
     expect(JSON.stringify(result.details), 'Validation details should mention retro_content').toContain('retro_content');
   });
@@ -115,7 +120,7 @@ test.describe('AI Analyze Retro API', () => {
     });
 
     expect(response.status(), 'Should return 400 when plan_content is missing').toBe(400);
-    const result = await response.json();
+    const result = await readJsonAs<AiValidationErrorResponse>(response);
     expect(result.error).toBe('Invalid input');
     expect(JSON.stringify(result.details), 'Validation details should mention plan_content').toContain('plan_content');
   });
@@ -145,7 +150,7 @@ test.describe('AI Analyze Retro API', () => {
     // Same as analyze-plan: expect 200 with either result or ai_unavailable
     expect(response.ok(), 'Endpoint should return 200 even if AI is unavailable').toBe(true);
 
-    const result = await response.json();
+    const result = await readJsonAs<AiAnalyzeResultResponse>(response);
     const isAnalysis = result.overall_score !== undefined;
     const isUnavailable = result.error === 'ai_unavailable';
     expect(
@@ -199,7 +204,7 @@ test.describe('AI Rate Limiting', () => {
     // Verify the 429 response body mentions rate limit
     const rateLimitedResponse = responses.find(r => r.status() === 429);
     if (rateLimitedResponse) {
-      const body = await rateLimitedResponse.json();
+      const body = await readJsonAs<SimpleErrorBody>(rateLimitedResponse);
       expect(body.error, 'Rate limit error should mention rate limit').toContain('Rate limit');
     }
   });

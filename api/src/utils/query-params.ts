@@ -6,7 +6,7 @@ type QueryIntegerOptions = {
 
 export function getQueryString(value: unknown, fallback = ''): string {
   if (Array.isArray(value)) {
-    const firstValue = value[0];
+    const firstValue = (value as readonly unknown[])[0];
     return typeof firstValue === 'string' ? firstValue : fallback;
   }
 

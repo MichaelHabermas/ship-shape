@@ -25,12 +25,12 @@ const RealtimeEventsContext = createContext<RealtimeEventsContextType | null>(nu
 // VITE_WS_URL allows bypassing CloudFront (which doesn't support WebSocket)
 // by connecting directly to the EB endpoint for real-time events
 function getEventsWsUrl(): string {
-  const wsUrl = import.meta.env.VITE_WS_URL;
+  const wsUrl: unknown = import.meta.env.VITE_WS_URL;
   if (typeof wsUrl === 'string' && wsUrl.length > 0) {
     return wsUrl.replace(/^http/, 'ws') + '/events';
   }
 
-  const apiUrl = import.meta.env.VITE_API_URL;
+  const apiUrl: unknown = import.meta.env.VITE_API_URL;
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   if (typeof apiUrl === 'string' && apiUrl.length > 0) {
     return apiUrl.replace(/^http/, 'ws') + '/events';
@@ -84,7 +84,7 @@ export function RealtimeEventsProvider({ children }: { children: ReactNode }) {
 
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data) as RealtimeEvent;
+        const data = JSON.parse(String(event.data)) as RealtimeEvent;
         console.log('[RealtimeEvents] Received:', data.type);
 
         // Notify subscribers

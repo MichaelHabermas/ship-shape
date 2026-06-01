@@ -1,10 +1,14 @@
 import { pool } from '../db/client.js';
 
+type WorkspaceMembershipRoleRow = {
+  role: string;
+};
+
 /**
  * Check if user is a workspace admin
  */
 export async function isWorkspaceAdmin(userId: string, workspaceId: string): Promise<boolean> {
-  const result = await pool.query(
+  const result = await pool.query<WorkspaceMembershipRoleRow>(
     'SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
     [workspaceId, userId]
   );

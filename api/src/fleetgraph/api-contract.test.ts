@@ -260,6 +260,7 @@ describe('FleetGraph API contract', () => {
       summary: {
         generatedAt: '2026-05-29T00:00:00.000Z',
         status: 'broken',
+        preferredChainId: findingId,
         chainCount: 1,
         completeCount: 0,
         brokenCount: 1,
@@ -271,6 +272,8 @@ describe('FleetGraph API contract', () => {
         scenario: 'week-blocker',
         status: 'broken',
         missing: ['trace_quality'],
+        missingLabels: ['trace quality'],
+        productPath: 'partial',
         generatedAt: '2026-05-29T00:00:00.000Z',
         freshness: {
           generatedAt: '2026-05-29T00:00:00.000Z',

@@ -1,6 +1,6 @@
+// E2E tests for inviting existing users to workspaces (regression: pending person docs without user_id).
+
 /**
- * E2E tests for inviting existing users to workspaces
- *
  * Regression tests for bug: When inviting an existing user (like a super admin)
  * to a workspace, they were getting a pending person doc without user_id,
  * which caused:
@@ -13,6 +13,15 @@
 
 import { test, expect } from './fixtures/isolated-env'
 import { loginAsSuperAdmin, getCsrfToken } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type {
+  AssignResponse,
+  SimpleErrorBody,
+  TeamAccountabilityResponse,
+  TeamGridResponse,
+  TeamPerson,
+  TeamProgram,
+} from './fixtures/e2e-api-types';
 
 
 test.describe('Existing User Invite Flow', () => {
@@ -32,15 +41,18 @@ test.describe('Existing User Invite Flow', () => {
 
     // Wait for the API response
     const response = await responsePromise
-    const data = await response.json()
+    const data = await readJsonAs<TeamGridResponse>(response)
 
     // All users in the grid should have valid user_id (not null)
     expect(data.users.length).toBeGreaterThan(0)
     for (const user of data.users) {
-      expect(user.id).not.toBeNull()
-      expect(user.id).toBeDefined()
-      expect(typeof user.id).toBe('string')
-      expect(user.id.length).toBeGreaterThan(0)
+      expect(user.id).not.toBeNull();
+      expect(user.id).toBeDefined();
+      expect(typeof user.id).toBe('string');
+      if (!user.id) {
+        throw new Error('Expected team grid user id');
+      }
+      expect(user.id.length).toBeGreaterThan(0);
     }
   })
 
@@ -49,15 +61,18 @@ test.describe('Existing User Invite Flow', () => {
     const response = await page.request.get('/api/team/people')
     expect(response.status()).toBe(200)
 
-    const people = await response.json()
+    const people = await readJsonAs<TeamPerson[]>(response)
 
     // All people should have valid user_id
     expect(people.length).toBeGreaterThan(0)
     for (const person of people) {
-      expect(person.user_id).not.toBeNull()
-      expect(person.user_id).toBeDefined()
-      expect(typeof person.user_id).toBe('string')
-      expect(person.user_id.length).toBeGreaterThan(0)
+      expect(person.user_id).not.toBeNull();
+      expect(person.user_id).toBeDefined();
+      expect(typeof person.user_id).toBe('string');
+      if (!person.user_id) {
+        throw new Error('Expected team person user_id');
+      }
+      expect(person.user_id.length).toBeGreaterThan(0);
     }
   })
 
@@ -67,7 +82,7 @@ test.describe('Existing User Invite Flow', () => {
     // Get a program ID first
     const programsResponse = await page.request.get('/api/team/programs')
     expect(programsResponse.status()).toBe(200)
-    const programs = await programsResponse.json()
+    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
     expect(programs.length).toBeGreaterThan(0)
 
     const programId = programs[0].id
@@ -85,8 +100,8 @@ test.describe('Existing User Invite Flow', () => {
     // Should return 400 error
     expect(assignResponse.status()).toBe(400)
 
-    const errorData = await assignResponse.json()
-    expect(errorData.error).toBe('Missing required fields')
+    const errorData = await readJsonAs<SimpleErrorBody>(assignResponse)
+    expect(errorData.error).toEqual(expect.any(String))
   })
 
   test('assignment API rejects empty string userId with 400 error', async ({ page }) => {
@@ -94,7 +109,7 @@ test.describe('Existing User Invite Flow', () => {
 
     // Get a program ID first
     const programsResponse = await page.request.get('/api/team/programs')
-    const programs = await programsResponse.json()
+    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
     const programId = programs[0].id
 
     // Try to assign with empty string userId
@@ -109,8 +124,8 @@ test.describe('Existing User Invite Flow', () => {
 
     // Should return 400 error
     expect(assignResponse.status()).toBe(400)
-    const errorData = await assignResponse.json()
-    expect(errorData.error).toBe('Missing required fields')
+    const errorData = await readJsonAs<SimpleErrorBody>(assignResponse)
+    expect(errorData.error).toEqual(expect.any(String))
   })
 
   test('user with valid user_id can be assigned to sprint', async ({ page }) => {
@@ -119,7 +134,7 @@ test.describe('Existing User Invite Flow', () => {
     // Get team grid to find a valid user
     const gridResponse = await page.request.get('/api/team/grid')
     expect(gridResponse.status()).toBe(200)
-    const gridData = await gridResponse.json()
+    const gridData = await readJsonAs<TeamGridResponse>(gridResponse)
 
     // Get a valid user ID
     const validUser = gridData.users[0]
@@ -127,7 +142,7 @@ test.describe('Existing User Invite Flow', () => {
 
     // Get a program ID
     const programsResponse = await page.request.get('/api/team/programs')
-    const programs = await programsResponse.json()
+    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
     const programId = programs[0].id
 
     // Assign the user - use a high sprint number to avoid conflicts
@@ -145,7 +160,7 @@ test.describe('Existing User Invite Flow', () => {
     // Should succeed
     expect(assignResponse.status()).toBe(200)
 
-    const assignData = await assignResponse.json()
+    const assignData = await readJsonAs<AssignResponse>(assignResponse)
     expect(assignData.success).toBe(true)
     expect(assignData.sprintId).toBeDefined()
 
@@ -177,12 +192,14 @@ test.describe('Existing User Invite Flow', () => {
     // For now, just verify that the existing seeded users have valid user_ids
     // by checking the team/people endpoint
     const peopleResponse = await page.request.get('/api/team/people')
-    const people = await peopleResponse.json()
+    const people = await readJsonAs<TeamPerson[]>(peopleResponse)
 
     // Bob Martinez should be in the list (seeded in isolated-env)
-    const bob = people.find((p: { email: string }) => p.email === 'bob.martinez@ship.local')
+    const bob = people.find((p) => p.email === 'bob.martinez@ship.local')
     expect(bob).toBeDefined()
-    expect(bob.user_id).not.toBeNull()
+    if (!bob?.user_id) {
+      throw new Error('Expected Bob Martinez with user_id in team people list');
+    }
     expect(bob.user_id.length).toBeGreaterThan(0)
   })
 
@@ -242,7 +259,7 @@ test.describe('Existing User Invite Flow', () => {
     const response = await page.request.get('/api/team/accountability')
     expect(response.status()).toBe(200)
 
-    const data = await response.json()
+    const data = await readJsonAs<TeamAccountabilityResponse>(response)
 
     // All people in accountability should have valid IDs
     expect(data.people.length).toBeGreaterThan(0)

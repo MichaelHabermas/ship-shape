@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { postFleetGraphTraceScores, shutdownFleetGraphTracing, withFleetGraphTrace } from './observability-trace.js';
 import type { FleetGraphResult } from './types.js';
 
+const objectContaining = (sample: Record<string, unknown>): unknown => expect.objectContaining(sample);
+
 const mocks = vi.hoisted(() => {
   const childSpan = {
     update: vi.fn(),
@@ -140,7 +142,7 @@ describe('withFleetGraphTrace', () => {
       parent_run_id: capture.traceId,
       inputs: { node: 'normalizeTrigger', triggerType: 'quiet_exit' },
     });
-    expect(mocks.updateRun).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+    expect(mocks.updateRun).toHaveBeenCalledWith(expect.any(String), objectContaining({
       outputs: { node: 'normalizeTrigger', decision: 'quiet_exit' },
     }));
     expect(findUpdateRun(capture.traceId).outputs).toMatchObject({
@@ -182,30 +184,30 @@ describe('withFleetGraphTrace', () => {
 
     expect(capture.traceId).toBe('langfuse-trace-id');
     expect(capture.sharedTraceUrl).toBe('https://us.cloud.langfuse.com/project/project-id/traces/langfuse-trace-id');
-    expect(mocks.startObservation).toHaveBeenCalledWith('fleetgraph.test', expect.objectContaining({
+    expect(mocks.startObservation).toHaveBeenCalledWith('fleetgraph.test', objectContaining({
       input: { label: 'safe' },
     }), { asType: 'agent' });
     expect(mocks.rootSpan.setTraceAsPublic).toHaveBeenCalled();
-    expect(mocks.rootSpan.startObservation).toHaveBeenCalledWith('fleetgraph.normalizeTrigger', expect.objectContaining({
+    expect(mocks.rootSpan.startObservation).toHaveBeenCalledWith('fleetgraph.normalizeTrigger', objectContaining({
       input: { node: 'normalizeTrigger', triggerType: 'quiet_exit' },
-      metadata: expect.objectContaining({
+      metadata: objectContaining({
         provider: 'langfuse',
         subsystem: 'fleetgraph',
         promptName: 'fleetgraph.quiet_exit',
       }),
     }), { asType: 'chain' });
-    expect(mocks.childSpan.update).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mocks.childSpan.update).toHaveBeenCalledWith(objectContaining({
       output: { node: 'normalizeTrigger', decision: 'quiet_exit' },
     }));
-    expect(mocks.rootSpan.startObservation).toHaveBeenCalledWith('fleetgraph.proactive_create_model', expect.objectContaining({
+    expect(mocks.rootSpan.startObservation).toHaveBeenCalledWith('fleetgraph.proactive_create_model', objectContaining({
       model: 'gpt-4o-mini',
       usageDetails: { input: 120, output: 24, total: 144 },
     }), { asType: 'generation' });
-    expect(mocks.rootSpan.update).toHaveBeenCalledWith(expect.objectContaining({
-      output: expect.objectContaining({
+    expect(mocks.rootSpan.update).toHaveBeenCalledWith(objectContaining({
+      output: objectContaining({
         decision: 'quiet_exit',
         nodePath: ['normalizeTrigger', 'produceOutput'],
-        tokenMetadata: expect.objectContaining({
+        tokenMetadata: objectContaining({
           modelCalls: 1,
           provider: 'openai',
           model: 'gpt-4o-mini',
@@ -214,7 +216,7 @@ describe('withFleetGraphTrace', () => {
           totalTokens: 144,
         }),
         costMetadata: {},
-        tokenUsage: expect.objectContaining({
+        tokenUsage: objectContaining({
           label: '144 tokens',
           modelCalls: 1,
           provider: 'openai',
@@ -223,18 +225,18 @@ describe('withFleetGraphTrace', () => {
           outputTokens: 24,
           totalTokens: 144,
         }),
-        costUsage: expect.objectContaining({
+        costUsage: objectContaining({
           label: 'none',
           costSource: 'none',
           currency: 'none',
         }),
         errorMetadata: {},
       }),
-      metadata: expect.objectContaining({
+      metadata: objectContaining({
         provider: 'langfuse',
         subsystem: 'fleetgraph',
         modelBoundary: 'real_model',
-        tokenUsage: expect.objectContaining({
+        tokenUsage: objectContaining({
           label: '144 tokens',
           modelCalls: 1,
           provider: 'openai',
@@ -243,7 +245,7 @@ describe('withFleetGraphTrace', () => {
           outputTokens: 24,
           totalTokens: 144,
         }),
-        costUsage: expect.objectContaining({
+        costUsage: objectContaining({
           label: 'none',
           costSource: 'none',
           currency: 'none',
@@ -326,8 +328,8 @@ describe('withFleetGraphTrace', () => {
     expect(mocks.shareRun).not.toHaveBeenCalled();
     expect(mocks.rootSpan.setTraceAsPublic).not.toHaveBeenCalled();
     expect(capture.providers).toEqual(expect.arrayContaining([
-      expect.objectContaining({ provider: 'langsmith', sharedTraceUrl: null }),
-      expect.objectContaining({ provider: 'langfuse', sharedTraceUrl: null }),
+      objectContaining({ provider: 'langsmith', sharedTraceUrl: null }),
+      objectContaining({ provider: 'langfuse', sharedTraceUrl: null }),
     ]));
   });
 
@@ -347,7 +349,7 @@ describe('withFleetGraphTrace', () => {
     expect(findCreateRun('fleetgraph.detectorDecision')).toMatchObject({
       inputs: { node: 'detectorDecision', triggerType: 'detector_decision' },
     });
-    expect(mocks.updateRun).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+    expect(mocks.updateRun).toHaveBeenCalledWith(expect.any(String), objectContaining({
       error: 'node failed',
     }));
   });
@@ -398,11 +400,11 @@ describe('withFleetGraphTrace', () => {
     });
 
     expect(failures).toEqual(['LangSmith score failed']);
-    expect(mocks.createFeedback).toHaveBeenCalledWith(expect.any(String), 'usage_present', expect.objectContaining({
+    expect(mocks.createFeedback).toHaveBeenCalledWith(expect.any(String), 'usage_present', objectContaining({
       score: 1,
       comment: 'usage present',
     }));
-    expect(mocks.langfuseScoreCreate).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mocks.langfuseScoreCreate).toHaveBeenCalledWith(objectContaining({
       traceId: 'langfuse-trace-id',
       name: 'usage_present',
       value: 1,

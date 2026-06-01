@@ -24,6 +24,7 @@ import getPort, { portNumbers } from 'get-port';
 import bcrypt from 'bcryptjs';
 import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import os from 'os';
+import { type IdRow, requireFirstRow } from './e2e-seed-rows';
 
 /**
  * Get port for a worker with collision avoidance.
@@ -35,17 +36,25 @@ import os from 'os';
  * - Worker 1: 50100-50199
  * - etc.
  */
-async function getWorkerPort(workerIndex: number): Promise<number> {
+async function getWorkerPort(workerIndex: number, serviceOffset: number): Promise<number> {
   const BASE_PORT = 10000;
   const MAX_PORT = 65535;
-  const PORTS_PER_WORKER = 100;
+  const PORTS_PER_SERVICE = 50;
+  const SERVICES_PER_WORKER = 2;
+  const PORTS_PER_WORKER = PORTS_PER_SERVICE * SERVICES_PER_WORKER;
   const AVAILABLE_RANGE = MAX_PORT - BASE_PORT; // 55535 ports available
   const MAX_WORKERS = Math.floor(AVAILABLE_RANGE / PORTS_PER_WORKER); // 555 workers max
+  const shardIndex = Number.parseInt(process.env.E2E_SHARD_INDEX || '1', 10);
+  const shardTotal = Number.parseInt(process.env.E2E_SHARD_TOTAL || '1', 10);
+  const shardOffset = Number.isFinite(shardIndex) && Number.isFinite(shardTotal)
+    ? Math.max(0, shardIndex - 1) * Math.max(1, shardTotal)
+    : 0;
 
-  // Wrap worker index to stay within valid port range
-  const wrappedIndex = workerIndex % MAX_WORKERS;
-  const startPort = BASE_PORT + wrappedIndex * PORTS_PER_WORKER;
-  const endPort = Math.min(startPort + PORTS_PER_WORKER - 1, MAX_PORT);
+  // Wrap worker index to stay within valid port range. Include shard identity because
+  // Playwright worker indexes reset inside each parallel shard process.
+  const wrappedIndex = (workerIndex + shardOffset) % MAX_WORKERS;
+  const startPort = BASE_PORT + wrappedIndex * PORTS_PER_WORKER + serviceOffset * PORTS_PER_SERVICE;
+  const endPort = Math.min(startPort + PORTS_PER_SERVICE - 1, MAX_PORT);
 
   return getPort({ port: portNumbers(startPort, endPort) });
 }
@@ -148,7 +157,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       const workerTag = `[Worker ${workerInfo.workerIndex}]`;
       const debug = process.env.DEBUG === '1';
       // Use worker-specific port range to avoid collisions between parallel workers
-      const port = await getWorkerPort(workerInfo.workerIndex);
+      const port = await getWorkerPort(workerInfo.workerIndex, 0);
       const dbUrl = dbContainer.getConnectionUri();
 
       if (debug) console.log(`${workerTag} Starting API server on port ${port}...`);
@@ -174,12 +183,12 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
       try {
         // Log server output for debugging
-        proc.stdout?.on('data', (data) => {
+        proc.stdout?.on('data', (data: Buffer | string) => {
           if (process.env.DEBUG) {
             console.log(`${workerTag} API: ${data.toString().trim()}`);
           }
         });
-        proc.stderr?.on('data', (data) => {
+        proc.stderr?.on('data', (data: Buffer | string) => {
           console.error(`${workerTag} API ERROR: ${data.toString().trim()}`);
         });
 
@@ -211,7 +220,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       const workerTag = `[Worker ${workerInfo.workerIndex}]`;
       const debug = process.env.DEBUG === '1';
       // Use worker-specific port range (separate from API port)
-      const port = await getWorkerPort(workerInfo.workerIndex);
+      const port = await getWorkerPort(workerInfo.workerIndex, 1);
 
       // Extract API port from URL
       const apiPort = new URL(apiServer.url).port;
@@ -239,21 +248,27 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       });
 
       try {
+        const previewOutput: string[] = [];
         // Log output for debugging
-        proc.stdout?.on('data', (data) => {
-          if (process.env.DEBUG) {
-            console.log(`${workerTag} Preview: ${data.toString().trim()}`);
-          }
+        proc.stdout?.on('data', (data: Buffer | string) => {
+          const text = data.toString().trim();
+          previewOutput.push(text);
+          if (previewOutput.length > 20) previewOutput.shift();
+          if (process.env.DEBUG) console.log(`${workerTag} Preview: ${text}`);
         });
-        proc.stderr?.on('data', (data) => {
+        proc.stderr?.on('data', (data: Buffer | string) => {
           // Vite uses stderr for some normal output
-          if (process.env.DEBUG) {
-            console.log(`${workerTag} Preview: ${data.toString().trim()}`);
-          }
+          const text = data.toString().trim();
+          previewOutput.push(text);
+          if (previewOutput.length > 20) previewOutput.shift();
+          if (process.env.DEBUG) console.log(`${workerTag} Preview: ${text}`);
         });
 
         const webUrl = `http://localhost:${port}`;
-        await waitForServer(webUrl, 30000); // Preview starts much faster than dev
+        await waitForServer(webUrl, Number(process.env.E2E_WEB_STARTUP_TIMEOUT_MS || 60000), () => {
+          const exitCode = proc.exitCode === null ? 'still running' : `exited ${proc.exitCode}`;
+          return `${workerTag} Vite preview ${exitCode}. Recent output:\n${previewOutput.join('\n') || '<none>'}`;
+        });
         if (debug) console.log(`${workerTag} Vite preview server ready at ${webUrl}`);
 
         await use({ url: webUrl, process: proc });
@@ -347,22 +362,22 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
   const nowUtc = new Date();
   const threeMonthsAgoUtc = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth() - 3, nowUtc.getUTCDate()));
   const sprintStartDateStr = threeMonthsAgoUtc.toISOString().split('T')[0];
-  const workspaceResult = await pool.query(
+  const workspaceResult = await pool.query<IdRow>(
     `INSERT INTO workspaces (name, sprint_start_date)
      VALUES ('Test Workspace', $1)
      RETURNING id`,
     [sprintStartDateStr]
   );
-  const workspaceId = workspaceResult.rows[0].id;
+  const workspaceId = requireFirstRow(workspaceResult.rows).id;
 
   // Create test user
-  const userResult = await pool.query(
+  const userResult = await pool.query<IdRow>(
     `INSERT INTO users (email, password_hash, name, is_super_admin, last_workspace_id)
      VALUES ('dev@ship.local', $1, 'Dev User', true, $2)
      RETURNING id`,
     [passwordHash, workspaceId]
   );
-  const userId = userResult.rows[0].id;
+  const userId = requireFirstRow(userResult.rows).id;
 
   // Create workspace membership
   await pool.query(
@@ -372,22 +387,22 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
   );
 
   // Create person document for user
-  const personResult = await pool.query(
+  const personResult = await pool.query<IdRow>(
     `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
      VALUES ($1, 'person', 'Dev User', $2, $3)
      RETURNING id`,
     [workspaceId, JSON.stringify({ user_id: userId, email: 'dev@ship.local' }), userId]
   );
-  const personId = personResult.rows[0].id;
+  const personId = requireFirstRow(personResult.rows).id;
 
   // Create a member user (non-admin) for authorization tests
-  const memberResult = await pool.query(
+  const memberResult = await pool.query<IdRow>(
     `INSERT INTO users (email, password_hash, name, is_super_admin, last_workspace_id)
      VALUES ('bob.martinez@ship.local', $1, 'Bob Martinez', false, $2)
      RETURNING id`,
     [passwordHash, workspaceId]
   );
-  const memberId = memberResult.rows[0].id;
+  const memberId = requireFirstRow(memberResult.rows).id;
 
   // Create workspace membership as regular member (not admin)
   await pool.query(
@@ -415,7 +430,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
 
   const programIds: Record<string, string> = {};
   for (const prog of programs) {
-    const result = await pool.query(
+    const result = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'program', $2, $3, $4)
        RETURNING id`,
@@ -431,7 +446,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
         userId,
       ]
     );
-    programIds[prog.key] = result.rows[0].id;
+    programIds[prog.key] = requireFirstRow(result.rows).id;
   }
 
   // Calculate current sprint number (1-week sprints) using UTC to match API (team.ts:1639-1647)
@@ -452,7 +467,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
         const sprintStartDate = new Date(threeMonthsAgoUtc.getTime() + (sprintNum - 1) * 7 * 24 * 60 * 60 * 1000);
         const startDateStr = sprintStartDate.toISOString().split('T')[0];
 
-        const result = await pool.query(
+        const result = await pool.query<IdRow>(
           `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
            VALUES ($1, 'sprint', $2, $3, $4)
            RETURNING id`,
@@ -463,7 +478,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
             userId,
           ]
         );
-        const sprintId = result.rows[0].id;
+        const sprintId = requireFirstRow(result.rows).id;
         sprintIds[prog.key][sprintNum] = sprintId;
 
         // Create association to program via junction table (required for API queries)
@@ -520,7 +535,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       ? sprintIds['SHIP'][currentSprintNumber + issue.sprintOffset] || null
       : null;
 
-    const issueResult = await pool.query(
+    const issueResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
        VALUES ($1, 'issue', $2, $3, $4, $5)
        RETURNING id`,
@@ -539,7 +554,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       ]
     );
 
-    const issueId = issueResult.rows[0].id;
+    const issueId = requireFirstRow(issueResult.rows).id;
 
     // Create program association via document_associations (replaces legacy program_id column)
     await pool.query(
@@ -573,7 +588,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       const progSprintId = issueTemplate.state !== 'backlog'
         ? sprintIds[prog.key][currentSprintNumber] || null
         : null;
-      const progIssueResult = await pool.query(
+      const progIssueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
          VALUES ($1, 'issue', $2, $3, $4, $5)
          RETURNING id`,
@@ -592,7 +607,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
         ]
       );
 
-      const progIssueId = progIssueResult.rows[0].id;
+      const progIssueId = requireFirstRow(progIssueResult.rows).id;
 
       // Create program association via document_associations
       await pool.query(
@@ -633,18 +648,20 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
     if (issue.rejection_reason) {
       properties.rejection_reason = issue.rejection_reason;
     }
-    const extIssueResult = await pool.query(
+    const extIssueResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
        VALUES ($1, 'issue', $2, $3, $4, $5)
        RETURNING id`,
       [workspaceId, issue.title, JSON.stringify(properties), ticketNumber, userId]
     );
 
+    const extIssueId = requireFirstRow(extIssueResult.rows).id;
+
     // Create program association via document_associations
     await pool.query(
       `INSERT INTO document_associations (document_id, related_id, relationship_type)
        VALUES ($1, $2, 'program')`,
-      [extIssueResult.rows[0].id, programIds['SHIP']]
+      [extIssueId, programIds['SHIP']]
     );
   }
 
@@ -659,7 +676,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
 
   const projectIds: Record<string, string> = {};
   for (const project of projects) {
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'project', $2, $3, $4)
        RETURNING id`,
@@ -670,13 +687,14 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
         userId,
       ]
     );
-    projectIds[project.programKey] = projectResult.rows[0].id;
+    const projectId = requireFirstRow(projectResult.rows).id;
+    projectIds[project.programKey] = projectId;
 
     // Create association to program via junction table
     await pool.query(
       `INSERT INTO document_associations (document_id, related_id, relationship_type)
        VALUES ($1, $2, 'program')`,
-      [projectResult.rows[0].id, programIds[project.programKey]]
+      [projectId, programIds[project.programKey]]
     );
   }
 
@@ -695,7 +713,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
 
     if (!sprintId || !projId) continue;
 
-    const issueResult = await pool.query(
+    const issueResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
        VALUES ($1, 'issue', $2, $3, $4, $5)
        RETURNING id`,
@@ -712,7 +730,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
         userId,
       ]
     );
-    const issueId = issueResult.rows[0].id;
+    const issueId = requireFirstRow(issueResult.rows).id;
 
     // Create associations for sprint, project, and program
     await pool.query(
@@ -731,7 +749,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
 
   // Create sprint allocation documents (person assigned to project for a week)
   // The team/reviews endpoint queries sprints with assignee_ids
-  const allocationSprintResult = await pool.query(
+  const allocationSprintResult = await pool.query<IdRow>(
     `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
      VALUES ($1, 'sprint', $2, $3, $4)
      RETURNING id`,
@@ -748,7 +766,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       userId,
     ]
   );
-  const allocationSprintId = allocationSprintResult.rows[0].id;
+  const allocationSprintId = requireFirstRow(allocationSprintResult.rows).id;
 
   // Associate allocation sprint with program
   await pool.query(
@@ -766,13 +784,13 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       { type: 'paragraph', content: [{ type: 'text', text: 'This is the welcome document with example content for testing.' }] },
     ],
   };
-  const parentDocResult = await pool.query(
+  const parentDocResult = await pool.query<IdRow>(
     `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
      VALUES ($1, 'wiki', 'Welcome to Ship', $2, $3)
      RETURNING id`,
     [workspaceId, JSON.stringify(welcomeContent), userId]
   );
-  const parentDocId = parentDocResult.rows[0].id;
+  const parentDocId = requireFirstRow(parentDocResult.rows).id;
 
   // Create child documents to enable tree expand/collapse testing
   const childDocs = [
@@ -786,6 +804,19 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
        VALUES ($1, 'wiki', $2, $3, $4)`,
       [workspaceId, child.title, parentDocId, userId]
     );
+  }
+
+  const nestedWikiCheck = await pool.query<{ child_count: number }>(
+    `SELECT COUNT(*)::int AS child_count
+     FROM documents
+     WHERE workspace_id = $1
+       AND document_type = 'wiki'
+       AND parent_id = $2`,
+    [workspaceId, parentDocId]
+  );
+  const nestedWikiChildCount = requireFirstRow(nestedWikiCheck.rows).child_count;
+  if (nestedWikiChildCount < childDocs.length) {
+    throw new Error(`E2E seed failed to create nested wiki documents: expected ${childDocs.length}, got ${nestedWikiChildCount}`);
   }
 
   // Create additional top-level wiki documents for tests that require multiple documents
@@ -812,7 +843,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
 /**
  * Wait for a server to respond successfully
  */
-async function waitForServer(url: string, timeout: number): Promise<void> {
+async function waitForServer(url: string, timeout: number, details?: () => string): Promise<void> {
   const start = Date.now();
   let lastError: Error | null = null;
 
@@ -829,7 +860,8 @@ async function waitForServer(url: string, timeout: number): Promise<void> {
     await new Promise((r) => setTimeout(r, 200));
   }
 
-  throw new Error(`Server at ${url} did not start within ${timeout}ms. Last error: ${lastError?.message}`);
+  const suffix = details ? `\n${details()}` : '';
+  throw new Error(`Server at ${url} did not start within ${timeout}ms. Last error: ${lastError?.message}${suffix}`);
 }
 
 // Re-export expect for convenience

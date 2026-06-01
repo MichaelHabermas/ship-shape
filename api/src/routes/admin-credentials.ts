@@ -337,9 +337,14 @@ router.get('/', authMiddleware, superAdminMiddleware, async (_req: Request, res:
  */
 router.post('/save', authMiddleware, superAdminMiddleware, async (req: Request, res: Response): Promise<void> => {
   const { userId: actorUserId } = getAuthenticatedUserContext(req);
-  const { issuer_url, client_id, client_secret } = req.body;
-  const submittedIssuerUrl = (issuer_url || '').trim();
-  const submittedClientId = (client_id || '').trim();
+  const body = req.body as {
+    issuer_url?: string;
+    client_id?: string;
+    client_secret?: string;
+  };
+  const { issuer_url, client_id, client_secret } = body;
+  const submittedIssuerUrl = (issuer_url ?? '').trim();
+  const submittedClientId = (client_id ?? '').trim();
 
   // Validate required fields
   if (!submittedIssuerUrl || !submittedClientId) {

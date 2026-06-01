@@ -1,4 +1,5 @@
 import globals from 'globals';
+import importX from 'eslint-plugin-import-x';
 import tseslint from 'typescript-eslint';
 
 const typedFileGlobs = [
@@ -8,11 +9,24 @@ const typedFileGlobs = [
   'e2e/**/*.ts',
 ];
 
+const maxLinesExemptGlobs = [
+  '**/generated/**',
+  '**/*.test.ts',
+  '**/*.spec.ts',
+  'e2e/**/*.ts',
+  'api/src/db/migrations/**',
+];
+
+const maxLinesRule = [
+  'warn',
+  { max: 500, skipBlankLines: true, skipComments: true },
+];
+
 const typeSafetyRules = {
-  '@typescript-eslint/no-explicit-any': 'warn',
-  '@typescript-eslint/no-non-null-assertion': 'warn',
+  '@typescript-eslint/no-explicit-any': 'error',
+  '@typescript-eslint/no-non-null-assertion': 'error',
   '@typescript-eslint/no-unused-vars': [
-    'warn',
+    'error',
     {
       argsIgnorePattern: '^_',
       caughtErrorsIgnorePattern: '^_',
@@ -27,24 +41,26 @@ const typeSafetyRules = {
       objectLiteralTypeAssertions: 'never',
     },
   ],
+  'max-lines': maxLinesRule,
+  'import-x/no-duplicates': 'error',
 };
 
 const typedTypeSafetyRules = {
   ...typeSafetyRules,
-  '@typescript-eslint/no-unsafe-assignment': 'warn',
-  '@typescript-eslint/no-unsafe-member-access': 'warn',
-  '@typescript-eslint/no-unsafe-argument': 'warn',
-  '@typescript-eslint/no-unsafe-return': 'warn',
-  '@typescript-eslint/no-unsafe-call': 'warn',
-  '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
+  '@typescript-eslint/no-unsafe-assignment': 'error',
+  '@typescript-eslint/no-unsafe-member-access': 'error',
+  '@typescript-eslint/no-unsafe-argument': 'error',
+  '@typescript-eslint/no-unsafe-return': 'error',
+  '@typescript-eslint/no-unsafe-call': 'error',
+  '@typescript-eslint/no-unnecessary-type-assertion': 'error',
   '@typescript-eslint/no-unnecessary-condition': 'off',
-  '@typescript-eslint/no-redundant-type-constituents': 'warn',
-  '@typescript-eslint/no-non-null-asserted-optional-chain': 'warn',
-  '@typescript-eslint/no-non-null-asserted-nullish-coalescing': 'warn',
+  '@typescript-eslint/no-redundant-type-constituents': 'error',
+  '@typescript-eslint/no-non-null-asserted-optional-chain': 'error',
+  '@typescript-eslint/no-non-null-asserted-nullish-coalescing': 'error',
   '@typescript-eslint/no-floating-promises': 'off',
-  '@typescript-eslint/await-thenable': 'warn',
+  '@typescript-eslint/await-thenable': 'error',
   '@typescript-eslint/no-misused-promises': 'off',
-  '@typescript-eslint/restrict-template-expressions': 'warn',
+  '@typescript-eslint/restrict-template-expressions': 'error',
   '@typescript-eslint/explicit-module-boundary-types': 'off',
   '@typescript-eslint/switch-exhaustiveness-check': 'off',
   '@typescript-eslint/strict-boolean-expressions': 'off',
@@ -75,6 +91,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tseslint.plugin,
+      'import-x': importX,
     },
     rules: typeSafetyRules,
   },
@@ -96,6 +113,12 @@ export default [
     files: ['api/src/**/*.ts', 'shared/src/**/*.ts', 'e2e/**/*.ts'],
     languageOptions: {
       globals: globals.node,
+    },
+  },
+  {
+    files: maxLinesExemptGlobs,
+    rules: {
+      'max-lines': 'off',
     },
   },
 ];

@@ -66,7 +66,9 @@ describe('Icon component behavior', () => {
 
     // Should warn about invalid icon name
     expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Invalid icon name')
+      'Icon: Invalid icon name.',
+      'definitely-not-real',
+      'Check available icons in types.ts.',
     );
 
     consoleSpy.mockRestore();

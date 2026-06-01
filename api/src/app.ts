@@ -1,22 +1,22 @@
 // Express app assembly wires middleware, security policy, and API route modules.
-import express from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.js';
-import documentsRoutes from './routes/documents.js';
-import issuesRoutes from './routes/issues.js';
+import documentsRoutes from './routes/documents/index.js';
+import issuesRoutes from './routes/issues/index.js';
 import feedbackRoutes, { publicFeedbackRouter } from './routes/feedback.js';
 import programsRoutes from './routes/programs.js';
 import projectsRoutes from './routes/projects.js';
-import weeksRoutes from './routes/weeks.js';
+import weeksRoutes from './routes/weeks/index.js';
 import standupsRoutes from './routes/standups.js';
 import iterationsRoutes from './routes/iterations.js';
-import teamRoutes from './routes/team.js';
-import workspacesRoutes from './routes/workspaces.js';
-import adminRoutes from './routes/admin.js';
+import teamRoutes from './routes/team/index.js';
+import workspacesRoutes from './routes/workspaces/index.js';
+import adminRoutes from './routes/admin/index.js';
 import invitesRoutes from './routes/invites.js';
 import setupRoutes from './routes/setup.js';
 import devRoutes from './routes/dev.js';
@@ -26,15 +26,15 @@ import { filesRouter } from './routes/files.js';
 import caiaAuthRoutes from './routes/caia-auth.js';
 import apiTokensRoutes from './routes/api-tokens.js';
 import adminCredentialsRoutes from './routes/admin-credentials.js';
-import claudeRoutes from './routes/claude.js';
+import claudeRoutes from './routes/claude/context-route.js';
 import activityRoutes from './routes/activity.js';
-import dashboardRoutes from './routes/dashboard.js';
+import dashboardRoutes from './routes/dashboard/index.js';
 import bootstrapRoutes from './routes/bootstrap.js';
 import associationsRoutes from './routes/associations.js';
 import accountabilityRoutes from './routes/accountability.js';
 import aiRoutes from './routes/ai.js';
-import fleetgraphRoutes from './routes/fleetgraph.js';
-import weeklyPlansRoutes, { weeklyRetrosRouter } from './routes/weekly-plans.js';
+import fleetgraphRoutes from './routes/fleetgraph/index.js';
+import weeklyPlansRoutes, { weeklyRetrosRouter } from './routes/weekly-plans/index.js';
 import { documentCommentsRouter, commentsRouter } from './routes/comments.js';
 import { authMiddleware } from './middleware/auth.js';
 import { setupSwagger } from './swagger.js';
@@ -54,7 +54,6 @@ function getHeaderValue(value: string | string[] | undefined): string | undefine
 }
 
 // Conditional CSRF middleware - skip for API token auth (Bearer tokens are not vulnerable to CSRF)
-import { Request, Response, NextFunction } from 'express';
 const CSRF_COOKIE_NAME = 'csrf_token';
 
 function generateCsrfToken(): string {
@@ -85,7 +84,8 @@ const conditionalCsrf = (req: Request, res: Response, next: NextFunction) => {
     return next();
   }
 
-  const expectedToken = req.signedCookies?.[CSRF_COOKIE_NAME];
+  const signedCookies = req.signedCookies as Record<string, unknown> | undefined;
+  const expectedToken = signedCookies?.[CSRF_COOKIE_NAME];
   const presentedToken = getHeaderValue(req.headers['x-csrf-token']);
   if (
     typeof expectedToken !== 'string'

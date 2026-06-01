@@ -29,6 +29,10 @@ export const BaseDocumentSchema = z.object({
   parent_id: UuidSchema.nullable().optional().openapi({
     description: 'Parent document ID for hierarchical wiki pages',
   }),
+  visibility: DocumentVisibilitySchema.optional(),
+  converted_from_id: UuidSchema.nullable().optional().openapi({
+    description: 'Source document ID when this row was produced by type conversion',
+  }),
   created_at: DateTimeSchema,
   updated_at: DateTimeSchema,
   archived_at: DateTimeSchema.nullable().optional(),
@@ -45,6 +49,7 @@ export const DocumentListItemSchema = z.object({
   title: z.string(),
   document_type: DocumentTypeSchema,
   parent_id: UuidSchema.nullable().optional(),
+  visibility: DocumentVisibilitySchema.optional(),
   created_at: DateTimeSchema,
   updated_at: DateTimeSchema,
 }).openapi('DocumentListItem');
@@ -82,6 +87,24 @@ export const UpdateDocumentSchema = z.object({
 }).openapi('UpdateDocument');
 
 registry.register('UpdateDocument', UpdateDocumentSchema);
+
+export const DocumentNotFoundErrorSchema = z.object({
+  error: z.literal('Document not found'),
+}).openapi('DocumentNotFoundError');
+
+registry.register('DocumentNotFoundError', DocumentNotFoundErrorSchema);
+
+export const ParentDocumentNotFoundErrorSchema = z.object({
+  error: z.literal('Parent document not found'),
+}).openapi('ParentDocumentNotFoundError');
+
+registry.register('ParentDocumentNotFoundError', ParentDocumentNotFoundErrorSchema);
+
+export const DocumentConvertValidationErrorSchema = z.object({
+  error: z.literal('Cannot convert an archived document'),
+}).openapi('DocumentConvertValidationError');
+
+registry.register('DocumentConvertValidationError', DocumentConvertValidationErrorSchema);
 
 const TipTapDocumentSchema = z.object({
   type: z.string(),
@@ -164,7 +187,7 @@ registry.registerPath({
       description: 'Document not found',
       content: {
         'application/json': {
-          schema: z.object({ error: z.literal('Document not found') }),
+          schema: DocumentNotFoundErrorSchema,
         },
       },
     },
@@ -209,6 +232,14 @@ registry.registerPath({
         },
       },
     },
+    404: {
+      description: 'Parent document not found',
+      content: {
+        'application/json': {
+          schema: ParentDocumentNotFoundErrorSchema,
+        },
+      },
+    },
   },
 });
 
@@ -239,8 +270,21 @@ registry.registerPath({
         },
       },
     },
+    403: {
+      description: 'Forbidden',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
     404: {
       description: 'Document not found',
+      content: {
+        'application/json': {
+          schema: DocumentNotFoundErrorSchema,
+        },
+      },
     },
   },
 });
@@ -260,8 +304,21 @@ registry.registerPath({
     204: {
       description: 'Document deleted',
     },
+    403: {
+      description: 'Forbidden',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
     404: {
       description: 'Document not found',
+      content: {
+        'application/json': {
+          schema: DocumentNotFoundErrorSchema,
+        },
+      },
     },
   },
 });
@@ -286,18 +343,30 @@ registry.registerPath({
     200: { description: 'Command completed', content: { 'application/json': { schema: z.record(z.unknown()) } } },
     204: { description: 'Document deleted' },
     400: { description: 'Validation error', content: { 'application/json': { schema: ErrorResponseSchema } } },
-    403: { description: 'Capability denied', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    403: {
+      description: 'Capability denied',
+      content: {
+        'application/json': {
+          schema: z.union([
+            ErrorResponseSchema,
+            z.object({ error: z.literal('token_scope_denied') }),
+          ]),
+        },
+      },
+    },
     404: { description: 'Document not found' },
   },
 });
 
-const DocumentContentPayloadSchema = z
+export const DocumentContentPayloadSchema = z
   .object({
     id: UuidSchema,
     title: z.string(),
     content: z.record(z.unknown()).nullable(),
   })
   .openapi('DocumentContentPayload');
+
+registry.register('DocumentContentPayload', DocumentContentPayloadSchema);
 
 registry.registerPath({
   method: 'get',
@@ -324,7 +393,18 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: z.record(z.unknown()).nullable() } } },
   },
   responses: {
-    200: { description: 'Content updated' },
+    200: {
+      description: 'Content updated',
+      content: { 'application/json': { schema: DocumentContentPayloadSchema } },
+    },
+    403: {
+      description: 'Token scope denied',
+      content: {
+        'application/json': {
+          schema: z.object({ error: z.literal('token_scope_denied') }),
+        },
+      },
+    },
     404: { description: 'Document not found' },
   },
 });
@@ -362,6 +442,10 @@ registry.registerPath({
   },
   responses: {
     200: { description: 'Document converted', content: { 'application/json': { schema: BaseDocumentSchema } } },
+    400: {
+      description: 'Validation error',
+      content: { 'application/json': { schema: DocumentConvertValidationErrorSchema } },
+    },
     404: { description: 'Document not found' },
   },
 });

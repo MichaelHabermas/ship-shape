@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { z } from 'zod';
 import { pgCommand, pgResult } from '../test/pg-result.js';
+import { ProjectResponseSchema } from '../openapi/schemas/projects.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
+import { expectJsonBody } from '../test/expect-json-body.js';
 
 // Mock pool before importing routes
 vi.mock('../db/client.js', () => ({
@@ -16,7 +20,11 @@ vi.mock('../middleware/visibility.js', () => ({
 
 // Mock auth middleware
 vi.mock('../middleware/auth.js', () => ({
-  authMiddleware: vi.fn((req, _res, next) => {
+  authMiddleware: vi.fn((
+    req: { userId?: string; workspaceId?: string; sessionId?: string },
+    _res: unknown,
+    next: () => void,
+  ) => {
     req.userId = 'user-123';
     req.workspaceId = 'ws-123';
     req.sessionId = 'test-session';
@@ -60,6 +68,13 @@ import express from 'express';
 import request from 'supertest';
 import projectsRouter from './projects.js';
 
+const ProjectListSchema = z.array(ProjectResponseSchema);
+const LegacyApiErrorSchema = z.object({ error: z.string() });
+const ValidationErrorSchema = z.object({
+  error: z.literal('Invalid input'),
+  details: z.array(z.unknown()).optional(),
+});
+
 describe('Projects API', () => {
   let app: express.Express;
 
@@ -75,26 +90,26 @@ describe('Projects API', () => {
     it('returns array with ice_score computed field', async () => {
       const mockProjects = [
         {
-          id: 'project-1',
+          id: '11111111-1111-4111-8111-111111111111',
           title: 'High Priority Project',
-          properties: { impact: 5, confidence: 4, ease: 3, owner_id: 'owner-1', color: '#ff0000' },
+          properties: { impact: 5, confidence: 4, ease: 3, owner_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', color: '#ff0000' },
           archived_at: null,
           created_at: new Date(),
           updated_at: new Date(),
-          owner_id: 'owner-1',
+          owner_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
           owner_name: 'Owner One',
           owner_email: 'owner1@example.com',
           sprint_count: '2',
           issue_count: '5',
         },
         {
-          id: 'project-2',
+          id: '22222222-2222-4222-8222-222222222222',
           title: 'Low Priority Project',
-          properties: { impact: 2, confidence: 2, ease: 2, owner_id: 'owner-2', color: '#00ff00' },
+          properties: { impact: 2, confidence: 2, ease: 2, owner_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', color: '#00ff00' },
           archived_at: null,
           created_at: new Date(),
           updated_at: new Date(),
-          owner_id: 'owner-2',
+          owner_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
           owner_name: 'Owner Two',
           owner_email: 'owner2@example.com',
           sprint_count: '1',
@@ -106,18 +121,25 @@ describe('Projects API', () => {
 
       const res = await request(app).get('/api/projects');
 
-      expect(res.status).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body).toHaveLength(2);
+      const projects = expectOpenApiResponse({
+        method: 'get',
+        path: '/projects',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Project',
+        arrayItemSchemaName: 'Project',
+        schema: ProjectListSchema,
+      });
+      expect(projects).toHaveLength(2);
 
       // Verify ice_score is computed (5*4*3 = 60)
-      expect(res.body[0].ice_score).toBe(60);
-      expect(res.body[0].impact).toBe(5);
-      expect(res.body[0].confidence).toBe(4);
-      expect(res.body[0].ease).toBe(3);
+      expect(projects[0].ice_score).toBe(60);
+      expect(projects[0].impact).toBe(5);
+      expect(projects[0].confidence).toBe(4);
+      expect(projects[0].ease).toBe(3);
 
       // Verify ice_score for second project (2*2*2 = 8)
-      expect(res.body[1].ice_score).toBe(8);
+      expect(projects[1].ice_score).toBe(8);
     });
 
     it('returns projects sorted by ice_score descending by default', async () => {
@@ -146,15 +168,15 @@ describe('Projects API', () => {
     it('returns 400 for invalid sort field', async () => {
       const res = await request(app).get('/api/projects?sort=invalid_field');
 
-      expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Invalid sort field');
+      const error = expectJsonBody(res, 400, LegacyApiErrorSchema);
+      expect(error.error).toContain('Invalid sort field');
     });
   });
 
   describe('POST /api/projects', () => {
     it('creates project without owner_id (optional)', async () => {
       const mockProject = {
-        id: 'project-new',
+        id: '33333333-3333-4333-8333-333333333333',
         title: 'Test Project',
         properties: { impact: 4, confidence: 3, ease: 5, owner_id: null, color: '#6366f1' },
         archived_at: null,
@@ -175,14 +197,21 @@ describe('Projects API', () => {
           // owner_id intentionally omitted - should work
         });
 
-      expect(res.status).toBe(201);
-      expect(res.body.owner).toBe(null);
+      const project = expectOpenApiResponse({
+        method: 'post',
+        path: '/projects',
+        status: 201,
+        response: res,
+        openApiSchemaName: 'Project',
+        schema: ProjectResponseSchema,
+      });
+      expect(project.owner).toBe(null);
     });
 
     it('creates project with valid data including optional owner_id', async () => {
       const ownerId = '11111111-1111-1111-1111-111111111111';
       const mockProject = {
-        id: 'project-new',
+        id: '44444444-4444-4444-8444-444444444444',
         title: 'New Project',
         properties: { impact: 4, confidence: 3, ease: 5, owner_id: ownerId, color: '#6366f1' },
         archived_at: null,
@@ -206,18 +235,25 @@ describe('Projects API', () => {
           owner_id: ownerId,
         });
 
-      expect(res.status).toBe(201);
-      expect(res.body.title).toBe('New Project');
-      expect(res.body.impact).toBe(4);
-      expect(res.body.confidence).toBe(3);
-      expect(res.body.ease).toBe(5);
-      expect(res.body.ice_score).toBe(60); // 4 * 3 * 5
-      expect(res.body.owner.id).toBe(ownerId);
+      const project = expectOpenApiResponse({
+        method: 'post',
+        path: '/projects',
+        status: 201,
+        response: res,
+        openApiSchemaName: 'Project',
+        schema: ProjectResponseSchema,
+      });
+      expect(project.title).toBe('New Project');
+      expect(project.impact).toBe(4);
+      expect(project.confidence).toBe(3);
+      expect(project.ease).toBe(5);
+      expect(project.ice_score).toBe(60); // 4 * 3 * 5
+      expect(project.owner?.id).toBe(ownerId);
     });
 
     it('uses null ICE values when not provided', async () => {
       const mockProject = {
-        id: 'project-new',
+        id: '55555555-5555-4555-8555-555555555555',
         title: 'Untitled',
         properties: { impact: null, confidence: null, ease: null, owner_id: null, color: '#6366f1' },
         archived_at: null,
@@ -232,12 +268,19 @@ describe('Projects API', () => {
         .post('/api/projects')
         .send({});
 
-      expect(res.status).toBe(201);
-      expect(res.body.title).toBe('Untitled');
-      expect(res.body.impact).toBe(null);
-      expect(res.body.confidence).toBe(null);
-      expect(res.body.ease).toBe(null);
-      expect(res.body.ice_score).toBe(null);
+      const project = expectOpenApiResponse({
+        method: 'post',
+        path: '/projects',
+        status: 201,
+        response: res,
+        openApiSchemaName: 'Project',
+        schema: ProjectResponseSchema,
+      });
+      expect(project.title).toBe('Untitled');
+      expect(project.impact).toBe(null);
+      expect(project.confidence).toBe(null);
+      expect(project.ease).toBe(null);
+      expect(project.ice_score).toBe(null);
     });
 
     it('validates ICE scores are within 1-5 range', async () => {
@@ -248,21 +291,21 @@ describe('Projects API', () => {
           impact: 10, // Invalid - out of range
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe('Invalid input');
+      const error = expectJsonBody(res, 400, ValidationErrorSchema);
+      expect(error.error).toBe('Invalid input');
     });
   });
 
   describe('GET /api/projects/:id', () => {
     it('returns project with ice_score computed', async () => {
             const mockProject = {
-        id: 'project-123',
+        id: '66666666-6666-4666-8666-666666666666',
         title: 'My Project',
-        properties: { impact: 5, confidence: 5, ease: 5, owner_id: 'owner-1', color: '#123456' },
+        properties: { impact: 5, confidence: 5, ease: 5, owner_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', color: '#123456' },
         archived_at: null,
         created_at: new Date(),
         updated_at: new Date(),
-        owner_id: 'owner-1',
+        owner_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         owner_name: 'Project Owner',
         owner_email: 'owner@example.com',
         sprint_count: '3',
@@ -271,11 +314,18 @@ describe('Projects API', () => {
 
       vi.mocked(pool.query).mockResolvedValueOnce(pgResult([mockProject]));
 
-      const res = await request(app).get('/api/projects/project-123');
+      const res = await request(app).get('/api/projects/66666666-6666-4666-8666-666666666666');
 
-      expect(res.status).toBe(200);
-      expect(res.body.id).toBe('project-123');
-      expect(res.body.ice_score).toBe(125); // 5 * 5 * 5 = max score
+      const project = expectOpenApiResponse({
+        method: 'get',
+        path: '/projects/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Project',
+        schema: ProjectResponseSchema,
+      });
+      expect(project.id).toBe('66666666-6666-4666-8666-666666666666');
+      expect(project.ice_score).toBe(125); // 5 * 5 * 5 = max score
     });
 
     it('returns 404 for non-existent project', async () => {
@@ -283,26 +333,26 @@ describe('Projects API', () => {
 
       const res = await request(app).get('/api/projects/nonexistent');
 
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Project not found');
+      const error = expectJsonBody(res, 404, LegacyApiErrorSchema);
+      expect(error.error).toBe('Project not found');
     });
   });
 
   describe('PATCH /api/projects/:id', () => {
     it('updates ICE properties', async () => {
             const existingProject = {
-        id: 'project-123',
-        properties: { impact: 3, confidence: 3, ease: 3, owner_id: 'owner-1', color: '#6366f1' },
+        id: '77777777-7777-4777-8777-777777777777',
+        properties: { impact: 3, confidence: 3, ease: 3, owner_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', color: '#6366f1' },
       };
 
       const updatedProject = {
-        id: 'project-123',
+        id: '77777777-7777-4777-8777-777777777777',
         title: 'Updated Project',
-        properties: { impact: 5, confidence: 4, ease: 3, owner_id: 'owner-1', color: '#6366f1' },
+        properties: { impact: 5, confidence: 4, ease: 3, owner_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', color: '#6366f1' },
         archived_at: null,
         created_at: new Date(),
         updated_at: new Date(),
-        owner_id: 'owner-1',
+        owner_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         owner_name: 'Owner',
         owner_email: 'owner@e.com',
         sprint_count: '0',
@@ -318,13 +368,20 @@ describe('Projects API', () => {
         .mockResolvedValueOnce(pgResult([updatedProject]));
 
       const res = await request(app)
-        .patch('/api/projects/project-123')
+        .patch('/api/projects/77777777-7777-4777-8777-777777777777')
         .send({ impact: 5, confidence: 4 });
 
-      expect(res.status).toBe(200);
-      expect(res.body.impact).toBe(5);
-      expect(res.body.confidence).toBe(4);
-      expect(res.body.ice_score).toBe(60); // 5 * 4 * 3
+      const project = expectOpenApiResponse({
+        method: 'patch',
+        path: '/projects/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Project',
+        schema: ProjectResponseSchema,
+      });
+      expect(project.impact).toBe(5);
+      expect(project.confidence).toBe(4);
+      expect(project.ice_score).toBe(60); // 5 * 4 * 3
     });
 
     it('returns 404 for non-existent project', async () => {
@@ -334,8 +391,8 @@ describe('Projects API', () => {
         .patch('/api/projects/nonexistent')
         .send({ title: 'New Title' });
 
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Project not found');
+      const error = expectJsonBody(res, 404, LegacyApiErrorSchema);
+      expect(error.error).toBe('Project not found');
     });
   });
 
@@ -343,13 +400,13 @@ describe('Projects API', () => {
     it('deletes project and removes references', async () => {
       vi.mocked(pool.query)
         // Existence check
-        .mockResolvedValueOnce(pgResult([{ id: 'project-123' }]))
+        .mockResolvedValueOnce(pgResult([{ id: '88888888-8888-4888-8888-888888888888' }]))
         // Remove project associations
         .mockResolvedValueOnce(pgCommand(0))
         // Delete project
         .mockResolvedValueOnce(pgCommand(1, 'DELETE'));
 
-      const res = await request(app).delete('/api/projects/project-123');
+      const res = await request(app).delete('/api/projects/88888888-8888-4888-8888-888888888888');
 
       expect(res.status).toBe(204);
     });
@@ -359,8 +416,8 @@ describe('Projects API', () => {
 
       const res = await request(app).delete('/api/projects/nonexistent');
 
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Project not found');
+      const error = expectJsonBody(res, 404, LegacyApiErrorSchema);
+      expect(error.error).toBe('Project not found');
     });
   });
 });

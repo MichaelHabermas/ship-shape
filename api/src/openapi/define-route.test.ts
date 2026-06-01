@@ -5,6 +5,17 @@ import { z } from 'zod';
 
 import { generateOpenAPIDocument } from './registry.js';
 import { defineRoute } from './define-route.js';
+import { ApiError } from '@ship/shared';
+
+type ValidationEnvelope = {
+  success: boolean;
+  error: ApiError
+};
+
+type LegacyValidationEnvelope = {
+  error: string;
+  details: unknown[];
+};
 
 describe('defineRoute', () => {
   it('registers OpenAPI metadata for a typed route definition', () => {
@@ -47,11 +58,12 @@ describe('defineRoute', () => {
     }));
 
     const response = await request(app).get('/test/not-a-uuid');
+    const body = response.body as ValidationEnvelope;
 
     expect(response.status).toBe(400);
-    expect(response.body.success).toBe(false);
-    expect(response.body.error.code).toBe('VALIDATION_ERROR');
-    expect(response.body.error.message).toContain('params validation failed');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.error.message).toContain('params validation failed');
   });
 
   it('returns the standard validation envelope by default', async () => {
@@ -74,10 +86,11 @@ describe('defineRoute', () => {
     }));
 
     const response = await request(app).post('/test').send({ title: '' });
+    const body = response.body as ValidationEnvelope;
 
     expect(response.status).toBe(400);
-    expect(response.body.success).toBe(false);
-    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('VALIDATION_ERROR');
   });
 
   it('can preserve a legacy validation envelope for migrated routes', async () => {
@@ -103,10 +116,11 @@ describe('defineRoute', () => {
     }));
 
     const response = await request(app).post('/test').send({ title: '' });
+    const body = response.body as LegacyValidationEnvelope;
 
     expect(response.status).toBe(400);
-    expect(response.body.error).toBe('Invalid input');
-    expect(response.body.details).toEqual(expect.any(Array));
+    expect(body.error).toBe('Invalid input');
+    expect(body.details).toEqual(expect.any(Array));
   });
 
   it('documents the actual session cookie name', () => {

@@ -1,10 +1,33 @@
+// Route tests for standup CRUD, week standups, and standup status.
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import request from 'supertest'
 import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
-import { StandupResponseSchema } from '../openapi/schemas/standups.js'
+import {
+  StandupLegacyErrorSchema,
+  StandupResponseSchema,
+  StandupStatusSchema,
+  UpdatedStandupResponseSchema,
+} from '../openapi/schemas/standups.js'
+import { UuidSchema } from '../openapi/schemas/common.js'
 import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { requireFirstRow, type IdRow, type SprintStartDateRow } from '../test/pg-result.js'
+import { expectJsonBody } from '../test/expect-json-body.js'
+import { getCsrfTokenFromApp } from '../test/session-csrf.js'
+import { z } from 'zod'
+
+const WeekStandupSchema = z.object({
+  id: UuidSchema,
+  title: z.string(),
+  content: z.record(z.unknown()).nullable().optional(),
+  author_id: UuidSchema,
+  author_name: z.string().optional(),
+  sprint_id: UuidSchema.optional(),
+  created_at: z.string(),
+}).passthrough()
+
+const WeekStandupsListSchema = z.array(WeekStandupSchema)
 
 describe('Standups API', () => {
   const app = createApp()
@@ -25,37 +48,37 @@ describe('Standups API', () => {
 
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
     // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Test User')
        RETURNING id`,
       [testEmail]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
     // Create other user (for testing authorization)
-    const otherUserResult = await pool.query(
+    const otherUserResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Other User')
        RETURNING id`,
       [otherEmail]
     )
-    otherUserId = otherUserResult.rows[0].id
+    otherUserId = requireFirstRow(otherUserResult.rows).id
 
     // Create workspace memberships
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [testWorkspaceId, testUserId]
     )
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [testWorkspaceId, otherUserId]
@@ -63,7 +86,7 @@ describe('Standups API', () => {
 
     // Create session for test user
     const sessionId = crypto.randomBytes(32).toString('hex')
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
        VALUES ($1, $2, $3, now() + interval '1 hour')`,
       [sessionId, testUserId, testWorkspaceId]
@@ -72,52 +95,41 @@ describe('Standups API', () => {
 
     // Create session for other user
     const otherSessionId = crypto.randomBytes(32).toString('hex')
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
        VALUES ($1, $2, $3, now() + interval '1 hour')`,
       [otherSessionId, otherUserId, testWorkspaceId]
     )
     otherSessionCookie = `session_id=${otherSessionId}`
 
-    // Get CSRF tokens
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie)
-    csrfToken = csrfRes.body.token
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
+    csrfToken = csrf.token
+    sessionCookie = csrf.sessionCookie
 
-    const otherCsrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', otherSessionCookie)
-    otherCsrfToken = otherCsrfRes.body.token
-    const otherConnectSidCookie = otherCsrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (otherConnectSidCookie) {
-      otherSessionCookie = `${otherSessionCookie}; ${otherConnectSidCookie}`
-    }
+    const otherCsrf = await getCsrfTokenFromApp(app, otherSessionCookie)
+    otherCsrfToken = otherCsrf.token
+    otherSessionCookie = otherCsrf.sessionCookie
 
     // Create a program (required for sprint)
-    const programResult = await pool.query(
+    const programResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility)
        VALUES ($1, 'program', 'Test Program', $2, 'workspace')
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testProgramId = programResult.rows[0].id
+    testProgramId = requireFirstRow(programResult.rows).id
 
     // Create a sprint for standup tests
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, parent_id, visibility)
        VALUES ($1, 'sprint', 'Test Sprint', $2, $3, 'workspace')
        RETURNING id`,
       [testWorkspaceId, testUserId, testProgramId]
     )
-    testSprintId = sprintResult.rows[0].id
+    testSprintId = requireFirstRow(sprintResult.rows).id
 
     // Associate sprint with program
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO document_associations (document_id, related_id, relationship_type)
        VALUES ($1, $2, 'program')`,
       [testSprintId, testProgramId]
@@ -134,7 +146,7 @@ describe('Standups API', () => {
 
   beforeEach(async () => {
     // Clean up standups before each test
-    await pool.query(
+    await pool.query<IdRow>(
       `DELETE FROM documents WHERE workspace_id = $1 AND document_type = 'standup'`,
       [testWorkspaceId]
     )
@@ -144,7 +156,7 @@ describe('Standups API', () => {
     const standupDate = '2026-05-22'
 
     beforeEach(async () => {
-      await pool.query(
+      await pool.query<IdRow>(
         `DELETE FROM documents
          WHERE workspace_id = $1
            AND document_type = 'standup'
@@ -180,7 +192,14 @@ describe('Standups API', () => {
         .set('x-csrf-token', csrfToken)
         .send({ date: standupDate })
 
-      expect(firstResponse.status).toBe(201)
+      const firstStandup = expectOpenApiResponse({
+        method: 'post',
+        path: '/standups',
+        status: 201,
+        response: firstResponse,
+        openApiSchemaName: 'Standup',
+        schema: StandupResponseSchema,
+      })
 
       const secondResponse = await request(app)
         .post('/api/standups')
@@ -196,7 +215,7 @@ describe('Standups API', () => {
         openApiSchemaName: 'Standup',
         schema: StandupResponseSchema,
       })
-      expect(standup.id).toBe(firstResponse.body.id)
+      expect(standup.id).toBe(firstStandup.id)
     })
 
     it('returns 403 without auth (CSRF check first)', async () => {
@@ -219,11 +238,11 @@ describe('Standups API', () => {
           title: 'Daily Standup'
         })
 
-      expect(response.status).toBe(201)
-      expect(response.body.id).toBeDefined()
-      expect(response.body.sprint_id).toBe(testSprintId)
-      expect(response.body.author_id).toBe(testUserId)
-      expect(response.body.title).toBe('Daily Standup')
+      const standup = expectJsonBody(response, 201, WeekStandupSchema)
+      expect(standup.id).toBeDefined()
+      expect(standup.sprint_id).toBe(testSprintId)
+      expect(standup.author_id).toBe(testUserId)
+      expect(standup.title).toBe('Daily Standup')
     })
 
     it('returns 404 for non-existent sprint', async () => {
@@ -234,8 +253,8 @@ describe('Standups API', () => {
         .set('x-csrf-token', csrfToken)
         .send({ content: { type: 'doc', content: [] } })
 
-      expect(response.status).toBe(404)
-      expect(response.body.error).toBe('Week not found')
+      const error = expectJsonBody(response, 404, StandupLegacyErrorSchema)
+      expect(error.error).toBe('Week not found')
     })
 
     it('returns 403 without auth (CSRF check first)', async () => {
@@ -253,20 +272,20 @@ describe('Standups API', () => {
         .set('x-csrf-token', csrfToken)
         .send({})
 
-      expect(response.status).toBe(201)
-      expect(response.body.title).toBe('Standup Update')
+      const standup = expectJsonBody(response, 201, WeekStandupSchema)
+      expect(standup.title).toBe('Standup Update')
     })
   })
 
   describe('GET /api/weeks/:id/standups', () => {
     it('returns array sorted newest first', async () => {
       // Create two standups with different timestamps
-      await pool.query(
+      await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, parent_id, created_by, properties, visibility, created_at)
          VALUES ($1, 'standup', 'First', $2, $3, $4, 'workspace', now() - interval '1 hour')`,
         [testWorkspaceId, testSprintId, testUserId, JSON.stringify({ author_id: testUserId })]
       )
-      await pool.query(
+      await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, parent_id, created_by, properties, visibility, created_at)
          VALUES ($1, 'standup', 'Second', $2, $3, $4, 'workspace', now())`,
         [testWorkspaceId, testSprintId, testUserId, JSON.stringify({ author_id: testUserId })]
@@ -276,11 +295,10 @@ describe('Standups API', () => {
         .get(`/api/weeks/${testSprintId}/standups`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(Array.isArray(response.body)).toBe(true)
-      expect(response.body.length).toBe(2)
-      expect(response.body[0].title).toBe('Second') // Newest first
-      expect(response.body[1].title).toBe('First')
+      const standups = expectJsonBody(response, 200, WeekStandupsListSchema)
+      expect(standups.length).toBe(2)
+      expect(standups[0].title).toBe('Second') // Newest first
+      expect(standups[1].title).toBe('First')
     })
 
     it('returns empty array for sprint with no standups', async () => {
@@ -288,8 +306,8 @@ describe('Standups API', () => {
         .get(`/api/weeks/${testSprintId}/standups`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body).toEqual([])
+      const standups = expectJsonBody(response, 200, WeekStandupsListSchema)
+      expect(standups).toEqual([])
     })
 
     it('returns 404 for non-existent sprint', async () => {
@@ -307,13 +325,13 @@ describe('Standups API', () => {
 
     beforeEach(async () => {
       // Create a standup for update tests
-      const result = await pool.query(
+      const result = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, parent_id, created_by, properties, visibility)
          VALUES ($1, 'standup', 'Original Title', $2, $3, $4, 'workspace')
          RETURNING id`,
         [testWorkspaceId, testSprintId, testUserId, JSON.stringify({ author_id: testUserId })]
       )
-      standupId = result.rows[0].id
+      standupId = requireFirstRow(result.rows).id
     })
 
     it('updates content and returns 200', async () => {
@@ -324,9 +342,9 @@ describe('Standups API', () => {
         .set('x-csrf-token', csrfToken)
         .send({ content: newContent, title: 'Updated Title' })
 
-      expect(response.status).toBe(200)
-      expect(response.body.title).toBe('Updated Title')
-      expect(response.body.content).toEqual(newContent)
+      const standup = expectJsonBody(response, 200, UpdatedStandupResponseSchema)
+      expect(standup.title).toBe('Updated Title')
+      expect(standup.content).toEqual(newContent)
     })
 
     it('returns 403 for non-author', async () => {
@@ -336,8 +354,8 @@ describe('Standups API', () => {
         .set('x-csrf-token', otherCsrfToken)
         .send({ title: 'Hacked Title' })
 
-      expect(response.status).toBe(403)
-      expect(response.body.error).toContain('Only the author')
+      const error = expectJsonBody(response, 403, StandupLegacyErrorSchema)
+      expect(error.error).toContain('Only the author')
     })
 
     it('returns 404 for non-existent standup', async () => {
@@ -356,13 +374,13 @@ describe('Standups API', () => {
     let standupId: string
 
     beforeEach(async () => {
-      const result = await pool.query(
+      const result = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, parent_id, created_by, properties, visibility)
          VALUES ($1, 'standup', 'To Delete', $2, $3, $4, 'workspace')
          RETURNING id`,
         [testWorkspaceId, testSprintId, testUserId, JSON.stringify({ author_id: testUserId })]
       )
-      standupId = result.rows[0].id
+      standupId = requireFirstRow(result.rows).id
     })
 
     it('removes standup and returns 204', async () => {
@@ -374,7 +392,7 @@ describe('Standups API', () => {
       expect(response.status).toBe(204)
 
       // Verify deletion
-      const checkResult = await pool.query(
+      const checkResult = await pool.query<IdRow>(
         'SELECT id FROM documents WHERE id = $1',
         [standupId]
       )
@@ -387,8 +405,8 @@ describe('Standups API', () => {
         .set('Cookie', otherSessionCookie)
         .set('x-csrf-token', otherCsrfToken)
 
-      expect(response.status).toBe(403)
-      expect(response.body.error).toContain('Only the author')
+      const error = expectJsonBody(response, 403, StandupLegacyErrorSchema)
+      expect(error.error).toContain('Only the author')
     })
 
     it('returns 404 for non-existent standup', async () => {
@@ -408,16 +426,16 @@ describe('Standups API', () => {
         .get('/api/standups/status')
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('due')
-      expect(response.body).toHaveProperty('lastPosted')
-      expect(typeof response.body.due).toBe('boolean')
+      const status = expectJsonBody(response, 200, StandupStatusSchema)
+      expect(status).toHaveProperty('due')
+      expect(status).toHaveProperty('lastPosted')
+      expect(typeof status.due).toBe('boolean')
     })
 
     it('returns due=true when user has issue in active sprint but no standup today', async () => {
       // Get current sprint number from workspace
-      const workspaceResult = await pool.query(
-        `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
+      const workspaceResult = await pool.query<SprintStartDateRow>(
+      `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
         [testWorkspaceId]
       )
       const rawStartDate = workspaceResult.rows[0].sprint_start_date
@@ -435,7 +453,7 @@ describe('Standups API', () => {
       const currentSprintNumber = Math.floor(daysSinceStart / 7) + 1
 
       // Create a sprint with the current sprint number
-      const activeSprintResult = await pool.query(
+      const activeSprintResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by, parent_id, visibility, properties)
          VALUES ($1, 'sprint', 'Active Sprint', $2, $3, 'workspace', $4)
          RETURNING id`,
@@ -443,26 +461,26 @@ describe('Standups API', () => {
           sprint_number: currentSprintNumber
         })]
       )
-      const activeSprintId = activeSprintResult.rows[0].id
+      const activeSprintId = requireFirstRow(activeSprintResult.rows).id
 
       // Associate sprint with program
-      await pool.query(
+      await pool.query<IdRow>(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'program')`,
         [activeSprintId, testProgramId]
       )
 
       // Create an issue assigned to the test user
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility, properties)
          VALUES ($1, 'issue', 'Test Issue', $2, 'workspace', $3)
          RETURNING id`,
         [testWorkspaceId, testUserId, JSON.stringify({ assignee_id: testUserId })]
       )
-      const issueId = issueResult.rows[0].id
+      const issueId = requireFirstRow(issueResult.rows).id
 
       // Create the sprint-issue association via document_associations table
-      await pool.query(
+      await pool.query<IdRow>(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'sprint')`,
         [issueId, activeSprintId]
@@ -472,9 +490,9 @@ describe('Standups API', () => {
         .get('/api/standups/status')
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.due).toBe(true)
-      expect(response.body.lastPosted).toBeNull()
+      const status = expectJsonBody(response, 200, StandupStatusSchema)
+      expect(status.due).toBe(true)
+      expect(status.lastPosted).toBeNull()
 
       // Cleanup
       await pool.query('DELETE FROM document_associations WHERE document_id IN ($1, $2)', [issueId, activeSprintId])
@@ -483,8 +501,8 @@ describe('Standups API', () => {
 
     it('returns due=false when user posted standup today', async () => {
       // Get current sprint number from workspace
-      const workspaceResult = await pool.query(
-        `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
+      const workspaceResult = await pool.query<SprintStartDateRow>(
+      `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
         [testWorkspaceId]
       )
       const rawStartDate = workspaceResult.rows[0].sprint_start_date
@@ -502,7 +520,7 @@ describe('Standups API', () => {
       const currentSprintNumber = Math.floor(daysSinceStart / 7) + 1
 
       // Create a sprint with the current sprint number
-      const activeSprintResult = await pool.query(
+      const activeSprintResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by, parent_id, visibility, properties)
          VALUES ($1, 'sprint', 'Active Sprint 2', $2, $3, 'workspace', $4)
          RETURNING id`,
@@ -510,33 +528,33 @@ describe('Standups API', () => {
           sprint_number: currentSprintNumber
         })]
       )
-      const activeSprintId = activeSprintResult.rows[0].id
+      const activeSprintId = requireFirstRow(activeSprintResult.rows).id
 
       // Associate sprint with program
-      await pool.query(
+      await pool.query<IdRow>(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'program')`,
         [activeSprintId, testProgramId]
       )
 
       // Create an issue assigned to the test user
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility, properties)
          VALUES ($1, 'issue', 'Test Issue 2', $2, 'workspace', $3)
          RETURNING id`,
         [testWorkspaceId, testUserId, JSON.stringify({ assignee_id: testUserId })]
       )
-      const issueId = issueResult.rows[0].id
+      const issueId = requireFirstRow(issueResult.rows).id
 
       // Create the sprint-issue association via document_associations table
-      await pool.query(
+      await pool.query<IdRow>(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'sprint')`,
         [issueId, activeSprintId]
       )
 
       // Create a standup posted today
-      await pool.query(
+      await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, parent_id, created_by, properties, visibility)
          VALUES ($1, 'standup', 'Today Standup', $2, $3, $4, 'workspace')`,
         [testWorkspaceId, activeSprintId, testUserId, JSON.stringify({ author_id: testUserId })]
@@ -546,12 +564,12 @@ describe('Standups API', () => {
         .get('/api/standups/status')
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.due).toBe(false)
-      expect(response.body.lastPosted).not.toBeNull()
+      const status = expectJsonBody(response, 200, StandupStatusSchema)
+      expect(status.due).toBe(false)
+      expect(status.lastPosted).not.toBeNull()
 
       // Cleanup
-      await pool.query(`DELETE FROM documents WHERE parent_id = $1 AND document_type = 'standup'`, [activeSprintId])
+      await pool.query<IdRow>(`DELETE FROM documents WHERE parent_id = $1 AND document_type = 'standup'`, [activeSprintId])
       await pool.query('DELETE FROM document_associations WHERE document_id IN ($1, $2)', [issueId, activeSprintId])
       await pool.query('DELETE FROM documents WHERE id IN ($1, $2)', [activeSprintId, issueId])
     })

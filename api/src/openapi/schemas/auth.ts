@@ -3,7 +3,8 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateTimeSchema, SuccessResponseSchema } from './common.js';
+import { UuidSchema, DateTimeSchema, SuccessResponseSchema, ApiErrorResponseSchema } from './common.js';
+import { jsonResponse } from './route-helpers.js';
 
 // ============== Login ==============
 
@@ -172,14 +173,8 @@ registry.registerPath({
         },
       },
     },
-    401: {
-      description: 'Invalid credentials',
-      content: {
-        'application/json': {
-          schema: AuthErrorResponseSchema,
-        },
-      },
-    },
+    400: jsonResponse(AuthErrorResponseSchema, 'Missing email or password'),
+    401: jsonResponse(AuthErrorResponseSchema, 'Invalid credentials'),
   },
 });
 
@@ -190,14 +185,8 @@ registry.registerPath({
   summary: 'Logout',
   description: 'End the current session and clear the session cookie.',
   responses: {
-    200: {
-      description: 'Logout successful',
-      content: {
-        'application/json': {
-          schema: SuccessResponseSchema,
-        },
-      },
-    },
+    200: jsonResponse(SuccessResponseSchema, 'Logout successful'),
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
   },
 });
 
@@ -216,17 +205,8 @@ registry.registerPath({
         },
       },
     },
-    401: {
-      description: 'Not authenticated',
-    },
-    404: {
-      description: 'User not found',
-      content: {
-        'application/json': {
-          schema: AuthErrorResponseSchema,
-        },
-      },
-    },
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
+    404: jsonResponse(AuthErrorResponseSchema, 'User not found'),
   },
 });
 
@@ -245,9 +225,7 @@ registry.registerPath({
         },
       },
     },
-    401: {
-      description: 'Not authenticated',
-    },
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
   },
 });
 
@@ -266,9 +244,7 @@ registry.registerPath({
         },
       },
     },
-    401: {
-      description: 'Not authenticated',
-    },
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
   },
 });
 

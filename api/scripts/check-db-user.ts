@@ -49,8 +49,8 @@ async function checkUser(config: pg.PoolConfig, name: string) {
     const allUsers = await pool.query('SELECT id, email FROM users LIMIT 5');
     console.log('Sample users:', allUsers.rows.map(u => u.email).join(', '));
 
-  } catch (err: any) {
-    console.error('Error:', err.message);
+  } catch (err: unknown) {
+    console.error('Error:', err instanceof Error ? err.message : err);
   } finally {
     await pool.end();
   }

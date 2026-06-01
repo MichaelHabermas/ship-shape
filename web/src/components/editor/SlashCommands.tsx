@@ -567,10 +567,17 @@ export function createSlashCommands({ onCreateSubDocument, onNavigateToDocument,
     },
 
     addProseMirrorPlugins() {
+      const options = this.options as {
+        suggestion: SuggestionOptions<
+          SlashCommandItem,
+          SlashCommandItem
+        >;
+      };
+      const baseSuggestion = options.suggestion;
       return [
-        Suggestion({
+        Suggestion<SlashCommandItem>({
+          ...baseSuggestion,
           editor: this.editor,
-          ...this.options.suggestion,
           items: async ({ query }: { query: string }): Promise<SlashCommandItem[]> => {
             const search = query.toLowerCase();
             const filteredCommands = slashCommands.filter(

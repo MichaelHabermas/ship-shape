@@ -4,7 +4,7 @@ FleetGraph is Ship's project intelligence and attention engine. It watches real 
 
 ## Final Claim Boundary
 
-FleetGraph claims shared graph orchestration, deterministic candidate policy, deployed worker execution, FleetGraph-owned finding/run persistence, human-gated next actions, bounded page-aware context chat, authenticated live reviewer proof, public static proof snapshots, measured FleetGraph graph-runtime token/cost metadata, and local Codex development-token accounting. It does not claim autonomous Ship mutation/contact, broad Director recovery planning, or exact provider-invoice reconstruction from local records.
+FleetGraph claims shared graph orchestration, deterministic candidate policy, deployed worker execution, FleetGraph-owned finding/run persistence, human-gated next actions, conversational page-aware context chat (LLM when configured), authenticated live reviewer proof, public static proof snapshots, measured FleetGraph graph-runtime token/cost metadata, and local Codex development-token accounting. It does not claim autonomous Ship mutation/contact, broad Director recovery planning, exact provider-invoice reconstruction from local records, or development-wide coding-assistant spend instrumentation.
 
 Live reviewer control room: `/fleetgraph/reviewer` in the authenticated app. Mutating controls require workspace admin plus `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`.
 
@@ -152,8 +152,10 @@ Public API/interface additions:
 
 - `GET /api/fleetgraph/findings`
 - `GET /api/fleetgraph/notifications`
+- `GET /api/fleetgraph/findings/{findingId}/blast-radius-map`
 - `POST /api/fleetgraph/notifications/read`
 - `POST /api/fleetgraph/findings/{findingId}/read`
+- `POST /api/fleetgraph/findings/{findingId}/changes`
 - `POST /api/fleetgraph/findings/{findingId}/explain`
 - `POST /api/fleetgraph/findings/{findingId}/refine`
 - `POST /api/fleetgraph/findings/{findingId}/dismiss` when admin-authorized
@@ -163,6 +165,7 @@ Public API/interface additions:
 - `GET /api/fleetgraph/reviewer/chains/{chainId}`
 - `POST /api/fleetgraph/reviewer/scenarios/week-blocker` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
 - `POST /api/fleetgraph/reviewer/worker-tick` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
+- `POST /api/fleetgraph/reviewer/repair` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
 - `POST /api/fleetgraph/reviewer/proof` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
 - `POST /api/fleetgraph/test/worker-tick` only in test mode
 
@@ -187,6 +190,20 @@ Codex Desktop/local records show the development-token footprint for ShipShape. 
 | OpenAI API credits purchased | $10 prepaid; not necessarily consumed |
 | Total development/platform cash committed | $217 |
 | Claude/API input/output split | Not available from local Codex records |
+
+Pricing comes from `api/src/config/fleetgraph-models.ts` for the configured model, with optional `FLEETGRAPH_MODEL_*_COST_PER_1M` env overrides for proof experiments. The default and Render-configured FleetGraph model is `gpt-5.5`.
+
+Current catalog assumptions used by FleetGraph when provider cost is estimated:
+
+| Model | Input | Cached input | Output |
+| --- | ---: | ---: | ---: |
+| `gpt-5.5` | `$5.00 / 1M tokens` | `$0.50 / 1M tokens` | `$30.00 / 1M tokens` |
+| `gpt-5.4` | `$2.50 / 1M tokens` | `$0.25 / 1M tokens` | `$15.00 / 1M tokens` |
+| `gpt-4o-mini` | `$0.15 / 1M tokens` | `$0.075 / 1M tokens` | `$0.60 / 1M tokens` |
+
+- Blocked proactive create can call the model only when `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL` is configured, and `OPENAI_API_KEY` exists.
+- PM context chat calls the model when `OPENAI_API_KEY` and `FLEETGRAPH_MODEL` are set; otherwise the API reports chat unavailable. See `my-docs/fleetgraph-conversational-chat.md`.
+- Worker detection, explain-finding structure, refine, dismiss, and resolve paths remain deterministic/zero-token unless a future decision adds model use there.
 
 Codex usage by model:
 
@@ -259,7 +276,7 @@ Real-model sensitivity if every graph invocation crossed the same measured model
 | 1,000 users | 30,000 | $78.85 |
 | 10,000 users | 300,000 | $788.54 |
 
-Budget against the sensitivity table, not the blended floor. The measured real-model calls were tiny reviewer/demo payloads; real production chat and refinement paths will carry richer context.
+Budget against the sensitivity table, not the blended floor. The measured real-model calls were tiny reviewer/demo payloads; real production chat and refinement paths will carry richer context. Chat model spend is measured from `fleetgraph_runs` where `token_metadata.modelCalls > 0`.
 
 Cost cliffs and controls:
 

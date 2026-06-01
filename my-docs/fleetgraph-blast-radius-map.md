@@ -19,9 +19,16 @@ FleetGraph blast radius is a deterministic, read-only projection for a finding. 
 
 The route returns semantic nodes and edges only. The web owns layout. The route returns `404` when the finding is absent or not safely visible to the actor.
 
+Implementation notes (2026-05-31):
+
+- Document anchor rows are fetched in one SQL query, then filtered with batch `filterReadableDocumentIds` for session/API-token actors.
+- Person document rows batch-filter the same way; user-name fallback rows follow D087 when the root finding is already visible.
+- Document, people, and related-finding subgraphs assemble in parallel after the root finding passes `visibleOutputForFinding`.
+- Related findings stop after three visible matches instead of scanning a fixed over-fetch window.
+
 ## UI
 
-The reviewer page shows the map in the right rail as visible impact context. Copy should say "visible impact" or "blast radius"; it should not claim affected users, causality, or complete organizational impact unless the backend actually computes those facts.
+The reviewer page shows the map in the right rail as visible impact context via `web/src/components/fleetgraph-reviewer/BlastRadiusPanel.tsx`. Copy should say "visible impact" or "blast radius"; it should not claim affected users, causality, or complete organizational impact unless the backend actually computes those facts.
 
 ## Follow-Up
 

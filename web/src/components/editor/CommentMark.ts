@@ -127,6 +127,7 @@ export const CommentMark = Mark.create<CommentMarkOptions, CommentMarkStorage>({
     const { $from } = this.editor.state.selection;
     const marks = $from.marks();
     const commentMark = marks.find((mark) => mark.type.name === this.name);
-    this.storage.activeCommentId = commentMark?.attrs.commentId ?? null;
+    const attrs = commentMark?.attrs as { commentId?: unknown } | undefined;
+    this.storage.activeCommentId = typeof attrs?.commentId === 'string' ? attrs.commentId : null;
   },
 });

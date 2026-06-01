@@ -233,7 +233,7 @@
       "tokenMetadata": {
         "modelCalls": 1,
         "provider": "openai",
-        "model": "gpt-4.1-mini",
+        "model": "retired-legacy-mini",
         "inputTokens": 90,
         "outputTokens": 84,
         "totalTokens": 174
@@ -515,7 +515,7 @@
       "tokenMetadata": {
         "modelCalls": 1,
         "provider": "openai",
-        "model": "gpt-4.1-mini",
+        "model": "retired-legacy-mini",
         "inputTokens": 90,
         "outputTokens": 84,
         "totalTokens": 174
@@ -841,7 +841,7 @@
         "tokenMetadata": {
           "modelCalls": 1,
           "provider": "openai",
-          "model": "gpt-4.1-mini",
+          "model": "retired-legacy-mini",
           "inputTokens": 90,
           "outputTokens": 84,
           "totalTokens": 174

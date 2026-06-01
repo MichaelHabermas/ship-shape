@@ -6384,360 +6384,613 @@ components:
       required:
         - success
         - data
-    FleetGraphRecommendedAction:
-      type: object
-      properties:
-        label:
-          type: string
-        text:
-          type: string
-        summary:
-          type: string
-    FleetGraphProposedRecipient:
-      type: object
-      properties:
-        role:
-          type: string
-        userId:
-          type: string
-          nullable: true
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        displayName:
-          type: string
-        rationale:
-          type: string
-    FleetGraphEvidence:
-      type: object
-      properties:
-        kind:
-          type: string
-          enum:
-            - source_issue
-            - source_sprint
-            - blocker
-            - stale
-            - at_risk
-            - dedupe
-            - finding
-            - restricted
-        sourceDocumentId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        sourceType:
-          type: string
-          enum:
-            - issue
-            - sprint
-        claim:
-          type: string
-        excerpt:
-          type: string
-        visibility:
-          type: string
-          enum:
-            - internal
-            - actor_visible
-            - restricted
-        visibleFields:
-          type: array
-          items:
-            type: string
-        redactionReason:
-          type: string
-      required:
-        - kind
-        - claim
-        - visibility
-        - visibleFields
-    FleetGraphVisibleOutput:
-      type: object
-      properties:
-        title:
-          type: string
-        summary:
-          type: string
-        severity:
-          type: string
-          enum:
-            - low
-            - medium
-            - high
-            - urgent
-        confidence:
-          type: number
-        recommendedAction:
-          $ref: "#/components/schemas/FleetGraphRecommendedAction"
-        proposedRecipient:
-          $ref: "#/components/schemas/FleetGraphProposedRecipient"
-        recipientRationale:
-          type: string
-        uncertaintyNotes:
-          type: array
-          items:
-            type: string
-        evidence:
-          type: array
-          items:
-            $ref: "#/components/schemas/FleetGraphEvidence"
-        humanGate:
-          type: object
-          additionalProperties:
-            nullable: true
-        draftContent:
-          type: object
-          additionalProperties:
-            nullable: true
-        noSafeOutput:
-          type: boolean
-      required:
-        - title
-        - summary
-        - evidence
-        - humanGate
-    FleetGraphTrace:
-      type: object
-      properties:
-        mode:
-          type: string
-          enum:
-            - proactive
-            - on_demand
-        decision:
-          type: string
-        nodePath:
-          type: array
-          items:
-            type: string
-        traceId:
-          type: string
-        traceUrl:
-          type: string
-        failureCategory:
-          type: string
-      required:
-        - mode
-        - decision
-        - nodePath
-    FleetGraphFindingResponse:
-      type: object
-      properties:
-        signalType:
-          type: string
-          enum:
-            - blocked
-            - stale
-            - at_risk
-        signalLabel:
-          type: string
-        reason:
-          type: string
-        sourceIssueId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        sourceSprintId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        visibleOutput:
-          $ref: "#/components/schemas/FleetGraphVisibleOutput"
-        traceMetadata:
-          $ref: "#/components/schemas/FleetGraphTrace"
-        id:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        kind:
-          type: string
-          enum:
-            - blocker
-        status:
-          type: string
-      required:
-        - signalType
-        - signalLabel
-        - reason
-        - sourceIssueId
-        - sourceSprintId
-        - visibleOutput
-        - traceMetadata
-        - id
-        - kind
-        - status
     FleetGraphFindingsListResponse:
       type: object
       properties:
         findings:
           type: array
           items:
-            $ref: "#/components/schemas/FleetGraphFindingResponse"
+            type: object
+            properties:
+              signalType:
+                type: string
+                enum:
+                  - blocked
+                  - stale
+                  - at_risk
+              signalLabel:
+                type: string
+              reason:
+                type: string
+              sourceIssueId:
+                type: string
+                format: uuid
+              sourceSprintId:
+                type: string
+                format: uuid
+              id:
+                type: string
+                format: uuid
+              kind:
+                type: string
+                enum:
+                  - blocker
+              status:
+                type: string
+              visibleOutput:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  summary:
+                    type: string
+                  severity:
+                    type: string
+                    enum:
+                      - low
+                      - medium
+                      - high
+                      - urgent
+                  confidence:
+                    type: number
+                  recommendedAction:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      text:
+                        type: string
+                      summary:
+                        type: string
+                  proposedRecipient:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      userId:
+                        type: string
+                        nullable: true
+                        format: uuid
+                      displayName:
+                        type: string
+                      rationale:
+                        type: string
+                  recipientRationale:
+                    type: string
+                  uncertaintyNotes:
+                    type: array
+                    items:
+                      type: string
+                  evidence:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind:
+                          type: string
+                          enum:
+                            - source_issue
+                            - source_sprint
+                            - blocker
+                            - stale
+                            - at_risk
+                            - dedupe
+                            - finding
+                            - restricted
+                        sourceDocumentId:
+                          type: string
+                          format: uuid
+                        sourceType:
+                          type: string
+                          enum:
+                            - issue
+                            - sprint
+                        claim:
+                          type: string
+                        excerpt:
+                          type: string
+                        visibility:
+                          type: string
+                          enum:
+                            - internal
+                            - actor_visible
+                            - restricted
+                        visibleFields:
+                          type: array
+                          items:
+                            type: string
+                        redactionReason:
+                          type: string
+                      required:
+                        - kind
+                        - claim
+                        - visibility
+                        - visibleFields
+                  humanGate:
+                    type: object
+                    additionalProperties:
+                      nullable: true
+                  draftContent:
+                    type: object
+                    additionalProperties:
+                      nullable: true
+                  noSafeOutput:
+                    type: boolean
+                required:
+                  - title
+                  - summary
+                  - evidence
+                  - humanGate
+              traceMetadata:
+                type: object
+                properties:
+                  mode:
+                    type: string
+                    enum:
+                      - proactive
+                      - on_demand
+                  decision:
+                    type: string
+                  nodePath:
+                    type: array
+                    items:
+                      type: string
+                  traceId:
+                    type: string
+                  traceUrl:
+                    type: string
+                  failureCategory:
+                    type: string
+                required:
+                  - mode
+                  - decision
+                  - nodePath
+            required:
+              - signalType
+              - signalLabel
+              - reason
+              - sourceIssueId
+              - sourceSprintId
+              - id
+              - kind
+              - status
+              - visibleOutput
+              - traceMetadata
       required:
         - findings
-    FleetGraphNotificationResponse:
-      type: object
-      properties:
-        signalType:
-          type: string
-          enum:
-            - blocked
-            - stale
-            - at_risk
-        signalLabel:
-          type: string
-        reason:
-          type: string
-        sourceIssueId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        sourceSprintId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        visibleOutput:
-          $ref: "#/components/schemas/FleetGraphVisibleOutput"
-        traceMetadata:
-          $ref: "#/components/schemas/FleetGraphTrace"
-        title:
-          type: string
-        issueTitle:
-          type: string
-        context:
-          type: string
-        owner:
-          type: string
-          nullable: true
-        notificationText:
-          type: string
-        blockerText:
-          type: string
-        sourcePath:
-          type: string
-        detectedAt:
-          type: string
-        isRead:
-          type: boolean
-        readAt:
-          type: string
-          nullable: true
-        id:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        findingId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-      required:
-        - signalType
-        - signalLabel
-        - reason
-        - sourceIssueId
-        - sourceSprintId
-        - visibleOutput
-        - traceMetadata
-        - title
-        - issueTitle
-        - context
-        - owner
-        - notificationText
-        - blockerText
-        - sourcePath
-        - detectedAt
-        - isRead
-        - readAt
-        - id
-        - findingId
     FleetGraphNotificationsListResponse:
       type: object
       properties:
         notifications:
           type: array
           items:
-            $ref: "#/components/schemas/FleetGraphNotificationResponse"
+            type: object
+            properties:
+              signalType:
+                type: string
+                enum:
+                  - blocked
+                  - stale
+                  - at_risk
+              signalLabel:
+                type: string
+              reason:
+                type: string
+              sourceIssueId:
+                type: string
+                format: uuid
+              sourceSprintId:
+                type: string
+                format: uuid
+              visibleOutput:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  summary:
+                    type: string
+                  severity:
+                    type: string
+                    enum:
+                      - low
+                      - medium
+                      - high
+                      - urgent
+                  confidence:
+                    type: number
+                  recommendedAction:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      text:
+                        type: string
+                      summary:
+                        type: string
+                  proposedRecipient:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      userId:
+                        type: string
+                        nullable: true
+                        format: uuid
+                      displayName:
+                        type: string
+                      rationale:
+                        type: string
+                  recipientRationale:
+                    type: string
+                  uncertaintyNotes:
+                    type: array
+                    items:
+                      type: string
+                  evidence:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind:
+                          type: string
+                          enum:
+                            - source_issue
+                            - source_sprint
+                            - blocker
+                            - stale
+                            - at_risk
+                            - dedupe
+                            - finding
+                            - restricted
+                        sourceDocumentId:
+                          type: string
+                          format: uuid
+                        sourceType:
+                          type: string
+                          enum:
+                            - issue
+                            - sprint
+                        claim:
+                          type: string
+                        excerpt:
+                          type: string
+                        visibility:
+                          type: string
+                          enum:
+                            - internal
+                            - actor_visible
+                            - restricted
+                        visibleFields:
+                          type: array
+                          items:
+                            type: string
+                        redactionReason:
+                          type: string
+                      required:
+                        - kind
+                        - claim
+                        - visibility
+                        - visibleFields
+                  humanGate:
+                    type: object
+                    additionalProperties:
+                      nullable: true
+                  draftContent:
+                    type: object
+                    additionalProperties:
+                      nullable: true
+                  noSafeOutput:
+                    type: boolean
+                required:
+                  - title
+                  - summary
+                  - evidence
+                  - humanGate
+              traceMetadata:
+                type: object
+                properties:
+                  mode:
+                    type: string
+                    enum:
+                      - proactive
+                      - on_demand
+                  decision:
+                    type: string
+                  nodePath:
+                    type: array
+                    items:
+                      type: string
+                  traceId:
+                    type: string
+                  traceUrl:
+                    type: string
+                  failureCategory:
+                    type: string
+                required:
+                  - mode
+                  - decision
+                  - nodePath
+              title:
+                type: string
+              issueTitle:
+                type: string
+              context:
+                type: string
+              owner:
+                type: string
+                nullable: true
+              notificationText:
+                type: string
+              blockerText:
+                type: string
+              sourcePath:
+                type: string
+              detectedAt:
+                type: string
+              isRead:
+                type: boolean
+              readAt:
+                type: string
+                nullable: true
+              id:
+                type: string
+                format: uuid
+              findingId:
+                type: string
+                format: uuid
+            required:
+              - signalType
+              - signalLabel
+              - reason
+              - sourceIssueId
+              - sourceSprintId
+              - visibleOutput
+              - traceMetadata
+              - title
+              - issueTitle
+              - context
+              - owner
+              - notificationText
+              - blockerText
+              - sourcePath
+              - detectedAt
+              - isRead
+              - readAt
+              - id
+              - findingId
       required:
         - notifications
-    FleetGraphBlastRadiusNode:
-      type: object
-      properties:
-        id:
-          type: string
-        kind:
-          type: string
-          enum:
-            - finding
-            - issue
-            - sprint
-            - project
-            - program
-            - person
-        title:
-          type: string
-        subtitle:
-          type: string
-        status:
-          type: string
-        severity:
-          type: string
-          enum:
-            - low
-            - medium
-            - high
-            - urgent
-      required:
-        - id
-        - kind
-        - title
-    FleetGraphBlastRadiusEdge:
-      type: object
-      properties:
-        from:
-          type: string
-        to:
-          type: string
-        kind:
-          type: string
-          enum:
-            - source_issue
-            - source_sprint
-            - project
-            - program
-            - assignee
-            - owner
-            - related_finding
-        label:
-          type: string
-      required:
-        - from
-        - to
-        - kind
-        - label
     FleetGraphBlastRadiusResponse:
       type: object
       properties:
         finding:
-          $ref: "#/components/schemas/FleetGraphFindingResponse"
+          type: object
+          properties:
+            signalType:
+              type: string
+              enum:
+                - blocked
+                - stale
+                - at_risk
+            signalLabel:
+              type: string
+            reason:
+              type: string
+            sourceIssueId:
+              type: string
+              format: uuid
+            sourceSprintId:
+              type: string
+              format: uuid
+            id:
+              type: string
+              format: uuid
+            kind:
+              type: string
+              enum:
+                - blocker
+            status:
+              type: string
+            visibleOutput:
+              type: object
+              properties:
+                title:
+                  type: string
+                summary:
+                  type: string
+                severity:
+                  type: string
+                  enum:
+                    - low
+                    - medium
+                    - high
+                    - urgent
+                confidence:
+                  type: number
+                recommendedAction:
+                  type: object
+                  properties:
+                    label:
+                      type: string
+                    text:
+                      type: string
+                    summary:
+                      type: string
+                proposedRecipient:
+                  type: object
+                  properties:
+                    role:
+                      type: string
+                    userId:
+                      type: string
+                      nullable: true
+                      format: uuid
+                    displayName:
+                      type: string
+                    rationale:
+                      type: string
+                recipientRationale:
+                  type: string
+                uncertaintyNotes:
+                  type: array
+                  items:
+                    type: string
+                evidence:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - source_issue
+                          - source_sprint
+                          - blocker
+                          - stale
+                          - at_risk
+                          - dedupe
+                          - finding
+                          - restricted
+                      sourceDocumentId:
+                        type: string
+                        format: uuid
+                      sourceType:
+                        type: string
+                        enum:
+                          - issue
+                          - sprint
+                      claim:
+                        type: string
+                      excerpt:
+                        type: string
+                      visibility:
+                        type: string
+                        enum:
+                          - internal
+                          - actor_visible
+                          - restricted
+                      visibleFields:
+                        type: array
+                        items:
+                          type: string
+                      redactionReason:
+                        type: string
+                    required:
+                      - kind
+                      - claim
+                      - visibility
+                      - visibleFields
+                humanGate:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                draftContent:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                noSafeOutput:
+                  type: boolean
+              required:
+                - title
+                - summary
+                - evidence
+                - humanGate
+            traceMetadata:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum:
+                    - proactive
+                    - on_demand
+                decision:
+                  type: string
+                nodePath:
+                  type: array
+                  items:
+                    type: string
+                traceId:
+                  type: string
+                traceUrl:
+                  type: string
+                failureCategory:
+                  type: string
+              required:
+                - mode
+                - decision
+                - nodePath
+          required:
+            - signalType
+            - signalLabel
+            - reason
+            - sourceIssueId
+            - sourceSprintId
+            - id
+            - kind
+            - status
+            - visibleOutput
+            - traceMetadata
         summary:
           type: string
         nodes:
           type: array
           items:
-            $ref: "#/components/schemas/FleetGraphBlastRadiusNode"
+            type: object
+            properties:
+              id:
+                type: string
+              kind:
+                type: string
+                enum:
+                  - finding
+                  - issue
+                  - sprint
+                  - project
+                  - program
+                  - person
+              title:
+                type: string
+              subtitle:
+                type: string
+              status:
+                type: string
+              severity:
+                type: string
+                enum:
+                  - low
+                  - medium
+                  - high
+                  - urgent
+            required:
+              - id
+              - kind
+              - title
         edges:
           type: array
           items:
-            $ref: "#/components/schemas/FleetGraphBlastRadiusEdge"
+            type: object
+            properties:
+              from:
+                type: string
+              to:
+                type: string
+              kind:
+                type: string
+                enum:
+                  - source_issue
+                  - source_sprint
+                  - project
+                  - program
+                  - assignee
+                  - owner
+                  - related_finding
+              label:
+                type: string
+            required:
+              - from
+              - to
+              - kind
+              - label
       required:
         - finding
         - summary
@@ -6756,23 +7009,6 @@ components:
       required:
         - success
         - markedRead
-    FleetGraphChangeSummaryRow:
-      type: object
-      properties:
-        label:
-          type: string
-          enum:
-            - Now
-            - Changed
-            - Cleared
-            - Next
-            - Unknown
-            - Not done
-        text:
-          type: string
-      required:
-        - label
-        - text
     FleetGraphChangeSummaryResponse:
       type: object
       properties:
@@ -6781,277 +7017,772 @@ components:
         rows:
           type: array
           items:
-            $ref: "#/components/schemas/FleetGraphChangeSummaryRow"
+            type: object
+            properties:
+              label:
+                type: string
+                enum:
+                  - Now
+                  - Changed
+                  - Cleared
+                  - Next
+                  - Unknown
+                  - Not done
+              text:
+                type: string
+            required:
+              - label
+              - text
         traceMetadata:
-          $ref: "#/components/schemas/FleetGraphTrace"
+          type: object
+          properties:
+            mode:
+              type: string
+              enum:
+                - proactive
+                - on_demand
+            decision:
+              type: string
+            nodePath:
+              type: array
+              items:
+                type: string
+            traceId:
+              type: string
+            traceUrl:
+              type: string
+            failureCategory:
+              type: string
+          required:
+            - mode
+            - decision
+            - nodePath
       required:
         - headline
         - rows
         - traceMetadata
-    FleetGraphUsage:
-      type: object
-      properties:
-        modelCalls:
-          type: integer
-          minimum: 0
-        inputTokens:
-          type: integer
-          minimum: 0
-        cachedInputTokens:
-          type: integer
-          minimum: 0
-        billableInputTokens:
-          type: integer
-          minimum: 0
-        outputTokens:
-          type: integer
-          minimum: 0
-        totalTokens:
-          type: integer
-          minimum: 0
-        estimatedCostUsd:
-          type: number
-          minimum: 0
-        costCurrency:
-          type: string
-          enum:
-            - USD
-        usageSource:
-          type: string
-          enum:
-            - none
-            - model_response
-            - partial_model_response
-            - synthetic_calibration
-        costSource:
-          type: string
-          enum:
-            - none
-            - model_response
-            - catalog_estimate
-            - env_estimate
-            - synthetic_calibration
-      required:
-        - modelCalls
     FleetGraphRunResponse:
       type: object
       properties:
         decision:
           type: string
         finding:
-          $ref: "#/components/schemas/FleetGraphFindingResponse"
+          type: object
+          properties:
+            signalType:
+              type: string
+              enum:
+                - blocked
+                - stale
+                - at_risk
+            signalLabel:
+              type: string
+            reason:
+              type: string
+            sourceIssueId:
+              type: string
+              format: uuid
+            sourceSprintId:
+              type: string
+              format: uuid
+            id:
+              type: string
+              format: uuid
+            kind:
+              type: string
+              enum:
+                - blocker
+            status:
+              type: string
+            visibleOutput:
+              type: object
+              properties:
+                title:
+                  type: string
+                summary:
+                  type: string
+                severity:
+                  type: string
+                  enum:
+                    - low
+                    - medium
+                    - high
+                    - urgent
+                confidence:
+                  type: number
+                recommendedAction:
+                  type: object
+                  properties:
+                    label:
+                      type: string
+                    text:
+                      type: string
+                    summary:
+                      type: string
+                proposedRecipient:
+                  type: object
+                  properties:
+                    role:
+                      type: string
+                    userId:
+                      type: string
+                      nullable: true
+                      format: uuid
+                    displayName:
+                      type: string
+                    rationale:
+                      type: string
+                recipientRationale:
+                  type: string
+                uncertaintyNotes:
+                  type: array
+                  items:
+                    type: string
+                evidence:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - source_issue
+                          - source_sprint
+                          - blocker
+                          - stale
+                          - at_risk
+                          - dedupe
+                          - finding
+                          - restricted
+                      sourceDocumentId:
+                        type: string
+                        format: uuid
+                      sourceType:
+                        type: string
+                        enum:
+                          - issue
+                          - sprint
+                      claim:
+                        type: string
+                      excerpt:
+                        type: string
+                      visibility:
+                        type: string
+                        enum:
+                          - internal
+                          - actor_visible
+                          - restricted
+                      visibleFields:
+                        type: array
+                        items:
+                          type: string
+                      redactionReason:
+                        type: string
+                    required:
+                      - kind
+                      - claim
+                      - visibility
+                      - visibleFields
+                humanGate:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                draftContent:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                noSafeOutput:
+                  type: boolean
+              required:
+                - title
+                - summary
+                - evidence
+                - humanGate
+            traceMetadata:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum:
+                    - proactive
+                    - on_demand
+                decision:
+                  type: string
+                nodePath:
+                  type: array
+                  items:
+                    type: string
+                traceId:
+                  type: string
+                traceUrl:
+                  type: string
+                failureCategory:
+                  type: string
+              required:
+                - mode
+                - decision
+                - nodePath
+          required:
+            - signalType
+            - signalLabel
+            - reason
+            - sourceIssueId
+            - sourceSprintId
+            - id
+            - kind
+            - status
+            - visibleOutput
+            - traceMetadata
         visibleOutput:
-          $ref: "#/components/schemas/FleetGraphVisibleOutput"
+          type: object
+          properties:
+            title:
+              type: string
+            summary:
+              type: string
+            severity:
+              type: string
+              enum:
+                - low
+                - medium
+                - high
+                - urgent
+            confidence:
+              type: number
+            recommendedAction:
+              type: object
+              properties:
+                label:
+                  type: string
+                text:
+                  type: string
+                summary:
+                  type: string
+            proposedRecipient:
+              type: object
+              properties:
+                role:
+                  type: string
+                userId:
+                  type: string
+                  nullable: true
+                  format: uuid
+                displayName:
+                  type: string
+                rationale:
+                  type: string
+            recipientRationale:
+              type: string
+            uncertaintyNotes:
+              type: array
+              items:
+                type: string
+            evidence:
+              type: array
+              items:
+                type: object
+                properties:
+                  kind:
+                    type: string
+                    enum:
+                      - source_issue
+                      - source_sprint
+                      - blocker
+                      - stale
+                      - at_risk
+                      - dedupe
+                      - finding
+                      - restricted
+                  sourceDocumentId:
+                    type: string
+                    format: uuid
+                  sourceType:
+                    type: string
+                    enum:
+                      - issue
+                      - sprint
+                  claim:
+                    type: string
+                  excerpt:
+                    type: string
+                  visibility:
+                    type: string
+                    enum:
+                      - internal
+                      - actor_visible
+                      - restricted
+                  visibleFields:
+                    type: array
+                    items:
+                      type: string
+                  redactionReason:
+                    type: string
+                required:
+                  - kind
+                  - claim
+                  - visibility
+                  - visibleFields
+            humanGate:
+              type: object
+              additionalProperties:
+                nullable: true
+            draftContent:
+              type: object
+              additionalProperties:
+                nullable: true
+            noSafeOutput:
+              type: boolean
+          required:
+            - title
+            - summary
+            - evidence
+            - humanGate
         traceMetadata:
-          $ref: "#/components/schemas/FleetGraphTrace"
+          type: object
+          properties:
+            mode:
+              type: string
+              enum:
+                - proactive
+                - on_demand
+            decision:
+              type: string
+            nodePath:
+              type: array
+              items:
+                type: string
+            traceId:
+              type: string
+            traceUrl:
+              type: string
+            failureCategory:
+              type: string
+          required:
+            - mode
+            - decision
+            - nodePath
         usageMetadata:
-          $ref: "#/components/schemas/FleetGraphUsage"
+          type: object
+          properties:
+            modelCalls:
+              type: integer
+              minimum: 0
+            inputTokens:
+              type: integer
+              minimum: 0
+            cachedInputTokens:
+              type: integer
+              minimum: 0
+            billableInputTokens:
+              type: integer
+              minimum: 0
+            outputTokens:
+              type: integer
+              minimum: 0
+            totalTokens:
+              type: integer
+              minimum: 0
+            estimatedCostUsd:
+              type: number
+              minimum: 0
+            costCurrency:
+              type: string
+              enum:
+                - USD
+            usageSource:
+              type: string
+              enum:
+                - none
+                - model_response
+                - partial_model_response
+                - synthetic_calibration
+            costSource:
+              type: string
+              enum:
+                - none
+                - model_response
+                - catalog_estimate
+                - env_estimate
+                - synthetic_calibration
+          required:
+            - modelCalls
       required:
         - decision
         - traceMetadata
-    FleetGraphChatAnswer:
-      type: object
-      properties:
-        title:
-          type: string
-        body:
-          type: string
-        nextStep:
-          type: string
-        sources:
-          type: array
-          items:
-            type: object
-            properties:
-              label:
-                type: string
-              kind:
-                type: string
-            required:
-              - label
-              - kind
-        humanGate:
-          type: object
-          additionalProperties:
-            nullable: true
-      required:
-        - title
-        - body
-        - sources
-        - humanGate
-    FleetGraphPageContextItem:
-      type: object
-      properties:
-        kind:
-          type: string
-          enum:
-            - issue
-            - sprint
-            - project
-            - program
-            - document
-            - workspace
-            - notification
-            - finding
-        id:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        title:
-          type: string
-          minLength: 1
-          maxLength: 160
-        state:
-          type: string
-          maxLength: 80
-        priority:
-          type: string
-          maxLength: 80
-        owner:
-          type: string
-          maxLength: 120
-        summary:
-          type: string
-          maxLength: 280
-      required:
-        - kind
-        - title
-    FleetGraphPageContext:
-      type: object
-      properties:
-        route:
-          type: string
-          minLength: 1
-          maxLength: 512
-        surface:
-          type: string
-          enum:
-            - issues_list
-            - scoped_issues_list
-            - my_week
-            - document_issue_tab
-            - dashboard
-            - workspace
-        title:
-          type: string
-          minLength: 1
-          maxLength: 160
-        filters:
-          type: object
-          additionalProperties:
-            anyOf:
-              - type: string
-                maxLength: 128
-              - type: number
-              - type: boolean
-              - nullable: true
-              - nullable: true
-        sort:
-          type: string
-          maxLength: 80
-        viewMode:
-          type: string
-          maxLength: 80
-        counts:
-          type: object
-          additionalProperties:
-            type: integer
-            minimum: 0
-        visibleItems:
-          type: array
-          items:
-            $ref: "#/components/schemas/FleetGraphPageContextItem"
-          maxItems: 25
-        selectedItemIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-            description: UUID identifier
-            example: 550e8400-e29b-41d4-a716-446655440000
-          maxItems: 8
-      required:
-        - route
-        - surface
-        - title
-        - visibleItems
-    FleetGraphChatContext:
-      type: object
-      properties:
-        kind:
-          type: string
-          enum:
-            - issue
-            - sprint
-            - project
-            - program
-            - document
-            - workspace
-            - notification
-            - finding
-        documentId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        findingId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        sourcePath:
-          type: string
-          maxLength: 512
-        pageContext:
-          $ref: "#/components/schemas/FleetGraphPageContext"
-        attachedContexts:
-          type: array
-          items:
-            type: object
-            properties:
-              kind:
-                type: string
-                enum:
-                  - issue
-                  - sprint
-                  - project
-                  - program
-                  - document
-                  - workspace
-                  - notification
-                  - finding
-              documentId:
-                type: string
-                format: uuid
-                description: UUID identifier
-                example: 550e8400-e29b-41d4-a716-446655440000
-              findingId:
-                type: string
-                format: uuid
-                description: UUID identifier
-                example: 550e8400-e29b-41d4-a716-446655440000
-              sourcePath:
-                type: string
-                maxLength: 512
-              pageContext:
-                $ref: "#/components/schemas/FleetGraphPageContext"
-            required:
-              - kind
-          maxItems: 8
-      required:
-        - kind
     FleetGraphChatResponse:
       type: object
       properties:
         decision:
           type: string
         answer:
-          $ref: "#/components/schemas/FleetGraphChatAnswer"
+          type: object
+          properties:
+            title:
+              type: string
+            body:
+              type: string
+            nextStep:
+              type: string
+            sources:
+              type: array
+              items:
+                type: object
+                properties:
+                  label:
+                    type: string
+                  kind:
+                    type: string
+                required:
+                  - label
+                  - kind
+            humanGate:
+              type: object
+              additionalProperties:
+                nullable: true
+          required:
+            - title
+            - body
+            - sources
+            - humanGate
         context:
-          $ref: "#/components/schemas/FleetGraphChatContext"
+          type: object
+          properties:
+            kind:
+              type: string
+              enum:
+                - issue
+                - sprint
+                - project
+                - program
+                - document
+                - workspace
+                - notification
+                - finding
+            documentId:
+              type: string
+              format: uuid
+            findingId:
+              type: string
+              format: uuid
+            sourcePath:
+              type: string
+              maxLength: 512
+            pageContext:
+              type: object
+              properties:
+                route:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                surface:
+                  type: string
+                  enum:
+                    - issues_list
+                    - scoped_issues_list
+                    - my_week
+                    - document_issue_tab
+                    - dashboard
+                    - workspace
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 160
+                filters:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: string
+                        maxLength: 128
+                      - type: number
+                      - type: boolean
+                      - nullable: true
+                      - nullable: true
+                sort:
+                  type: string
+                  maxLength: 80
+                viewMode:
+                  type: string
+                  maxLength: 80
+                counts:
+                  type: object
+                  additionalProperties:
+                    type: integer
+                    minimum: 0
+                visibleItems:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - issue
+                          - sprint
+                          - project
+                          - program
+                          - document
+                          - workspace
+                          - notification
+                          - finding
+                      id:
+                        type: string
+                        format: uuid
+                      title:
+                        type: string
+                        minLength: 1
+                        maxLength: 160
+                      state:
+                        type: string
+                        maxLength: 80
+                      priority:
+                        type: string
+                        maxLength: 80
+                      owner:
+                        type: string
+                        maxLength: 120
+                      summary:
+                        type: string
+                        maxLength: 280
+                    required:
+                      - kind
+                      - title
+                  maxItems: 25
+                selectedItemIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  maxItems: 8
+              required:
+                - route
+                - surface
+                - title
+                - visibleItems
+            attachedContexts:
+              type: array
+              items:
+                type: object
+                properties:
+                  kind:
+                    type: string
+                    enum:
+                      - issue
+                      - sprint
+                      - project
+                      - program
+                      - document
+                      - workspace
+                      - notification
+                      - finding
+                  documentId:
+                    type: string
+                    format: uuid
+                  findingId:
+                    type: string
+                    format: uuid
+                  sourcePath:
+                    type: string
+                    maxLength: 512
+                  pageContext:
+                    type: object
+                    properties:
+                      route:
+                        type: string
+                        minLength: 1
+                        maxLength: 512
+                      surface:
+                        type: string
+                        enum:
+                          - issues_list
+                          - scoped_issues_list
+                          - my_week
+                          - document_issue_tab
+                          - dashboard
+                          - workspace
+                      title:
+                        type: string
+                        minLength: 1
+                        maxLength: 160
+                      filters:
+                        type: object
+                        additionalProperties:
+                          anyOf:
+                            - type: string
+                              maxLength: 128
+                            - type: number
+                            - type: boolean
+                            - nullable: true
+                            - nullable: true
+                      sort:
+                        type: string
+                        maxLength: 80
+                      viewMode:
+                        type: string
+                        maxLength: 80
+                      counts:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                          minimum: 0
+                      visibleItems:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              enum:
+                                - issue
+                                - sprint
+                                - project
+                                - program
+                                - document
+                                - workspace
+                                - notification
+                                - finding
+                            id:
+                              type: string
+                              format: uuid
+                            title:
+                              type: string
+                              minLength: 1
+                              maxLength: 160
+                            state:
+                              type: string
+                              maxLength: 80
+                            priority:
+                              type: string
+                              maxLength: 80
+                            owner:
+                              type: string
+                              maxLength: 120
+                            summary:
+                              type: string
+                              maxLength: 280
+                          required:
+                            - kind
+                            - title
+                        maxItems: 25
+                      selectedItemIds:
+                        type: array
+                        items:
+                          type: string
+                          format: uuid
+                        maxItems: 8
+                    required:
+                      - route
+                      - surface
+                      - title
+                      - visibleItems
+                required:
+                  - kind
+              maxItems: 8
+          required:
+            - kind
         visibleOutput:
-          $ref: "#/components/schemas/FleetGraphVisibleOutput"
+          type: object
+          properties:
+            title:
+              type: string
+            summary:
+              type: string
+            severity:
+              type: string
+              enum:
+                - low
+                - medium
+                - high
+                - urgent
+            confidence:
+              type: number
+            recommendedAction:
+              type: object
+              properties:
+                label:
+                  type: string
+                text:
+                  type: string
+                summary:
+                  type: string
+            proposedRecipient:
+              type: object
+              properties:
+                role:
+                  type: string
+                userId:
+                  type: string
+                  nullable: true
+                  format: uuid
+                displayName:
+                  type: string
+                rationale:
+                  type: string
+            recipientRationale:
+              type: string
+            uncertaintyNotes:
+              type: array
+              items:
+                type: string
+            evidence:
+              type: array
+              items:
+                type: object
+                properties:
+                  kind:
+                    type: string
+                    enum:
+                      - source_issue
+                      - source_sprint
+                      - blocker
+                      - stale
+                      - at_risk
+                      - dedupe
+                      - finding
+                      - restricted
+                  sourceDocumentId:
+                    type: string
+                    format: uuid
+                  sourceType:
+                    type: string
+                    enum:
+                      - issue
+                      - sprint
+                  claim:
+                    type: string
+                  excerpt:
+                    type: string
+                  visibility:
+                    type: string
+                    enum:
+                      - internal
+                      - actor_visible
+                      - restricted
+                  visibleFields:
+                    type: array
+                    items:
+                      type: string
+                  redactionReason:
+                    type: string
+                required:
+                  - kind
+                  - claim
+                  - visibility
+                  - visibleFields
+            humanGate:
+              type: object
+              additionalProperties:
+                nullable: true
+            draftContent:
+              type: object
+              additionalProperties:
+                nullable: true
+            noSafeOutput:
+              type: boolean
+          required:
+            - title
+            - summary
+            - evidence
+            - humanGate
         changeSummary:
           type: object
           properties:
@@ -7060,34 +7791,99 @@ components:
             rows:
               type: array
               items:
-                $ref: "#/components/schemas/FleetGraphChangeSummaryRow"
+                type: object
+                properties:
+                  label:
+                    type: string
+                    enum:
+                      - Now
+                      - Changed
+                      - Cleared
+                      - Next
+                      - Unknown
+                      - Not done
+                  text:
+                    type: string
+                required:
+                  - label
+                  - text
           required:
             - headline
             - rows
         traceMetadata:
-          $ref: "#/components/schemas/FleetGraphTrace"
+          type: object
+          properties:
+            mode:
+              type: string
+              enum:
+                - proactive
+                - on_demand
+            decision:
+              type: string
+            nodePath:
+              type: array
+              items:
+                type: string
+            traceId:
+              type: string
+            traceUrl:
+              type: string
+            failureCategory:
+              type: string
+          required:
+            - mode
+            - decision
+            - nodePath
         usageMetadata:
-          $ref: "#/components/schemas/FleetGraphUsage"
+          type: object
+          properties:
+            modelCalls:
+              type: integer
+              minimum: 0
+            inputTokens:
+              type: integer
+              minimum: 0
+            cachedInputTokens:
+              type: integer
+              minimum: 0
+            billableInputTokens:
+              type: integer
+              minimum: 0
+            outputTokens:
+              type: integer
+              minimum: 0
+            totalTokens:
+              type: integer
+              minimum: 0
+            estimatedCostUsd:
+              type: number
+              minimum: 0
+            costCurrency:
+              type: string
+              enum:
+                - USD
+            usageSource:
+              type: string
+              enum:
+                - none
+                - model_response
+                - partial_model_response
+                - synthetic_calibration
+            costSource:
+              type: string
+              enum:
+                - none
+                - model_response
+                - catalog_estimate
+                - env_estimate
+                - synthetic_calibration
+          required:
+            - modelCalls
       required:
         - decision
         - answer
         - context
         - traceMetadata
-    FleetGraphChatHistoryEntry:
-      type: object
-      properties:
-        role:
-          type: string
-          enum:
-            - user
-            - assistant
-        content:
-          type: string
-          minLength: 1
-          maxLength: 4000
-      required:
-        - role
-        - content
     FleetGraphChatRequest:
       type: object
       properties:
@@ -7096,11 +7892,257 @@ components:
           minLength: 1
           maxLength: 2000
         context:
-          $ref: "#/components/schemas/FleetGraphChatContext"
+          type: object
+          properties:
+            kind:
+              type: string
+              enum:
+                - issue
+                - sprint
+                - project
+                - program
+                - document
+                - workspace
+                - notification
+                - finding
+            documentId:
+              type: string
+              format: uuid
+            findingId:
+              type: string
+              format: uuid
+            sourcePath:
+              type: string
+              maxLength: 512
+            pageContext:
+              type: object
+              properties:
+                route:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                surface:
+                  type: string
+                  enum:
+                    - issues_list
+                    - scoped_issues_list
+                    - my_week
+                    - document_issue_tab
+                    - dashboard
+                    - workspace
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 160
+                filters:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: string
+                        maxLength: 128
+                      - type: number
+                      - type: boolean
+                      - nullable: true
+                      - nullable: true
+                sort:
+                  type: string
+                  maxLength: 80
+                viewMode:
+                  type: string
+                  maxLength: 80
+                counts:
+                  type: object
+                  additionalProperties:
+                    type: integer
+                    minimum: 0
+                visibleItems:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - issue
+                          - sprint
+                          - project
+                          - program
+                          - document
+                          - workspace
+                          - notification
+                          - finding
+                      id:
+                        type: string
+                        format: uuid
+                      title:
+                        type: string
+                        minLength: 1
+                        maxLength: 160
+                      state:
+                        type: string
+                        maxLength: 80
+                      priority:
+                        type: string
+                        maxLength: 80
+                      owner:
+                        type: string
+                        maxLength: 120
+                      summary:
+                        type: string
+                        maxLength: 280
+                    required:
+                      - kind
+                      - title
+                  maxItems: 25
+                selectedItemIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  maxItems: 8
+              required:
+                - route
+                - surface
+                - title
+                - visibleItems
+            attachedContexts:
+              type: array
+              items:
+                type: object
+                properties:
+                  kind:
+                    type: string
+                    enum:
+                      - issue
+                      - sprint
+                      - project
+                      - program
+                      - document
+                      - workspace
+                      - notification
+                      - finding
+                  documentId:
+                    type: string
+                    format: uuid
+                  findingId:
+                    type: string
+                    format: uuid
+                  sourcePath:
+                    type: string
+                    maxLength: 512
+                  pageContext:
+                    type: object
+                    properties:
+                      route:
+                        type: string
+                        minLength: 1
+                        maxLength: 512
+                      surface:
+                        type: string
+                        enum:
+                          - issues_list
+                          - scoped_issues_list
+                          - my_week
+                          - document_issue_tab
+                          - dashboard
+                          - workspace
+                      title:
+                        type: string
+                        minLength: 1
+                        maxLength: 160
+                      filters:
+                        type: object
+                        additionalProperties:
+                          anyOf:
+                            - type: string
+                              maxLength: 128
+                            - type: number
+                            - type: boolean
+                            - nullable: true
+                            - nullable: true
+                      sort:
+                        type: string
+                        maxLength: 80
+                      viewMode:
+                        type: string
+                        maxLength: 80
+                      counts:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                          minimum: 0
+                      visibleItems:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              enum:
+                                - issue
+                                - sprint
+                                - project
+                                - program
+                                - document
+                                - workspace
+                                - notification
+                                - finding
+                            id:
+                              type: string
+                              format: uuid
+                            title:
+                              type: string
+                              minLength: 1
+                              maxLength: 160
+                            state:
+                              type: string
+                              maxLength: 80
+                            priority:
+                              type: string
+                              maxLength: 80
+                            owner:
+                              type: string
+                              maxLength: 120
+                            summary:
+                              type: string
+                              maxLength: 280
+                          required:
+                            - kind
+                            - title
+                        maxItems: 25
+                      selectedItemIds:
+                        type: array
+                        items:
+                          type: string
+                          format: uuid
+                        maxItems: 8
+                    required:
+                      - route
+                      - surface
+                      - title
+                      - visibleItems
+                required:
+                  - kind
+              maxItems: 8
+          required:
+            - kind
         history:
           type: array
           items:
-            $ref: "#/components/schemas/FleetGraphChatHistoryEntry"
+            type: object
+            properties:
+              role:
+                type: string
+                enum:
+                  - user
+                  - assistant
+              content:
+                type: string
+                minLength: 1
+                maxLength: 4000
+            required:
+              - role
+              - content
           maxItems: 6
         clientMessageId:
           type: string
@@ -7108,25 +8150,6 @@ components:
       required:
         - prompt
         - context
-    FleetGraphManualRunResult:
-      type: object
-      properties:
-        decision:
-          type: string
-        findingId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        visibleOutput:
-          $ref: "#/components/schemas/FleetGraphVisibleOutput"
-        traceMetadata:
-          $ref: "#/components/schemas/FleetGraphTrace"
-        usageMetadata:
-          $ref: "#/components/schemas/FleetGraphUsage"
-      required:
-        - decision
-        - traceMetadata
     FleetGraphManualRunResponse:
       type: object
       properties:
@@ -7140,204 +8163,193 @@ components:
         results:
           type: array
           items:
-            $ref: "#/components/schemas/FleetGraphManualRunResult"
+            type: object
+            properties:
+              decision:
+                type: string
+              findingId:
+                type: string
+                format: uuid
+              visibleOutput:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  summary:
+                    type: string
+                  severity:
+                    type: string
+                    enum:
+                      - low
+                      - medium
+                      - high
+                      - urgent
+                  confidence:
+                    type: number
+                  recommendedAction:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      text:
+                        type: string
+                      summary:
+                        type: string
+                  proposedRecipient:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      userId:
+                        type: string
+                        nullable: true
+                        format: uuid
+                      displayName:
+                        type: string
+                      rationale:
+                        type: string
+                  recipientRationale:
+                    type: string
+                  uncertaintyNotes:
+                    type: array
+                    items:
+                      type: string
+                  evidence:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind:
+                          type: string
+                          enum:
+                            - source_issue
+                            - source_sprint
+                            - blocker
+                            - stale
+                            - at_risk
+                            - dedupe
+                            - finding
+                            - restricted
+                        sourceDocumentId:
+                          type: string
+                          format: uuid
+                        sourceType:
+                          type: string
+                          enum:
+                            - issue
+                            - sprint
+                        claim:
+                          type: string
+                        excerpt:
+                          type: string
+                        visibility:
+                          type: string
+                          enum:
+                            - internal
+                            - actor_visible
+                            - restricted
+                        visibleFields:
+                          type: array
+                          items:
+                            type: string
+                        redactionReason:
+                          type: string
+                      required:
+                        - kind
+                        - claim
+                        - visibility
+                        - visibleFields
+                  humanGate:
+                    type: object
+                    additionalProperties:
+                      nullable: true
+                  draftContent:
+                    type: object
+                    additionalProperties:
+                      nullable: true
+                  noSafeOutput:
+                    type: boolean
+                required:
+                  - title
+                  - summary
+                  - evidence
+                  - humanGate
+              traceMetadata:
+                type: object
+                properties:
+                  mode:
+                    type: string
+                    enum:
+                      - proactive
+                      - on_demand
+                  decision:
+                    type: string
+                  nodePath:
+                    type: array
+                    items:
+                      type: string
+                  traceId:
+                    type: string
+                  traceUrl:
+                    type: string
+                  failureCategory:
+                    type: string
+                required:
+                  - mode
+                  - decision
+                  - nodePath
+              usageMetadata:
+                type: object
+                properties:
+                  modelCalls:
+                    type: integer
+                    minimum: 0
+                  inputTokens:
+                    type: integer
+                    minimum: 0
+                  cachedInputTokens:
+                    type: integer
+                    minimum: 0
+                  billableInputTokens:
+                    type: integer
+                    minimum: 0
+                  outputTokens:
+                    type: integer
+                    minimum: 0
+                  totalTokens:
+                    type: integer
+                    minimum: 0
+                  estimatedCostUsd:
+                    type: number
+                    minimum: 0
+                  costCurrency:
+                    type: string
+                    enum:
+                      - USD
+                  usageSource:
+                    type: string
+                    enum:
+                      - none
+                      - model_response
+                      - partial_model_response
+                      - synthetic_calibration
+                  costSource:
+                    type: string
+                    enum:
+                      - none
+                      - model_response
+                      - catalog_estimate
+                      - env_estimate
+                      - synthetic_calibration
+                required:
+                  - modelCalls
+            required:
+              - decision
+              - traceMetadata
       required:
         - mode
         - detectorDecisions
         - results
-    FleetGraphReviewerTraceScore:
-      type: object
-      properties:
-        name:
-          type: string
-        passed:
-          type: boolean
-        value:
-          anyOf:
-            - type: string
-            - type: number
-            - type: boolean
-          nullable: true
-        comment:
-          type: string
-      required:
-        - name
-        - passed
-        - value
-        - comment
-    FleetGraphReviewerStep:
-      type: object
-      properties:
-        key:
-          type: string
-        label:
-          type: string
-        status:
-          type: string
-          enum:
-            - pass
-            - pending
-            - broken
-            - failed
-        at:
-          type: string
-          nullable: true
-        durationMs:
-          type: number
-          minimum: 0
-        evidence:
-          type: string
-      required:
-        - key
-        - label
-        - status
-        - at
-        - evidence
-    FleetGraphReviewerChain:
-      type: object
-      properties:
-        chainId:
-          type: string
-        scenario:
-          type: string
-        status:
-          type: string
-          enum:
-            - complete
-            - in_progress
-            - broken
-            - failed
-        missing:
-          type: array
-          items:
-            type: string
-        generatedAt:
-          type: string
-        freshness:
-          type: object
-          properties:
-            generatedAt:
-              type: string
-            newestRunAt:
-              type: string
-              nullable: true
-            newestWorkerTickAt:
-              type: string
-              nullable: true
-            proofAgeMs:
-              type: number
-              nullable: true
-            workerAgeMs:
-              type: number
-              nullable: true
-          required:
-            - generatedAt
-            - newestRunAt
-            - newestWorkerTickAt
-            - proofAgeMs
-            - workerAgeMs
-        latencyMs:
-          type: object
-          properties:
-            shipToAttention:
-              type: number
-            attentionToWorker:
-              type: number
-            workerToRun:
-              type: number
-            runToFinding:
-              type: number
-            findingToNotification:
-              type: number
-            total:
-              type: number
-        links:
-          type: object
-          additionalProperties:
-            type: string
-        steps:
-          type: array
-          items:
-            $ref: "#/components/schemas/FleetGraphReviewerStep"
-        visibleOutput:
-          $ref: "#/components/schemas/FleetGraphVisibleOutput"
-        notificationProjection:
-          $ref: "#/components/schemas/FleetGraphNotificationResponse"
-        humanGate:
-          type: object
-          properties:
-            required:
-              type: boolean
-            state:
-              type: string
-            allowedActions:
-              type: array
-              items:
-                type: string
-          required:
-            - required
-            - state
-            - allowedActions
-        traceQuality:
-          type: object
-          properties:
-            passed:
-              type: boolean
-            requiredDecisions:
-              type: array
-              items:
-                type: string
-            observedDecisions:
-              type: array
-              items:
-                type: string
-            scores:
-              type: array
-              items:
-                $ref: "#/components/schemas/FleetGraphReviewerTraceScore"
-          required:
-            - passed
-            - requiredDecisions
-            - observedDecisions
-            - scores
-        sourceMutationCheck:
-          type: object
-          properties:
-            passed:
-              type: boolean
-            before:
-              type: object
-              additionalProperties:
-                nullable: true
-            after:
-              type: object
-              additionalProperties:
-                nullable: true
-            changedFields:
-              type: array
-              items:
-                type: string
-          required:
-            - passed
-            - before
-            - after
-            - changedFields
-        usageSummary:
-          $ref: "#/components/schemas/FleetGraphUsage"
-      required:
-        - chainId
-        - scenario
-        - status
-        - missing
-        - generatedAt
-        - freshness
-        - latencyMs
-        - links
-        - steps
-        - humanGate
-        - traceQuality
-        - sourceMutationCheck
-        - usageSummary
     FleetGraphReviewerChainsResponse:
       type: object
       properties:
@@ -7353,6 +8365,9 @@ components:
                 - in_progress
                 - broken
                 - failed
+            preferredChainId:
+              type: string
+              nullable: true
             chainCount:
               type: integer
               minimum: 0
@@ -7365,12 +8380,75 @@ components:
             requiredGates:
               type: array
               items:
-                $ref: "#/components/schemas/FleetGraphReviewerTraceScore"
+                type: object
+                properties:
+                  name:
+                    type: string
+                  passed:
+                    type: boolean
+                  value:
+                    anyOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+                      - nullable: true
+                      - nullable: true
+                  comment:
+                    type: string
+                required:
+                  - name
+                  - passed
+                  - value
+                  - comment
             costSummary:
-              $ref: "#/components/schemas/FleetGraphUsage"
+              type: object
+              properties:
+                modelCalls:
+                  type: integer
+                  minimum: 0
+                inputTokens:
+                  type: integer
+                  minimum: 0
+                cachedInputTokens:
+                  type: integer
+                  minimum: 0
+                billableInputTokens:
+                  type: integer
+                  minimum: 0
+                outputTokens:
+                  type: integer
+                  minimum: 0
+                totalTokens:
+                  type: integer
+                  minimum: 0
+                estimatedCostUsd:
+                  type: number
+                  minimum: 0
+                costCurrency:
+                  type: string
+                  enum:
+                    - USD
+                usageSource:
+                  type: string
+                  enum:
+                    - none
+                    - model_response
+                    - partial_model_response
+                    - synthetic_calibration
+                costSource:
+                  type: string
+                  enum:
+                    - none
+                    - model_response
+                    - catalog_estimate
+                    - env_estimate
+                    - synthetic_calibration
+              required:
+                - modelCalls
           required:
             - generatedAt
             - status
+            - preferredChainId
             - chainCount
             - completeCount
             - brokenCount
@@ -7379,7 +8457,590 @@ components:
         chains:
           type: array
           items:
-            $ref: "#/components/schemas/FleetGraphReviewerChain"
+            type: object
+            properties:
+              chainId:
+                type: string
+              scenario:
+                type: string
+                enum:
+                  - week-blocker
+                  - existing
+              status:
+                type: string
+                enum:
+                  - complete
+                  - in_progress
+                  - broken
+                  - failed
+              missing:
+                type: array
+                items:
+                  type: string
+              missingLabels:
+                type: array
+                items:
+                  type: string
+              productPath:
+                type: string
+                enum:
+                  - working
+                  - partial
+              generatedAt:
+                type: string
+              freshness:
+                type: object
+                properties:
+                  generatedAt:
+                    type: string
+                  newestRunAt:
+                    type: string
+                    nullable: true
+                  newestWorkerTickAt:
+                    type: string
+                    nullable: true
+                  proofAgeMs:
+                    type: number
+                    nullable: true
+                  workerAgeMs:
+                    type: number
+                    nullable: true
+                required:
+                  - generatedAt
+                  - newestRunAt
+                  - newestWorkerTickAt
+                  - proofAgeMs
+                  - workerAgeMs
+              latencyMs:
+                type: object
+                properties:
+                  shipToAttention:
+                    type: number
+                  attentionToWorker:
+                    type: number
+                  workerToRun:
+                    type: number
+                  runToFinding:
+                    type: number
+                  findingToNotification:
+                    type: number
+                  notificationToChat:
+                    type: number
+                  total:
+                    type: number
+              links:
+                type: object
+                properties:
+                  sourceIssueId:
+                    type: string
+                    format: uuid
+                  sourceSprintId:
+                    type: string
+                    format: uuid
+                  attentionEventId:
+                    type: string
+                    format: uuid
+                  workerTickId:
+                    type: string
+                    format: uuid
+                  runId:
+                    type: string
+                    format: uuid
+                  traceId:
+                    type: string
+                  traceUrl:
+                    type: string
+                  findingId:
+                    type: string
+                    format: uuid
+                  notificationProjectionId:
+                    type: string
+                    format: uuid
+                  chatRunId:
+                    type: string
+                    format: uuid
+              steps:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                    label:
+                      type: string
+                    status:
+                      type: string
+                      enum:
+                        - pass
+                        - pending
+                        - broken
+                        - failed
+                    at:
+                      type: string
+                      nullable: true
+                    durationMs:
+                      type: number
+                      minimum: 0
+                    evidence:
+                      type: string
+                  required:
+                    - key
+                    - label
+                    - status
+                    - at
+                    - evidence
+              visibleOutput:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  summary:
+                    type: string
+                  severity:
+                    type: string
+                    enum:
+                      - low
+                      - medium
+                      - high
+                      - urgent
+                  confidence:
+                    type: number
+                  recommendedAction:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      text:
+                        type: string
+                      summary:
+                        type: string
+                  proposedRecipient:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      userId:
+                        type: string
+                        nullable: true
+                        format: uuid
+                      displayName:
+                        type: string
+                      rationale:
+                        type: string
+                  recipientRationale:
+                    type: string
+                  uncertaintyNotes:
+                    type: array
+                    items:
+                      type: string
+                  evidence:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind:
+                          type: string
+                          enum:
+                            - source_issue
+                            - source_sprint
+                            - blocker
+                            - stale
+                            - at_risk
+                            - dedupe
+                            - finding
+                            - restricted
+                        sourceDocumentId:
+                          type: string
+                          format: uuid
+                        sourceType:
+                          type: string
+                          enum:
+                            - issue
+                            - sprint
+                        claim:
+                          type: string
+                        excerpt:
+                          type: string
+                        visibility:
+                          type: string
+                          enum:
+                            - internal
+                            - actor_visible
+                            - restricted
+                        visibleFields:
+                          type: array
+                          items:
+                            type: string
+                        redactionReason:
+                          type: string
+                      required:
+                        - kind
+                        - claim
+                        - visibility
+                        - visibleFields
+                  humanGate:
+                    type: object
+                    additionalProperties:
+                      nullable: true
+                  draftContent:
+                    type: object
+                    additionalProperties:
+                      nullable: true
+                  noSafeOutput:
+                    type: boolean
+                required:
+                  - title
+                  - summary
+                  - evidence
+                  - humanGate
+              notificationProjection:
+                type: object
+                properties:
+                  signalType:
+                    type: string
+                    enum:
+                      - blocked
+                      - stale
+                      - at_risk
+                  signalLabel:
+                    type: string
+                  reason:
+                    type: string
+                  sourceIssueId:
+                    type: string
+                    format: uuid
+                  sourceSprintId:
+                    type: string
+                    format: uuid
+                  visibleOutput:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      summary:
+                        type: string
+                      severity:
+                        type: string
+                        enum:
+                          - low
+                          - medium
+                          - high
+                          - urgent
+                      confidence:
+                        type: number
+                      recommendedAction:
+                        type: object
+                        properties:
+                          label:
+                            type: string
+                          text:
+                            type: string
+                          summary:
+                            type: string
+                      proposedRecipient:
+                        type: object
+                        properties:
+                          role:
+                            type: string
+                          userId:
+                            type: string
+                            nullable: true
+                            format: uuid
+                          displayName:
+                            type: string
+                          rationale:
+                            type: string
+                      recipientRationale:
+                        type: string
+                      uncertaintyNotes:
+                        type: array
+                        items:
+                          type: string
+                      evidence:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              enum:
+                                - source_issue
+                                - source_sprint
+                                - blocker
+                                - stale
+                                - at_risk
+                                - dedupe
+                                - finding
+                                - restricted
+                            sourceDocumentId:
+                              type: string
+                              format: uuid
+                            sourceType:
+                              type: string
+                              enum:
+                                - issue
+                                - sprint
+                            claim:
+                              type: string
+                            excerpt:
+                              type: string
+                            visibility:
+                              type: string
+                              enum:
+                                - internal
+                                - actor_visible
+                                - restricted
+                            visibleFields:
+                              type: array
+                              items:
+                                type: string
+                            redactionReason:
+                              type: string
+                          required:
+                            - kind
+                            - claim
+                            - visibility
+                            - visibleFields
+                      humanGate:
+                        type: object
+                        additionalProperties:
+                          nullable: true
+                      draftContent:
+                        type: object
+                        additionalProperties:
+                          nullable: true
+                      noSafeOutput:
+                        type: boolean
+                    required:
+                      - title
+                      - summary
+                      - evidence
+                      - humanGate
+                  traceMetadata:
+                    type: object
+                    properties:
+                      mode:
+                        type: string
+                        enum:
+                          - proactive
+                          - on_demand
+                      decision:
+                        type: string
+                      nodePath:
+                        type: array
+                        items:
+                          type: string
+                      traceId:
+                        type: string
+                      traceUrl:
+                        type: string
+                      failureCategory:
+                        type: string
+                    required:
+                      - mode
+                      - decision
+                      - nodePath
+                  title:
+                    type: string
+                  issueTitle:
+                    type: string
+                  context:
+                    type: string
+                  owner:
+                    type: string
+                    nullable: true
+                  notificationText:
+                    type: string
+                  blockerText:
+                    type: string
+                  sourcePath:
+                    type: string
+                  detectedAt:
+                    type: string
+                  isRead:
+                    type: boolean
+                  readAt:
+                    type: string
+                    nullable: true
+                  id:
+                    type: string
+                    format: uuid
+                  findingId:
+                    type: string
+                    format: uuid
+                required:
+                  - signalType
+                  - signalLabel
+                  - reason
+                  - sourceIssueId
+                  - sourceSprintId
+                  - visibleOutput
+                  - traceMetadata
+                  - title
+                  - issueTitle
+                  - context
+                  - owner
+                  - notificationText
+                  - blockerText
+                  - sourcePath
+                  - detectedAt
+                  - isRead
+                  - readAt
+                  - id
+                  - findingId
+              humanGate:
+                type: object
+                properties:
+                  required:
+                    type: boolean
+                  state:
+                    type: string
+                    enum:
+                      - present
+                      - missing
+                      - not_applicable
+                  allowedActions:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - required
+                  - state
+                  - allowedActions
+              traceQuality:
+                type: object
+                properties:
+                  passed:
+                    type: boolean
+                  requiredDecisions:
+                    type: array
+                    items:
+                      type: string
+                  observedDecisions:
+                    type: array
+                    items:
+                      type: string
+                  scores:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        passed:
+                          type: boolean
+                        value:
+                          anyOf:
+                            - type: string
+                            - type: number
+                            - type: boolean
+                            - nullable: true
+                            - nullable: true
+                        comment:
+                          type: string
+                      required:
+                        - name
+                        - passed
+                        - value
+                        - comment
+                required:
+                  - passed
+                  - requiredDecisions
+                  - observedDecisions
+                  - scores
+              sourceMutationCheck:
+                type: object
+                properties:
+                  passed:
+                    type: boolean
+                  before:
+                    type: object
+                    additionalProperties:
+                      anyOf:
+                        - type: string
+                        - type: number
+                        - type: boolean
+                        - nullable: true
+                        - nullable: true
+                  after:
+                    type: object
+                    additionalProperties:
+                      anyOf:
+                        - type: string
+                        - type: number
+                        - type: boolean
+                        - nullable: true
+                        - nullable: true
+                  changedFields:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - passed
+                  - before
+                  - after
+                  - changedFields
+              usageSummary:
+                type: object
+                properties:
+                  modelCalls:
+                    type: integer
+                    minimum: 0
+                  inputTokens:
+                    type: integer
+                    minimum: 0
+                  cachedInputTokens:
+                    type: integer
+                    minimum: 0
+                  billableInputTokens:
+                    type: integer
+                    minimum: 0
+                  outputTokens:
+                    type: integer
+                    minimum: 0
+                  totalTokens:
+                    type: integer
+                    minimum: 0
+                  estimatedCostUsd:
+                    type: number
+                    minimum: 0
+                  costCurrency:
+                    type: string
+                    enum:
+                      - USD
+                  usageSource:
+                    type: string
+                    enum:
+                      - none
+                      - model_response
+                      - partial_model_response
+                      - synthetic_calibration
+                  costSource:
+                    type: string
+                    enum:
+                      - none
+                      - model_response
+                      - catalog_estimate
+                      - env_estimate
+                      - synthetic_calibration
+                required:
+                  - modelCalls
+            required:
+              - chainId
+              - scenario
+              - status
+              - missing
+              - missingLabels
+              - productPath
+              - generatedAt
+              - freshness
+              - latencyMs
+              - links
+              - steps
+              - humanGate
+              - traceQuality
+              - sourceMutationCheck
+              - usageSummary
       required:
         - summary
         - chains
@@ -7387,7 +9048,590 @@ components:
       type: object
       properties:
         chain:
-          $ref: "#/components/schemas/FleetGraphReviewerChain"
+          type: object
+          properties:
+            chainId:
+              type: string
+            scenario:
+              type: string
+              enum:
+                - week-blocker
+                - existing
+            status:
+              type: string
+              enum:
+                - complete
+                - in_progress
+                - broken
+                - failed
+            missing:
+              type: array
+              items:
+                type: string
+            missingLabels:
+              type: array
+              items:
+                type: string
+            productPath:
+              type: string
+              enum:
+                - working
+                - partial
+            generatedAt:
+              type: string
+            freshness:
+              type: object
+              properties:
+                generatedAt:
+                  type: string
+                newestRunAt:
+                  type: string
+                  nullable: true
+                newestWorkerTickAt:
+                  type: string
+                  nullable: true
+                proofAgeMs:
+                  type: number
+                  nullable: true
+                workerAgeMs:
+                  type: number
+                  nullable: true
+              required:
+                - generatedAt
+                - newestRunAt
+                - newestWorkerTickAt
+                - proofAgeMs
+                - workerAgeMs
+            latencyMs:
+              type: object
+              properties:
+                shipToAttention:
+                  type: number
+                attentionToWorker:
+                  type: number
+                workerToRun:
+                  type: number
+                runToFinding:
+                  type: number
+                findingToNotification:
+                  type: number
+                notificationToChat:
+                  type: number
+                total:
+                  type: number
+            links:
+              type: object
+              properties:
+                sourceIssueId:
+                  type: string
+                  format: uuid
+                sourceSprintId:
+                  type: string
+                  format: uuid
+                attentionEventId:
+                  type: string
+                  format: uuid
+                workerTickId:
+                  type: string
+                  format: uuid
+                runId:
+                  type: string
+                  format: uuid
+                traceId:
+                  type: string
+                traceUrl:
+                  type: string
+                findingId:
+                  type: string
+                  format: uuid
+                notificationProjectionId:
+                  type: string
+                  format: uuid
+                chatRunId:
+                  type: string
+                  format: uuid
+            steps:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  label:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - pass
+                      - pending
+                      - broken
+                      - failed
+                  at:
+                    type: string
+                    nullable: true
+                  durationMs:
+                    type: number
+                    minimum: 0
+                  evidence:
+                    type: string
+                required:
+                  - key
+                  - label
+                  - status
+                  - at
+                  - evidence
+            visibleOutput:
+              type: object
+              properties:
+                title:
+                  type: string
+                summary:
+                  type: string
+                severity:
+                  type: string
+                  enum:
+                    - low
+                    - medium
+                    - high
+                    - urgent
+                confidence:
+                  type: number
+                recommendedAction:
+                  type: object
+                  properties:
+                    label:
+                      type: string
+                    text:
+                      type: string
+                    summary:
+                      type: string
+                proposedRecipient:
+                  type: object
+                  properties:
+                    role:
+                      type: string
+                    userId:
+                      type: string
+                      nullable: true
+                      format: uuid
+                    displayName:
+                      type: string
+                    rationale:
+                      type: string
+                recipientRationale:
+                  type: string
+                uncertaintyNotes:
+                  type: array
+                  items:
+                    type: string
+                evidence:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - source_issue
+                          - source_sprint
+                          - blocker
+                          - stale
+                          - at_risk
+                          - dedupe
+                          - finding
+                          - restricted
+                      sourceDocumentId:
+                        type: string
+                        format: uuid
+                      sourceType:
+                        type: string
+                        enum:
+                          - issue
+                          - sprint
+                      claim:
+                        type: string
+                      excerpt:
+                        type: string
+                      visibility:
+                        type: string
+                        enum:
+                          - internal
+                          - actor_visible
+                          - restricted
+                      visibleFields:
+                        type: array
+                        items:
+                          type: string
+                      redactionReason:
+                        type: string
+                    required:
+                      - kind
+                      - claim
+                      - visibility
+                      - visibleFields
+                humanGate:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                draftContent:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                noSafeOutput:
+                  type: boolean
+              required:
+                - title
+                - summary
+                - evidence
+                - humanGate
+            notificationProjection:
+              type: object
+              properties:
+                signalType:
+                  type: string
+                  enum:
+                    - blocked
+                    - stale
+                    - at_risk
+                signalLabel:
+                  type: string
+                reason:
+                  type: string
+                sourceIssueId:
+                  type: string
+                  format: uuid
+                sourceSprintId:
+                  type: string
+                  format: uuid
+                visibleOutput:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    summary:
+                      type: string
+                    severity:
+                      type: string
+                      enum:
+                        - low
+                        - medium
+                        - high
+                        - urgent
+                    confidence:
+                      type: number
+                    recommendedAction:
+                      type: object
+                      properties:
+                        label:
+                          type: string
+                        text:
+                          type: string
+                        summary:
+                          type: string
+                    proposedRecipient:
+                      type: object
+                      properties:
+                        role:
+                          type: string
+                        userId:
+                          type: string
+                          nullable: true
+                          format: uuid
+                        displayName:
+                          type: string
+                        rationale:
+                          type: string
+                    recipientRationale:
+                      type: string
+                    uncertaintyNotes:
+                      type: array
+                      items:
+                        type: string
+                    evidence:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          kind:
+                            type: string
+                            enum:
+                              - source_issue
+                              - source_sprint
+                              - blocker
+                              - stale
+                              - at_risk
+                              - dedupe
+                              - finding
+                              - restricted
+                          sourceDocumentId:
+                            type: string
+                            format: uuid
+                          sourceType:
+                            type: string
+                            enum:
+                              - issue
+                              - sprint
+                          claim:
+                            type: string
+                          excerpt:
+                            type: string
+                          visibility:
+                            type: string
+                            enum:
+                              - internal
+                              - actor_visible
+                              - restricted
+                          visibleFields:
+                            type: array
+                            items:
+                              type: string
+                          redactionReason:
+                            type: string
+                        required:
+                          - kind
+                          - claim
+                          - visibility
+                          - visibleFields
+                    humanGate:
+                      type: object
+                      additionalProperties:
+                        nullable: true
+                    draftContent:
+                      type: object
+                      additionalProperties:
+                        nullable: true
+                    noSafeOutput:
+                      type: boolean
+                  required:
+                    - title
+                    - summary
+                    - evidence
+                    - humanGate
+                traceMetadata:
+                  type: object
+                  properties:
+                    mode:
+                      type: string
+                      enum:
+                        - proactive
+                        - on_demand
+                    decision:
+                      type: string
+                    nodePath:
+                      type: array
+                      items:
+                        type: string
+                    traceId:
+                      type: string
+                    traceUrl:
+                      type: string
+                    failureCategory:
+                      type: string
+                  required:
+                    - mode
+                    - decision
+                    - nodePath
+                title:
+                  type: string
+                issueTitle:
+                  type: string
+                context:
+                  type: string
+                owner:
+                  type: string
+                  nullable: true
+                notificationText:
+                  type: string
+                blockerText:
+                  type: string
+                sourcePath:
+                  type: string
+                detectedAt:
+                  type: string
+                isRead:
+                  type: boolean
+                readAt:
+                  type: string
+                  nullable: true
+                id:
+                  type: string
+                  format: uuid
+                findingId:
+                  type: string
+                  format: uuid
+              required:
+                - signalType
+                - signalLabel
+                - reason
+                - sourceIssueId
+                - sourceSprintId
+                - visibleOutput
+                - traceMetadata
+                - title
+                - issueTitle
+                - context
+                - owner
+                - notificationText
+                - blockerText
+                - sourcePath
+                - detectedAt
+                - isRead
+                - readAt
+                - id
+                - findingId
+            humanGate:
+              type: object
+              properties:
+                required:
+                  type: boolean
+                state:
+                  type: string
+                  enum:
+                    - present
+                    - missing
+                    - not_applicable
+                allowedActions:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - required
+                - state
+                - allowedActions
+            traceQuality:
+              type: object
+              properties:
+                passed:
+                  type: boolean
+                requiredDecisions:
+                  type: array
+                  items:
+                    type: string
+                observedDecisions:
+                  type: array
+                  items:
+                    type: string
+                scores:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      passed:
+                        type: boolean
+                      value:
+                        anyOf:
+                          - type: string
+                          - type: number
+                          - type: boolean
+                          - nullable: true
+                          - nullable: true
+                      comment:
+                        type: string
+                    required:
+                      - name
+                      - passed
+                      - value
+                      - comment
+              required:
+                - passed
+                - requiredDecisions
+                - observedDecisions
+                - scores
+            sourceMutationCheck:
+              type: object
+              properties:
+                passed:
+                  type: boolean
+                before:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+                      - nullable: true
+                      - nullable: true
+                after:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+                      - nullable: true
+                      - nullable: true
+                changedFields:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - passed
+                - before
+                - after
+                - changedFields
+            usageSummary:
+              type: object
+              properties:
+                modelCalls:
+                  type: integer
+                  minimum: 0
+                inputTokens:
+                  type: integer
+                  minimum: 0
+                cachedInputTokens:
+                  type: integer
+                  minimum: 0
+                billableInputTokens:
+                  type: integer
+                  minimum: 0
+                outputTokens:
+                  type: integer
+                  minimum: 0
+                totalTokens:
+                  type: integer
+                  minimum: 0
+                estimatedCostUsd:
+                  type: number
+                  minimum: 0
+                costCurrency:
+                  type: string
+                  enum:
+                    - USD
+                usageSource:
+                  type: string
+                  enum:
+                    - none
+                    - model_response
+                    - partial_model_response
+                    - synthetic_calibration
+                costSource:
+                  type: string
+                  enum:
+                    - none
+                    - model_response
+                    - catalog_estimate
+                    - env_estimate
+                    - synthetic_calibration
+              required:
+                - modelCalls
+          required:
+            - chainId
+            - scenario
+            - status
+            - missing
+            - missingLabels
+            - productPath
+            - generatedAt
+            - freshness
+            - latencyMs
+            - links
+            - steps
+            - humanGate
+            - traceQuality
+            - sourceMutationCheck
+            - usageSummary
       required:
         - chain
     FleetGraphReviewerScenarioResponse:
@@ -7398,28 +9642,614 @@ components:
         sourceIssueId:
           type: string
           format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
         sourceSprintId:
           type: string
           format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
         attentionEventId:
           type: string
           format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
         workerTickTriggered:
           type: boolean
         chain:
-          $ref: "#/components/schemas/FleetGraphReviewerChain"
+          type: object
+          properties:
+            chainId:
+              type: string
+            scenario:
+              type: string
+              enum:
+                - week-blocker
+                - existing
+            status:
+              type: string
+              enum:
+                - complete
+                - in_progress
+                - broken
+                - failed
+            missing:
+              type: array
+              items:
+                type: string
+            missingLabels:
+              type: array
+              items:
+                type: string
+            productPath:
+              type: string
+              enum:
+                - working
+                - partial
+            generatedAt:
+              type: string
+            freshness:
+              type: object
+              properties:
+                generatedAt:
+                  type: string
+                newestRunAt:
+                  type: string
+                  nullable: true
+                newestWorkerTickAt:
+                  type: string
+                  nullable: true
+                proofAgeMs:
+                  type: number
+                  nullable: true
+                workerAgeMs:
+                  type: number
+                  nullable: true
+              required:
+                - generatedAt
+                - newestRunAt
+                - newestWorkerTickAt
+                - proofAgeMs
+                - workerAgeMs
+            latencyMs:
+              type: object
+              properties:
+                shipToAttention:
+                  type: number
+                attentionToWorker:
+                  type: number
+                workerToRun:
+                  type: number
+                runToFinding:
+                  type: number
+                findingToNotification:
+                  type: number
+                notificationToChat:
+                  type: number
+                total:
+                  type: number
+            links:
+              type: object
+              properties:
+                sourceIssueId:
+                  type: string
+                  format: uuid
+                sourceSprintId:
+                  type: string
+                  format: uuid
+                attentionEventId:
+                  type: string
+                  format: uuid
+                workerTickId:
+                  type: string
+                  format: uuid
+                runId:
+                  type: string
+                  format: uuid
+                traceId:
+                  type: string
+                traceUrl:
+                  type: string
+                findingId:
+                  type: string
+                  format: uuid
+                notificationProjectionId:
+                  type: string
+                  format: uuid
+                chatRunId:
+                  type: string
+                  format: uuid
+            steps:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  label:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - pass
+                      - pending
+                      - broken
+                      - failed
+                  at:
+                    type: string
+                    nullable: true
+                  durationMs:
+                    type: number
+                    minimum: 0
+                  evidence:
+                    type: string
+                required:
+                  - key
+                  - label
+                  - status
+                  - at
+                  - evidence
+            visibleOutput:
+              type: object
+              properties:
+                title:
+                  type: string
+                summary:
+                  type: string
+                severity:
+                  type: string
+                  enum:
+                    - low
+                    - medium
+                    - high
+                    - urgent
+                confidence:
+                  type: number
+                recommendedAction:
+                  type: object
+                  properties:
+                    label:
+                      type: string
+                    text:
+                      type: string
+                    summary:
+                      type: string
+                proposedRecipient:
+                  type: object
+                  properties:
+                    role:
+                      type: string
+                    userId:
+                      type: string
+                      nullable: true
+                      format: uuid
+                    displayName:
+                      type: string
+                    rationale:
+                      type: string
+                recipientRationale:
+                  type: string
+                uncertaintyNotes:
+                  type: array
+                  items:
+                    type: string
+                evidence:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - source_issue
+                          - source_sprint
+                          - blocker
+                          - stale
+                          - at_risk
+                          - dedupe
+                          - finding
+                          - restricted
+                      sourceDocumentId:
+                        type: string
+                        format: uuid
+                      sourceType:
+                        type: string
+                        enum:
+                          - issue
+                          - sprint
+                      claim:
+                        type: string
+                      excerpt:
+                        type: string
+                      visibility:
+                        type: string
+                        enum:
+                          - internal
+                          - actor_visible
+                          - restricted
+                      visibleFields:
+                        type: array
+                        items:
+                          type: string
+                      redactionReason:
+                        type: string
+                    required:
+                      - kind
+                      - claim
+                      - visibility
+                      - visibleFields
+                humanGate:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                draftContent:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                noSafeOutput:
+                  type: boolean
+              required:
+                - title
+                - summary
+                - evidence
+                - humanGate
+            notificationProjection:
+              type: object
+              properties:
+                signalType:
+                  type: string
+                  enum:
+                    - blocked
+                    - stale
+                    - at_risk
+                signalLabel:
+                  type: string
+                reason:
+                  type: string
+                sourceIssueId:
+                  type: string
+                  format: uuid
+                sourceSprintId:
+                  type: string
+                  format: uuid
+                visibleOutput:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    summary:
+                      type: string
+                    severity:
+                      type: string
+                      enum:
+                        - low
+                        - medium
+                        - high
+                        - urgent
+                    confidence:
+                      type: number
+                    recommendedAction:
+                      type: object
+                      properties:
+                        label:
+                          type: string
+                        text:
+                          type: string
+                        summary:
+                          type: string
+                    proposedRecipient:
+                      type: object
+                      properties:
+                        role:
+                          type: string
+                        userId:
+                          type: string
+                          nullable: true
+                          format: uuid
+                        displayName:
+                          type: string
+                        rationale:
+                          type: string
+                    recipientRationale:
+                      type: string
+                    uncertaintyNotes:
+                      type: array
+                      items:
+                        type: string
+                    evidence:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          kind:
+                            type: string
+                            enum:
+                              - source_issue
+                              - source_sprint
+                              - blocker
+                              - stale
+                              - at_risk
+                              - dedupe
+                              - finding
+                              - restricted
+                          sourceDocumentId:
+                            type: string
+                            format: uuid
+                          sourceType:
+                            type: string
+                            enum:
+                              - issue
+                              - sprint
+                          claim:
+                            type: string
+                          excerpt:
+                            type: string
+                          visibility:
+                            type: string
+                            enum:
+                              - internal
+                              - actor_visible
+                              - restricted
+                          visibleFields:
+                            type: array
+                            items:
+                              type: string
+                          redactionReason:
+                            type: string
+                        required:
+                          - kind
+                          - claim
+                          - visibility
+                          - visibleFields
+                    humanGate:
+                      type: object
+                      additionalProperties:
+                        nullable: true
+                    draftContent:
+                      type: object
+                      additionalProperties:
+                        nullable: true
+                    noSafeOutput:
+                      type: boolean
+                  required:
+                    - title
+                    - summary
+                    - evidence
+                    - humanGate
+                traceMetadata:
+                  type: object
+                  properties:
+                    mode:
+                      type: string
+                      enum:
+                        - proactive
+                        - on_demand
+                    decision:
+                      type: string
+                    nodePath:
+                      type: array
+                      items:
+                        type: string
+                    traceId:
+                      type: string
+                    traceUrl:
+                      type: string
+                    failureCategory:
+                      type: string
+                  required:
+                    - mode
+                    - decision
+                    - nodePath
+                title:
+                  type: string
+                issueTitle:
+                  type: string
+                context:
+                  type: string
+                owner:
+                  type: string
+                  nullable: true
+                notificationText:
+                  type: string
+                blockerText:
+                  type: string
+                sourcePath:
+                  type: string
+                detectedAt:
+                  type: string
+                isRead:
+                  type: boolean
+                readAt:
+                  type: string
+                  nullable: true
+                id:
+                  type: string
+                  format: uuid
+                findingId:
+                  type: string
+                  format: uuid
+              required:
+                - signalType
+                - signalLabel
+                - reason
+                - sourceIssueId
+                - sourceSprintId
+                - visibleOutput
+                - traceMetadata
+                - title
+                - issueTitle
+                - context
+                - owner
+                - notificationText
+                - blockerText
+                - sourcePath
+                - detectedAt
+                - isRead
+                - readAt
+                - id
+                - findingId
+            humanGate:
+              type: object
+              properties:
+                required:
+                  type: boolean
+                state:
+                  type: string
+                  enum:
+                    - present
+                    - missing
+                    - not_applicable
+                allowedActions:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - required
+                - state
+                - allowedActions
+            traceQuality:
+              type: object
+              properties:
+                passed:
+                  type: boolean
+                requiredDecisions:
+                  type: array
+                  items:
+                    type: string
+                observedDecisions:
+                  type: array
+                  items:
+                    type: string
+                scores:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      passed:
+                        type: boolean
+                      value:
+                        anyOf:
+                          - type: string
+                          - type: number
+                          - type: boolean
+                          - nullable: true
+                          - nullable: true
+                      comment:
+                        type: string
+                    required:
+                      - name
+                      - passed
+                      - value
+                      - comment
+              required:
+                - passed
+                - requiredDecisions
+                - observedDecisions
+                - scores
+            sourceMutationCheck:
+              type: object
+              properties:
+                passed:
+                  type: boolean
+                before:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+                      - nullable: true
+                      - nullable: true
+                after:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+                      - nullable: true
+                      - nullable: true
+                changedFields:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - passed
+                - before
+                - after
+                - changedFields
+            usageSummary:
+              type: object
+              properties:
+                modelCalls:
+                  type: integer
+                  minimum: 0
+                inputTokens:
+                  type: integer
+                  minimum: 0
+                cachedInputTokens:
+                  type: integer
+                  minimum: 0
+                billableInputTokens:
+                  type: integer
+                  minimum: 0
+                outputTokens:
+                  type: integer
+                  minimum: 0
+                totalTokens:
+                  type: integer
+                  minimum: 0
+                estimatedCostUsd:
+                  type: number
+                  minimum: 0
+                costCurrency:
+                  type: string
+                  enum:
+                    - USD
+                usageSource:
+                  type: string
+                  enum:
+                    - none
+                    - model_response
+                    - partial_model_response
+                    - synthetic_calibration
+                costSource:
+                  type: string
+                  enum:
+                    - none
+                    - model_response
+                    - catalog_estimate
+                    - env_estimate
+                    - synthetic_calibration
+              required:
+                - modelCalls
+          required:
+            - chainId
+            - scenario
+            - status
+            - missing
+            - missingLabels
+            - productPath
+            - generatedAt
+            - freshness
+            - latencyMs
+            - links
+            - steps
+            - humanGate
+            - traceQuality
+            - sourceMutationCheck
+            - usageSummary
       required:
         - chainId
         - sourceIssueId
         - sourceSprintId
         - workerTickTriggered
         - chain
+    FleetGraphReviewerWorkerTickResponse:
+      type: object
+      properties:
+        triggered:
+          type: boolean
+          enum:
+            - true
+      required:
+        - triggered
     FleetGraphReviewerRepairResponse:
       type: object
       properties:
@@ -7434,7 +10264,590 @@ components:
           items:
             type: string
         chain:
-          $ref: "#/components/schemas/FleetGraphReviewerChain"
+          type: object
+          properties:
+            chainId:
+              type: string
+            scenario:
+              type: string
+              enum:
+                - week-blocker
+                - existing
+            status:
+              type: string
+              enum:
+                - complete
+                - in_progress
+                - broken
+                - failed
+            missing:
+              type: array
+              items:
+                type: string
+            missingLabels:
+              type: array
+              items:
+                type: string
+            productPath:
+              type: string
+              enum:
+                - working
+                - partial
+            generatedAt:
+              type: string
+            freshness:
+              type: object
+              properties:
+                generatedAt:
+                  type: string
+                newestRunAt:
+                  type: string
+                  nullable: true
+                newestWorkerTickAt:
+                  type: string
+                  nullable: true
+                proofAgeMs:
+                  type: number
+                  nullable: true
+                workerAgeMs:
+                  type: number
+                  nullable: true
+              required:
+                - generatedAt
+                - newestRunAt
+                - newestWorkerTickAt
+                - proofAgeMs
+                - workerAgeMs
+            latencyMs:
+              type: object
+              properties:
+                shipToAttention:
+                  type: number
+                attentionToWorker:
+                  type: number
+                workerToRun:
+                  type: number
+                runToFinding:
+                  type: number
+                findingToNotification:
+                  type: number
+                notificationToChat:
+                  type: number
+                total:
+                  type: number
+            links:
+              type: object
+              properties:
+                sourceIssueId:
+                  type: string
+                  format: uuid
+                sourceSprintId:
+                  type: string
+                  format: uuid
+                attentionEventId:
+                  type: string
+                  format: uuid
+                workerTickId:
+                  type: string
+                  format: uuid
+                runId:
+                  type: string
+                  format: uuid
+                traceId:
+                  type: string
+                traceUrl:
+                  type: string
+                findingId:
+                  type: string
+                  format: uuid
+                notificationProjectionId:
+                  type: string
+                  format: uuid
+                chatRunId:
+                  type: string
+                  format: uuid
+            steps:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  label:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - pass
+                      - pending
+                      - broken
+                      - failed
+                  at:
+                    type: string
+                    nullable: true
+                  durationMs:
+                    type: number
+                    minimum: 0
+                  evidence:
+                    type: string
+                required:
+                  - key
+                  - label
+                  - status
+                  - at
+                  - evidence
+            visibleOutput:
+              type: object
+              properties:
+                title:
+                  type: string
+                summary:
+                  type: string
+                severity:
+                  type: string
+                  enum:
+                    - low
+                    - medium
+                    - high
+                    - urgent
+                confidence:
+                  type: number
+                recommendedAction:
+                  type: object
+                  properties:
+                    label:
+                      type: string
+                    text:
+                      type: string
+                    summary:
+                      type: string
+                proposedRecipient:
+                  type: object
+                  properties:
+                    role:
+                      type: string
+                    userId:
+                      type: string
+                      nullable: true
+                      format: uuid
+                    displayName:
+                      type: string
+                    rationale:
+                      type: string
+                recipientRationale:
+                  type: string
+                uncertaintyNotes:
+                  type: array
+                  items:
+                    type: string
+                evidence:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - source_issue
+                          - source_sprint
+                          - blocker
+                          - stale
+                          - at_risk
+                          - dedupe
+                          - finding
+                          - restricted
+                      sourceDocumentId:
+                        type: string
+                        format: uuid
+                      sourceType:
+                        type: string
+                        enum:
+                          - issue
+                          - sprint
+                      claim:
+                        type: string
+                      excerpt:
+                        type: string
+                      visibility:
+                        type: string
+                        enum:
+                          - internal
+                          - actor_visible
+                          - restricted
+                      visibleFields:
+                        type: array
+                        items:
+                          type: string
+                      redactionReason:
+                        type: string
+                    required:
+                      - kind
+                      - claim
+                      - visibility
+                      - visibleFields
+                humanGate:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                draftContent:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                noSafeOutput:
+                  type: boolean
+              required:
+                - title
+                - summary
+                - evidence
+                - humanGate
+            notificationProjection:
+              type: object
+              properties:
+                signalType:
+                  type: string
+                  enum:
+                    - blocked
+                    - stale
+                    - at_risk
+                signalLabel:
+                  type: string
+                reason:
+                  type: string
+                sourceIssueId:
+                  type: string
+                  format: uuid
+                sourceSprintId:
+                  type: string
+                  format: uuid
+                visibleOutput:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    summary:
+                      type: string
+                    severity:
+                      type: string
+                      enum:
+                        - low
+                        - medium
+                        - high
+                        - urgent
+                    confidence:
+                      type: number
+                    recommendedAction:
+                      type: object
+                      properties:
+                        label:
+                          type: string
+                        text:
+                          type: string
+                        summary:
+                          type: string
+                    proposedRecipient:
+                      type: object
+                      properties:
+                        role:
+                          type: string
+                        userId:
+                          type: string
+                          nullable: true
+                          format: uuid
+                        displayName:
+                          type: string
+                        rationale:
+                          type: string
+                    recipientRationale:
+                      type: string
+                    uncertaintyNotes:
+                      type: array
+                      items:
+                        type: string
+                    evidence:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          kind:
+                            type: string
+                            enum:
+                              - source_issue
+                              - source_sprint
+                              - blocker
+                              - stale
+                              - at_risk
+                              - dedupe
+                              - finding
+                              - restricted
+                          sourceDocumentId:
+                            type: string
+                            format: uuid
+                          sourceType:
+                            type: string
+                            enum:
+                              - issue
+                              - sprint
+                          claim:
+                            type: string
+                          excerpt:
+                            type: string
+                          visibility:
+                            type: string
+                            enum:
+                              - internal
+                              - actor_visible
+                              - restricted
+                          visibleFields:
+                            type: array
+                            items:
+                              type: string
+                          redactionReason:
+                            type: string
+                        required:
+                          - kind
+                          - claim
+                          - visibility
+                          - visibleFields
+                    humanGate:
+                      type: object
+                      additionalProperties:
+                        nullable: true
+                    draftContent:
+                      type: object
+                      additionalProperties:
+                        nullable: true
+                    noSafeOutput:
+                      type: boolean
+                  required:
+                    - title
+                    - summary
+                    - evidence
+                    - humanGate
+                traceMetadata:
+                  type: object
+                  properties:
+                    mode:
+                      type: string
+                      enum:
+                        - proactive
+                        - on_demand
+                    decision:
+                      type: string
+                    nodePath:
+                      type: array
+                      items:
+                        type: string
+                    traceId:
+                      type: string
+                    traceUrl:
+                      type: string
+                    failureCategory:
+                      type: string
+                  required:
+                    - mode
+                    - decision
+                    - nodePath
+                title:
+                  type: string
+                issueTitle:
+                  type: string
+                context:
+                  type: string
+                owner:
+                  type: string
+                  nullable: true
+                notificationText:
+                  type: string
+                blockerText:
+                  type: string
+                sourcePath:
+                  type: string
+                detectedAt:
+                  type: string
+                isRead:
+                  type: boolean
+                readAt:
+                  type: string
+                  nullable: true
+                id:
+                  type: string
+                  format: uuid
+                findingId:
+                  type: string
+                  format: uuid
+              required:
+                - signalType
+                - signalLabel
+                - reason
+                - sourceIssueId
+                - sourceSprintId
+                - visibleOutput
+                - traceMetadata
+                - title
+                - issueTitle
+                - context
+                - owner
+                - notificationText
+                - blockerText
+                - sourcePath
+                - detectedAt
+                - isRead
+                - readAt
+                - id
+                - findingId
+            humanGate:
+              type: object
+              properties:
+                required:
+                  type: boolean
+                state:
+                  type: string
+                  enum:
+                    - present
+                    - missing
+                    - not_applicable
+                allowedActions:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - required
+                - state
+                - allowedActions
+            traceQuality:
+              type: object
+              properties:
+                passed:
+                  type: boolean
+                requiredDecisions:
+                  type: array
+                  items:
+                    type: string
+                observedDecisions:
+                  type: array
+                  items:
+                    type: string
+                scores:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      passed:
+                        type: boolean
+                      value:
+                        anyOf:
+                          - type: string
+                          - type: number
+                          - type: boolean
+                          - nullable: true
+                          - nullable: true
+                      comment:
+                        type: string
+                    required:
+                      - name
+                      - passed
+                      - value
+                      - comment
+              required:
+                - passed
+                - requiredDecisions
+                - observedDecisions
+                - scores
+            sourceMutationCheck:
+              type: object
+              properties:
+                passed:
+                  type: boolean
+                before:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+                      - nullable: true
+                      - nullable: true
+                after:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+                      - nullable: true
+                      - nullable: true
+                changedFields:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - passed
+                - before
+                - after
+                - changedFields
+            usageSummary:
+              type: object
+              properties:
+                modelCalls:
+                  type: integer
+                  minimum: 0
+                inputTokens:
+                  type: integer
+                  minimum: 0
+                cachedInputTokens:
+                  type: integer
+                  minimum: 0
+                billableInputTokens:
+                  type: integer
+                  minimum: 0
+                outputTokens:
+                  type: integer
+                  minimum: 0
+                totalTokens:
+                  type: integer
+                  minimum: 0
+                estimatedCostUsd:
+                  type: number
+                  minimum: 0
+                costCurrency:
+                  type: string
+                  enum:
+                    - USD
+                usageSource:
+                  type: string
+                  enum:
+                    - none
+                    - model_response
+                    - partial_model_response
+                    - synthetic_calibration
+                costSource:
+                  type: string
+                  enum:
+                    - none
+                    - model_response
+                    - catalog_estimate
+                    - env_estimate
+                    - synthetic_calibration
+              required:
+                - modelCalls
+          required:
+            - chainId
+            - scenario
+            - status
+            - missing
+            - missingLabels
+            - productPath
+            - generatedAt
+            - freshness
+            - latencyMs
+            - links
+            - steps
+            - humanGate
+            - traceQuality
+            - sourceMutationCheck
+            - usageSummary
       required:
         - chainId
         - repaired
@@ -7456,8 +10869,23 @@ components:
           type: string
         artifactPaths:
           type: object
-          additionalProperties:
-            type: string
+          properties:
+            json:
+              type: string
+            markdown:
+              type: string
+            html:
+              type: string
+            publicJson:
+              type: string
+            publicMarkdown:
+              type: string
+            publicHtml:
+              type: string
+          required:
+            - json
+            - markdown
+            - html
       required:
         - verdict
         - generatedAt
@@ -7469,8 +10897,6 @@ components:
         chainId:
           type: string
           format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
       default: {}
   parameters: {}
 paths:
@@ -13868,14 +17294,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  triggered:
-                    type: boolean
-                    enum:
-                      - true
-                required:
-                  - triggered
+                $ref: "#/components/schemas/FleetGraphReviewerWorkerTickResponse"
         403:
           description: Response 403
           content:

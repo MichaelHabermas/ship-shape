@@ -26,6 +26,8 @@ function waitForChatRequest(page: import('@playwright/test').Page) {
 }
 
 test.describe('FleetGraph chat smoke', () => {
+  test.skip(!process.env.OPENAI_API_KEY?.trim(), 'requires OPENAI_API_KEY for conversational FleetGraph chat');
+
   test('greets, summarizes, and simplifies from the current issue', async ({ page, apiServer }) => {
     const { csrfToken } = await loginAsAdmin(page, apiServer.url);
     const createResponse = await page.request.post(`${apiServer.url}/api/documents`, {

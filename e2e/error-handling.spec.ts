@@ -1,5 +1,7 @@
+/** E2E tests for API failure surfaces, recovery, and Category 6 runtime evidence capture. */
 import type { TestInfo } from '@playwright/test'
 import { login } from './fixtures/api-auth';
+import type { SimpleErrorBody } from './fixtures/e2e-api-types';
 
 import { test, expect, Page } from './fixtures/isolated-env'
 
@@ -268,7 +270,7 @@ test.describe('Error Handling', () => {
       return {
         status: response.status,
         contentType: response.headers.get('content-type') ?? '',
-        body: await response.json(),
+        body: (await response.json()) as SimpleErrorBody,
       }
     }, documentId)
 
@@ -304,7 +306,10 @@ test.describe('Error Handling', () => {
     await expect(body).toBeVisible()
     const bodyText = await body.textContent()
     expect(bodyText).toBeTruthy()
-    expect(bodyText!.length).toBeGreaterThan(0)
+    if (!bodyText) {
+      throw new Error('expected non-empty page body text')
+    }
+    expect(bodyText.length).toBeGreaterThan(0)
     expect(bodyText).not.toContain('Sign in')
 
     await captureCategory6Evidence(page, testInfo, 'concurrent-api-errors-nonblank')

@@ -1,9 +1,26 @@
+// Integration tests for document visibility across list, CRUD, comments, associations, and search.
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
+import { z } from 'zod';
 import { createApp } from '../app.js';
-import { IdRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js';
+import { ErrorResponseSchema } from '../openapi/schemas/common.js';
+import { AssociationSchema } from '../openapi/schemas/backlinks.js';
+import {
+  BaseDocumentSchema,
+  DocumentListItemSchema,
+  DocumentNotFoundErrorSchema,
+  ParentDocumentNotFoundErrorSchema,
+} from '../openapi/schemas/documents.js';
+import { DocumentSearchResponseSchema, MentionSearchResultSchema } from '../openapi/schemas/search.js';
+import { expectJsonBody } from '../test/expect-json-body.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
+import { IdRow, requireFirstRow } from '../test/pg-result.js';
+import { getCsrfTokenFromApp } from '../test/session-csrf.js';
+
+const DocumentListSchema = z.array(DocumentListItemSchema);
+const AssociationListSchema = z.array(AssociationSchema);
 
 describe('Document Visibility', () => {
   const app = createApp();
@@ -101,21 +118,17 @@ describe('Document Visibility', () => {
     );
     adminSessionCookie = `session_id=${adminSessionId}`;
 
-    // Get CSRF tokens for all users
-    const csrf1Res = await request(app).get('/api/csrf-token').set('Cookie', user1SessionCookie);
-    user1CsrfToken = csrf1Res.body.token;
-    const connectSid1 = csrf1Res.headers['set-cookie']?.[0]?.split(';')[0] || '';
-    if (connectSid1) user1SessionCookie = `${user1SessionCookie}; ${connectSid1}`;
+    const csrf1 = await getCsrfTokenFromApp(app, user1SessionCookie);
+    user1CsrfToken = csrf1.token;
+    user1SessionCookie = csrf1.sessionCookie;
 
-    const csrf2Res = await request(app).get('/api/csrf-token').set('Cookie', user2SessionCookie);
-    user2CsrfToken = csrf2Res.body.token;
-    const connectSid2 = csrf2Res.headers['set-cookie']?.[0]?.split(';')[0] || '';
-    if (connectSid2) user2SessionCookie = `${user2SessionCookie}; ${connectSid2}`;
+    const csrf2 = await getCsrfTokenFromApp(app, user2SessionCookie);
+    user2CsrfToken = csrf2.token;
+    user2SessionCookie = csrf2.sessionCookie;
 
-    const csrfAdminRes = await request(app).get('/api/csrf-token').set('Cookie', adminSessionCookie);
-    adminCsrfToken = csrfAdminRes.body.token;
-    const connectSidAdmin = csrfAdminRes.headers['set-cookie']?.[0]?.split(';')[0] || '';
-    if (connectSidAdmin) adminSessionCookie = `${adminSessionCookie}; ${connectSidAdmin}`;
+    const csrfAdmin = await getCsrfTokenFromApp(app, adminSessionCookie);
+    adminCsrfToken = csrfAdmin.token;
+    adminSessionCookie = csrfAdmin.sessionCookie;
   });
 
   // Cleanup after all tests
@@ -146,10 +159,18 @@ describe('Document Visibility', () => {
         .get('/api/documents')
         .set('Cookie', user2SessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveLength(1);
-      expect(res.body[0].title).toBe('Workspace Doc');
-      expect(res.body[0].visibility).toBe('workspace');
+      const documents = expectOpenApiResponse({
+        method: 'get',
+        path: '/documents',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'DocumentListItem',
+        arrayItemSchemaName: 'DocumentListItem',
+        schema: DocumentListSchema,
+      });
+      expect(documents).toHaveLength(1);
+      expect(documents[0]?.title).toBe('Workspace Doc');
+      expect(documents[0]?.visibility).toBe('workspace');
     });
 
     it('returns private docs only to creator', async () => {
@@ -165,9 +186,17 @@ describe('Document Visibility', () => {
         .get('/api/documents')
         .set('Cookie', user1SessionCookie);
 
-      expect(res1.status).toBe(200);
-      expect(res1.body).toHaveLength(1);
-      expect(res1.body[0].title).toBe('Private Doc');
+      const documents = expectOpenApiResponse({
+        method: 'get',
+        path: '/documents',
+        status: 200,
+        response: res1,
+        openApiSchemaName: 'DocumentListItem',
+        arrayItemSchemaName: 'DocumentListItem',
+        schema: DocumentListSchema,
+      });
+      expect(documents).toHaveLength(1);
+      expect(documents[0]?.title).toBe('Private Doc');
     });
 
     it('returns private docs to workspace admins', async () => {
@@ -183,9 +212,17 @@ describe('Document Visibility', () => {
         .get('/api/documents')
         .set('Cookie', adminSessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveLength(1);
-      expect(res.body[0].title).toBe('Private Doc');
+      const documents = expectOpenApiResponse({
+        method: 'get',
+        path: '/documents',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'DocumentListItem',
+        arrayItemSchemaName: 'DocumentListItem',
+        schema: DocumentListSchema,
+      });
+      expect(documents).toHaveLength(1);
+      expect(documents[0]?.title).toBe('Private Doc');
     });
 
     it('excludes other users private docs from list', async () => {
@@ -201,8 +238,16 @@ describe('Document Visibility', () => {
         .get('/api/documents')
         .set('Cookie', user2SessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveLength(0);
+      const documents = expectOpenApiResponse({
+        method: 'get',
+        path: '/documents',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'DocumentListItem',
+        arrayItemSchemaName: 'DocumentListItem',
+        schema: DocumentListSchema,
+      });
+      expect(documents).toHaveLength(0);
     });
   });
 
@@ -221,9 +266,16 @@ describe('Document Visibility', () => {
         .get(`/api/documents/${docId}`)
         .set('Cookie', user1SessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body.title).toBe('My Private Doc');
-      expect(res.body.visibility).toBe('private');
+      const document = expectOpenApiResponse({
+        method: 'get',
+        path: '/documents/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(document.title).toBe('My Private Doc');
+      expect(document.visibility).toBe('private');
     });
 
     it('blocks non-creator from accessing private doc', async () => {
@@ -258,8 +310,15 @@ describe('Document Visibility', () => {
         .get(`/api/documents/${docId}`)
         .set('Cookie', adminSessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body.title).toBe('User1 Private Doc');
+      const document = expectOpenApiResponse({
+        method: 'get',
+        path: '/documents/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(document.title).toBe('User1 Private Doc');
     });
 
     it('returns 404 for private doc accessed by non-creator', async () => {
@@ -277,8 +336,15 @@ describe('Document Visibility', () => {
         .get(`/api/documents/${docId}`)
         .set('Cookie', user2SessionCookie);
 
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Document not found');
+      const error = expectOpenApiResponse({
+        method: 'get',
+        path: '/documents/{id}',
+        status: 404,
+        response: res,
+        openApiSchemaName: 'DocumentNotFoundError',
+        schema: DocumentNotFoundErrorSchema,
+      });
+      expect(error.error).toBe('Document not found');
     });
   });
 
@@ -304,8 +370,15 @@ describe('Document Visibility', () => {
         .get(`/api/documents/${docId}/comments`)
         .set('Cookie', user2SessionCookie);
 
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Document not found');
+      const error = expectOpenApiResponse({
+        method: 'get',
+        path: '/documents/{id}/comments',
+        status: 404,
+        response: res,
+        openApiSchemaName: 'DocumentNotFoundError',
+        schema: DocumentNotFoundErrorSchema,
+      });
+      expect(error.error).toBe('Document not found');
     });
   });
 
@@ -317,9 +390,16 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user1CsrfToken)
         .send({ title: 'New Doc', document_type: 'wiki' });
 
-      expect(res.status).toBe(201);
-      expect(res.body.visibility).toBe('workspace');
-      expect(res.body.title).toBe('Untitled');
+      const document = expectOpenApiResponse({
+        method: 'post',
+        path: '/documents',
+        status: 201,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(document.visibility).toBe('workspace');
+      expect(document.title).toBe('Untitled');
     });
 
     it('allows creating document with private visibility', async () => {
@@ -329,9 +409,16 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user1CsrfToken)
         .send({ title: 'Private New Doc', document_type: 'wiki', visibility: 'private' });
 
-      expect(res.status).toBe(201);
-      expect(res.body.visibility).toBe('private');
-      expect(res.body.title).toBe('Untitled');
+      const document = expectOpenApiResponse({
+        method: 'post',
+        path: '/documents',
+        status: 201,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(document.visibility).toBe('private');
+      expect(document.title).toBe('Untitled');
     });
 
     it('inherits visibility from parent document', async () => {
@@ -351,8 +438,15 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user1CsrfToken)
         .send({ title: 'Child Doc', document_type: 'wiki', parent_id: parentId });
 
-      expect(res.status).toBe(201);
-      expect(res.body.visibility).toBe('private');
+      const document = expectOpenApiResponse({
+        method: 'post',
+        path: '/documents',
+        status: 201,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(document.visibility).toBe('private');
     });
   });
 
@@ -373,8 +467,15 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user1CsrfToken)
         .send({ visibility: 'private' });
 
-      expect(res.status).toBe(200);
-      expect(res.body.visibility).toBe('private');
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(document.visibility).toBe('private');
     });
 
     it('allows creator to change visibility to workspace', async () => {
@@ -393,8 +494,15 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user1CsrfToken)
         .send({ visibility: 'workspace' });
 
-      expect(res.status).toBe(200);
-      expect(res.body.visibility).toBe('workspace');
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(document.visibility).toBe('workspace');
     });
 
     it('cascades visibility change to child documents', async () => {
@@ -428,8 +536,15 @@ describe('Document Visibility', () => {
         .get(`/api/documents/${childId}`)
         .set('Cookie', user1SessionCookie);
 
-      expect(childRes.status).toBe(200);
-      expect(childRes.body.visibility).toBe('private');
+      const child = expectOpenApiResponse({
+        method: 'get',
+        path: '/documents/{id}',
+        status: 200,
+        response: childRes,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(child.visibility).toBe('private');
     });
 
     it('prevents non-creator from changing visibility', async () => {
@@ -449,8 +564,8 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user2CsrfToken)
         .send({ visibility: 'private' });
 
-      expect(res.status).toBe(403);
-      expect(res.body.error).toContain('Only the creator or admin');
+      const error = expectJsonBody(res, 403, ErrorResponseSchema);
+      expect(error.error).toContain('Only the creator or admin');
     });
 
     it('allows admin to change any document visibility', async () => {
@@ -470,8 +585,15 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', adminCsrfToken)
         .send({ visibility: 'private' });
 
-      expect(res.status).toBe(200);
-      expect(res.body.visibility).toBe('private');
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(document.visibility).toBe('private');
     });
   });
 
@@ -502,8 +624,15 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user1CsrfToken)
         .send({ parent_id: parentId });
 
-      expect(res.status).toBe(200);
-      expect(res.body.visibility).toBe('workspace');
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(document.visibility).toBe('workspace');
     });
 
     it('preserves visibility when moving workspace doc to workspace parent', async () => {
@@ -532,8 +661,15 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user1CsrfToken)
         .send({ parent_id: parentId });
 
-      expect(res.status).toBe(200);
-      expect(res.body.visibility).toBe('workspace');
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      });
+      expect(document.visibility).toBe('workspace');
     });
   });
 
@@ -553,8 +689,15 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user2CsrfToken)
         .send({ title: 'Blocked Child', document_type: 'wiki', parent_id: parentId });
 
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Parent document not found');
+      const error = expectOpenApiResponse({
+        method: 'post',
+        path: '/documents',
+        status: 404,
+        response: res,
+        openApiSchemaName: 'ParentDocumentNotFoundError',
+        schema: ParentDocumentNotFoundErrorSchema,
+      });
+      expect(error.error).toBe('Parent document not found');
     });
 
     it('blocks moving a document under an unreadable private parent', async () => {
@@ -580,8 +723,8 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user2CsrfToken)
         .send({ parent_id: parentId });
 
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Parent document not found');
+      const error = expectJsonBody(res, 404, ParentDocumentNotFoundErrorSchema);
+      expect(error.error).toBe('Parent document not found');
     });
   });
 
@@ -613,8 +756,16 @@ describe('Document Visibility', () => {
         .get(`/api/documents/${sourceId}/associations`)
         .set('Cookie', user2SessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveLength(0);
+      const associations = expectOpenApiResponse({
+        method: 'get',
+        path: '/documents/{id}/associations',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Association',
+        arrayItemSchemaName: 'Association',
+        schema: AssociationListSchema,
+      });
+      expect(associations).toHaveLength(0);
     });
 
     it('blocks creating an association to an unreadable private document', async () => {
@@ -640,8 +791,8 @@ describe('Document Visibility', () => {
         .set('X-CSRF-Token', user2CsrfToken)
         .send({ related_id: privateRelatedId, relationship_type: 'parent' });
 
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Document not found');
+      const error = expectJsonBody(res, 404, DocumentNotFoundErrorSchema);
+      expect(error.error).toBe('Document not found');
 
       const assocResult = await pool.query(
         `SELECT id FROM document_associations
@@ -665,9 +816,16 @@ describe('Document Visibility', () => {
         .get('/api/search/mentions?q=Searchable')
         .set('Cookie', user1SessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body.documents).toHaveLength(1);
-      expect(res.body.documents[0].title).toBe('Searchable Private Doc');
+      const results = expectOpenApiResponse({
+        method: 'get',
+        path: '/search/mentions',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'MentionSearchResult',
+        schema: MentionSearchResultSchema,
+      });
+      expect(results.documents).toHaveLength(1);
+      expect(results.documents[0]?.title).toBe('Searchable Private Doc');
     });
 
     it('includes private docs in document title search for creator', async () => {
@@ -681,9 +839,16 @@ describe('Document Visibility', () => {
         .get('/api/search/documents?q=Searchable')
         .set('Cookie', user1SessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body.documents).toHaveLength(1);
-      expect(res.body.documents[0].title).toBe('Searchable Private Doc');
+      const results = expectOpenApiResponse({
+        method: 'get',
+        path: '/search/documents',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'DocumentSearchResponse',
+        schema: DocumentSearchResponseSchema,
+      });
+      expect(results.documents).toHaveLength(1);
+      expect(results.documents[0]?.title).toBe('Searchable Private Doc');
     });
 
     it('excludes private docs from search for non-creator', async () => {
@@ -698,8 +863,15 @@ describe('Document Visibility', () => {
         .get('/api/search/mentions?q=Searchable')
         .set('Cookie', user2SessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body.documents).toHaveLength(0);
+      const results = expectOpenApiResponse({
+        method: 'get',
+        path: '/search/mentions',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'MentionSearchResult',
+        schema: MentionSearchResultSchema,
+      });
+      expect(results.documents).toHaveLength(0);
     });
 
     it('excludes private docs from document title search for non-creator', async () => {
@@ -713,8 +885,15 @@ describe('Document Visibility', () => {
         .get('/api/search/documents?q=Searchable')
         .set('Cookie', user2SessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body.documents).toHaveLength(0);
+      const results = expectOpenApiResponse({
+        method: 'get',
+        path: '/search/documents',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'DocumentSearchResponse',
+        schema: DocumentSearchResponseSchema,
+      });
+      expect(results.documents).toHaveLength(0);
     });
 
     it('includes private docs in search for admin', async () => {
@@ -729,9 +908,16 @@ describe('Document Visibility', () => {
         .get('/api/search/mentions?q=Searchable')
         .set('Cookie', adminSessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body.documents).toHaveLength(1);
-      expect(res.body.documents[0].title).toBe('Searchable Private Doc');
+      const results = expectOpenApiResponse({
+        method: 'get',
+        path: '/search/mentions',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'MentionSearchResult',
+        schema: MentionSearchResultSchema,
+      });
+      expect(results.documents).toHaveLength(1);
+      expect(results.documents[0]?.title).toBe('Searchable Private Doc');
     });
 
     it('includes private docs in document title search for admin', async () => {
@@ -745,9 +931,16 @@ describe('Document Visibility', () => {
         .get('/api/search/documents?q=Searchable')
         .set('Cookie', adminSessionCookie);
 
-      expect(res.status).toBe(200);
-      expect(res.body.documents).toHaveLength(1);
-      expect(res.body.documents[0].title).toBe('Searchable Private Doc');
+      const results = expectOpenApiResponse({
+        method: 'get',
+        path: '/search/documents',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'DocumentSearchResponse',
+        schema: DocumentSearchResponseSchema,
+      });
+      expect(results.documents).toHaveLength(1);
+      expect(results.documents[0]?.title).toBe('Searchable Private Doc');
     });
   });
 });

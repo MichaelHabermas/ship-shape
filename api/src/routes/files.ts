@@ -1,3 +1,4 @@
+// File upload routes: presigned S3/local uploads, confirm, serve, and delete with capability checks.
 import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import express from 'express';
 import { pool } from '../db/client.js';
@@ -12,6 +13,7 @@ import { authorize, type Capability } from '../security/capabilities.js';
 import { principalFromRequest } from '../security/principal.js';
 import { useS3Uploads } from '../config/runtime.js';
 import { sendInternalError, sendLegacyError, sendValidationError } from '../utils/route-http.js';
+import { requireFirstRow } from '../utils/query-rows.js';
 import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
@@ -43,10 +45,35 @@ function getS3Client(): S3Client {
 // UUID validation regex - prevents path traversal by ensuring ID is valid UUID
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function isValidUUID(id: string | string[] | undefined): boolean {
+function isValidUUID(id: string | string[] | undefined): id is string {
   if (!id || Array.isArray(id)) return false;
   return UUID_REGEX.test(id);
 }
+
+interface FileRecordRow {
+  id: string;
+  s3_key: string;
+  filename: string;
+  mime_type: string | null;
+  size_bytes: number | string;
+  document_id: string | null;
+  uploaded_by: string;
+  status: string;
+}
+
+type FileIdRow = { id: string };
+
+type FileMetadataRow = {
+  id: string;
+  filename: string;
+  mime_type: string | null;
+  size_bytes: number | string;
+  cdn_url: string | null;
+  status: string;
+  created_at: Date | string;
+  document_id: string | null;
+  uploaded_by: string;
+};
 
 export const filesRouter: ExpressRouter = Router();
 
@@ -135,12 +162,13 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
     const s3Key = `${workspaceId}/${fileId}${ext}`;
 
     // Create file record with 'pending' status
-    const result = await pool.query(
+    const result = await pool.query<FileIdRow>(
       `INSERT INTO files (id, workspace_id, uploaded_by, filename, mime_type, size_bytes, s3_key, status, document_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8)
        RETURNING id`,
       [fileId, workspaceId, userId, filename, mimeType, sizeBytes, s3Key, documentId ?? null]
     );
+    const createdFileId = requireFirstRow(result.rows).id;
 
     // Use S3 when configured; otherwise use local storage for lightweight deployments.
     const uploadUrl = useS3Uploads()
@@ -148,7 +176,7 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
       : `/api/files/${fileId}/local-upload`;
 
     res.json({
-      fileId: result.rows[0].id,
+      fileId: createdFileId,
       uploadUrl,
       s3Key,
     });
@@ -179,7 +207,7 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
     const workspaceId = req.workspaceId;
 
     // Verify file record exists and belongs to user's workspace
-    const fileResult = await pool.query(
+    const fileResult = await pool.query<FileRecordRow>(
       `SELECT * FROM files WHERE id = $1 AND workspace_id = $2 AND status = 'pending'`,
       [fileId, workspaceId]
     );
@@ -189,7 +217,7 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
       return;
     }
 
-    const file = fileResult.rows[0];
+    const file = requireFirstRow(fileResult.rows, 'File not found');
 
     if (file.uploaded_by !== req.userId) {
       res.status(403).json({ error: 'Only the uploader can complete this upload' });
@@ -216,7 +244,9 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
       buffer = Buffer.from(req.body);
     } else if (typeof req.body === 'object' && req.body !== null) {
       // Handle ArrayBuffer or typed array wrapped in object
-      const data = req.body.data || req.body;
+      const bodyRecord = req.body as Record<string, unknown>;
+      const nestedData: unknown = bodyRecord.data;
+      const data: unknown = nestedData !== undefined ? nestedData : req.body;
       if (Array.isArray(data)) {
         buffer = Buffer.from(data);
       } else {
@@ -274,7 +304,7 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
     const workspaceId = req.workspaceId;
 
     // Verify file record exists and belongs to user's workspace
-    const fileResult = await pool.query(
+    const fileResult = await pool.query<FileRecordRow>(
       `SELECT * FROM files WHERE id = $1 AND workspace_id = $2`,
       [fileId, workspaceId]
     );
@@ -284,7 +314,7 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
       return;
     }
 
-    const file = fileResult.rows[0];
+    const file = requireFirstRow(fileResult.rows, 'File not found');
 
     if (file.uploaded_by !== req.userId) {
       res.status(403).json({ error: 'Only the uploader can confirm this upload' });
@@ -365,7 +395,7 @@ filesRouter.get('/:id/serve', authMiddleware, async (req: Request, res: Response
     const workspaceId = req.workspaceId;
 
     // Get file record - SECURITY: Verify file belongs to user's workspace
-    const fileResult = await pool.query(
+    const fileResult = await pool.query<FileRecordRow>(
       `SELECT * FROM files WHERE id = $1 AND workspace_id = $2 AND status = 'uploaded'`,
       [fileId, workspaceId]
     );
@@ -375,7 +405,7 @@ filesRouter.get('/:id/serve', authMiddleware, async (req: Request, res: Response
       return;
     }
 
-    const file = fileResult.rows[0];
+    const file = requireFirstRow(fileResult.rows, 'File not found');
     if (file.document_id) {
       const decision = await authorizeRequest(req, {
         resource: 'file',
@@ -421,7 +451,7 @@ filesRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const workspaceId = req.workspaceId;
 
-    const result = await pool.query(
+    const result = await pool.query<FileMetadataRow>(
       `SELECT id, filename, mime_type, size_bytes, cdn_url, status, created_at, document_id, uploaded_by
        FROM files WHERE id = $1 AND workspace_id = $2`,
       [fileId, workspaceId]
@@ -432,7 +462,7 @@ filesRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const file = result.rows[0];
+    const file = requireFirstRow(result.rows, 'File not found');
     if (file.document_id) {
       const decision = await authorizeRequest(req, {
         resource: 'file',
@@ -474,7 +504,7 @@ filesRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =
     const workspaceId = req.workspaceId;
 
     // Get file record
-    const fileResult = await pool.query(
+    const fileResult = await pool.query<FileRecordRow>(
       `SELECT * FROM files WHERE id = $1 AND workspace_id = $2`,
       [fileId, workspaceId]
     );
@@ -484,7 +514,7 @@ filesRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =
       return;
     }
 
-    const file = fileResult.rows[0];
+    const file = requireFirstRow(fileResult.rows, 'File not found');
 
     if (file.document_id) {
       const decision = await authorizeRequest(req, {

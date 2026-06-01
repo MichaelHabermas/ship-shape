@@ -1,6 +1,5 @@
 /**
- * Orphan Diagnostic Script
- * Identifies orphaned entities after migration 027 (document_associations)
+ * Orphan Diagnostic Script — finds dangling associations and missing project/program links after migration 027.
  *
  * Usage: npx tsx api/src/db/scripts/orphan-diagnostic.ts
  * Or add to package.json: "db:orphan-check": "tsx api/src/db/scripts/orphan-diagnostic.ts"
@@ -20,6 +19,53 @@ config({ path: join(__dirname, '../../../.env') });
 
 const { Pool } = pg;
 
+type DanglingAssociationRow = {
+  association_id: string;
+  document_id: string;
+  related_id: string;
+  relationship_type: string;
+  document_title: string;
+  document_type: string;
+  workspace_name: string;
+};
+
+type IssueWithoutProjectRow = {
+  id: string;
+  title: string;
+  workspace_name: string;
+  created_at: Date;
+  state: string | null;
+  is_archived: boolean;
+  has_sprint: boolean;
+};
+
+type SprintWithoutProjectRow = {
+  id: string;
+  title: string;
+  workspace_name: string;
+  created_at: Date;
+  sprint_status: string | null;
+  issue_count: string;
+};
+
+type ProjectWithoutProgramRow = {
+  id: string;
+  title: string;
+  workspace_name: string;
+  created_at: Date;
+  prefix: string | null;
+  issue_count: string;
+};
+
+function truncateTitle(title: string, maxLen: number): string {
+  return title.length > maxLen ? `${title.substring(0, maxLen)}...` : title;
+}
+
+function formatCreatedDate(createdAt: Date): string {
+  const [day] = createdAt.toISOString().split('T');
+  return day ?? createdAt.toISOString();
+}
+
 async function runDiagnostic() {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -33,7 +79,7 @@ async function runDiagnostic() {
   try {
     // 1. Dangling associations
     console.log('Checking for dangling associations...');
-    const danglingResult = await pool.query(`
+    const danglingResult = await pool.query<DanglingAssociationRow>(`
       SELECT
         da.id AS association_id,
         da.document_id,
@@ -66,7 +112,7 @@ async function runDiagnostic() {
 
     // 2. Issues without project association
     console.log('Checking for issues without project associations...');
-    const issuesWithoutProject = await pool.query(`
+    const issuesWithoutProject = await pool.query<IssueWithoutProjectRow>(`
       SELECT
         d.id,
         d.title,
@@ -94,11 +140,11 @@ async function runDiagnostic() {
       console.table(
         issuesWithoutProject.rows.map((r) => ({
           workspace: r.workspace_name,
-          title: r.title.substring(0, 40) + (r.title.length > 40 ? '...' : ''),
+          title: truncateTitle(r.title, 40),
           state: r.state,
           has_sprint: r.has_sprint ? 'Yes' : 'No',
           archived: r.is_archived ? 'Yes' : 'No',
-          created: r.created_at.toISOString().split('T')[0],
+          created: formatCreatedDate(r.created_at),
         }))
       );
     } else {
@@ -107,7 +153,7 @@ async function runDiagnostic() {
 
     // 3. Sprints without project association
     console.log('Checking for sprints without project associations...');
-    const sprintsWithoutProject = await pool.query(`
+    const sprintsWithoutProject = await pool.query<SprintWithoutProjectRow>(`
       SELECT
         d.id,
         d.title,
@@ -115,7 +161,7 @@ async function runDiagnostic() {
         d.created_at,
         d.properties->>'sprint_status' AS sprint_status,
         (
-          SELECT COUNT(*) FROM document_associations da
+          SELECT COUNT(*)::text FROM document_associations da
           JOIN documents issue ON da.document_id = issue.id
           WHERE da.related_id = d.id
             AND da.relationship_type = 'sprint'
@@ -137,10 +183,10 @@ async function runDiagnostic() {
       console.table(
         sprintsWithoutProject.rows.map((r) => ({
           workspace: r.workspace_name,
-          title: r.title.substring(0, 30) + (r.title.length > 30 ? '...' : ''),
+          title: truncateTitle(r.title, 30),
           status: r.sprint_status,
           issues: r.issue_count,
-          created: r.created_at.toISOString().split('T')[0],
+          created: formatCreatedDate(r.created_at),
         }))
       );
     } else {
@@ -149,7 +195,7 @@ async function runDiagnostic() {
 
     // 4. Projects without program
     console.log('Checking for projects without program...');
-    const projectsWithoutProgram = await pool.query(`
+    const projectsWithoutProgram = await pool.query<ProjectWithoutProgramRow>(`
       SELECT
         d.id,
         d.title,
@@ -157,7 +203,7 @@ async function runDiagnostic() {
         d.created_at,
         d.properties->>'prefix' AS prefix,
         (
-          SELECT COUNT(*) FROM document_associations da
+          SELECT COUNT(*)::text FROM document_associations da
           JOIN documents issue ON da.document_id = issue.id
           WHERE da.related_id = d.id
             AND da.relationship_type = 'project'
@@ -176,10 +222,10 @@ async function runDiagnostic() {
       console.table(
         projectsWithoutProgram.rows.map((r) => ({
           workspace: r.workspace_name,
-          title: r.title.substring(0, 30) + (r.title.length > 30 ? '...' : ''),
+          title: truncateTitle(r.title, 30),
           prefix: r.prefix,
           issues: r.issue_count,
-          created: r.created_at.toISOString().split('T')[0],
+          created: formatCreatedDate(r.created_at),
         }))
       );
     } else {
@@ -212,7 +258,9 @@ async function runDiagnostic() {
 
       if (issuesWithoutProject.rows.length > 0) {
         console.log('\nIssue IDs without project:');
-        issuesWithoutProject.rows.forEach((r) => console.log(`  ${r.id}  # ${r.title.substring(0, 50)}`));
+        issuesWithoutProject.rows.forEach((r) =>
+          console.log(`  ${r.id}  # ${truncateTitle(r.title, 50)}`)
+        );
       }
 
       if (sprintsWithoutProject.rows.length > 0) {

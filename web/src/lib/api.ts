@@ -3,7 +3,14 @@
 import { clearTypedApiCsrfToken } from '@/api/client';
 import { readJson } from '@/api/read-json';
 import type { CsrfTokenResponse } from '@/api/schemas';
-import type { ApiResponse } from '@ship/shared';
+import type {
+  ApiResponse,
+  AuditLogResponse,
+  WorkspaceInviteResponse,
+  WorkspaceMemberResponse,
+  WorkspaceMembershipResponse,
+  WorkspaceResponse,
+} from '@ship/shared';
 import { clearQuietCsrfToken } from '@/lib/quiet-fetch';
 import { createApiStatusError } from '@/lib/api-error';
 
@@ -303,14 +310,6 @@ async function request<T>(
 }
 
 // Types for workspace management (wire shapes from HTTP JSON)
-import type {
-  AuditLogResponse,
-  WorkspaceInviteResponse,
-  WorkspaceMembershipResponse,
-  WorkspaceMemberResponse,
-  WorkspaceResponse,
-} from '@ship/shared';
-
 export type Workspace = WorkspaceResponse;
 export type WorkspaceMembership = WorkspaceMembershipResponse;
 export type WorkspaceInvite = WorkspaceInviteResponse;

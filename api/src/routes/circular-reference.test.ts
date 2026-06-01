@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { pool } from '../db/client.js'
+import { IdRow, requireFirstRow } from '../test/pg-result.js'
 
 /**
  * Lock-the-door tests for circular reference protection.
@@ -16,37 +17,35 @@ describe('Circular Reference Protection', () => {
   let testDocCId: string
 
   beforeAll(async () => {
-    // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
-    // Create three test documents for chain testing
-    const docA = await pool.query(
+    const docA = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title)
        VALUES ($1, 'wiki', 'Doc A')
        RETURNING id`,
       [testWorkspaceId]
     )
-    testDocAId = docA.rows[0].id
+    testDocAId = requireFirstRow(docA.rows).id
 
-    const docB = await pool.query(
+    const docB = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title)
        VALUES ($1, 'wiki', 'Doc B')
        RETURNING id`,
       [testWorkspaceId]
     )
-    testDocBId = docB.rows[0].id
+    testDocBId = requireFirstRow(docB.rows).id
 
-    const docC = await pool.query(
+    const docC = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title)
        VALUES ($1, 'wiki', 'Doc C')
        RETURNING id`,
       [testWorkspaceId]
     )
-    testDocCId = docC.rows[0].id
+    testDocCId = requireFirstRow(docC.rows).id
   })
 
   afterAll(async () => {
@@ -56,9 +55,6 @@ describe('Circular Reference Protection', () => {
 
   describe('Self-reference prevention', () => {
     it('should reject setting parent_id to own id', async () => {
-      // Either the trigger catches it ("Circular reference detected") or
-      // the CHECK constraint catches it ("violates check constraint")
-      // Both protections are in place - trigger runs first as BEFORE trigger
       await expect(
         pool.query(
           `UPDATE documents SET parent_id = $1 WHERE id = $1`,
@@ -70,22 +66,18 @@ describe('Circular Reference Protection', () => {
 
   describe('Circular chain prevention (trigger)', () => {
     it('should allow valid parent chain A -> B -> C', async () => {
-      // Set B's parent to A
       await pool.query(`UPDATE documents SET parent_id = $1 WHERE id = $2`, [testDocAId, testDocBId])
-
-      // Set C's parent to B (valid chain: A <- B <- C)
       await pool.query(`UPDATE documents SET parent_id = $1 WHERE id = $2`, [testDocBId, testDocCId])
 
-      // Verify the chain
-      const result = await pool.query(
+      const result = await pool.query<{ id: string; parent_id: string | null }>(
         `SELECT id, parent_id FROM documents WHERE id IN ($1, $2, $3)`,
         [testDocAId, testDocBId, testDocCId]
       )
 
-      const docs = result.rows.reduce((acc, row) => {
+      const docs = result.rows.reduce<Record<string, string | null>>((acc, row) => {
         acc[row.id] = row.parent_id
         return acc
-      }, {} as Record<string, string | null>)
+      }, {})
 
       expect(docs[testDocAId]).toBeNull()
       expect(docs[testDocBId]).toBe(testDocAId)
@@ -93,21 +85,15 @@ describe('Circular Reference Protection', () => {
     })
 
     it('should reject circular reference A -> B -> C -> A', async () => {
-      // Chain is already A <- B <- C from previous test
-      // Try to make A's parent be C (would create cycle)
       await expect(
         pool.query(`UPDATE documents SET parent_id = $1 WHERE id = $2`, [testDocCId, testDocAId])
       ).rejects.toThrow(/Circular reference detected/)
     })
 
     it('should reject two-node cycle A -> B -> A', async () => {
-      // Reset chain
       await pool.query(`UPDATE documents SET parent_id = NULL WHERE workspace_id = $1`, [testWorkspaceId])
-
-      // Set B's parent to A
       await pool.query(`UPDATE documents SET parent_id = $1 WHERE id = $2`, [testDocAId, testDocBId])
 
-      // Try to make A's parent be B (would create cycle)
       await expect(
         pool.query(`UPDATE documents SET parent_id = $1 WHERE id = $2`, [testDocBId, testDocAId])
       ).rejects.toThrow(/Circular reference detected/)
@@ -116,30 +102,25 @@ describe('Circular Reference Protection', () => {
 
   describe('Deep nesting allowed', () => {
     it('should allow nesting up to 100 levels', async () => {
-      // Clean up for fresh test
       await pool.query(`UPDATE documents SET parent_id = NULL WHERE workspace_id = $1`, [testWorkspaceId])
 
-      // Create a chain of 10 documents (representative test)
       const chainIds: string[] = []
       let lastId: string | null = null
 
       for (let i = 0; i < 10; i++) {
-        const parentIdForInsert = lastId
-        const insertResult = await pool.query(
+        const insertResult: { rows: IdRow[] } = await pool.query<IdRow>(
           `INSERT INTO documents (workspace_id, document_type, title, parent_id)
            VALUES ($1, 'wiki', $2, $3)
            RETURNING id`,
-          [testWorkspaceId, `Chain Doc ${i}`, parentIdForInsert]
+          [testWorkspaceId, `Chain Doc ${i}`, lastId]
         )
-        const newId = insertResult.rows[0].id as string
-        chainIds.push(newId)
-        lastId = newId
+        const inserted = requireFirstRow(insertResult.rows)
+        chainIds.push(inserted.id)
+        lastId = inserted.id
       }
 
-      // Verify chain was created
       expect(chainIds.length).toBe(10)
 
-      // Clean up chain docs
       await pool.query(
         `DELETE FROM documents WHERE id = ANY($1::uuid[])`,
         [chainIds]

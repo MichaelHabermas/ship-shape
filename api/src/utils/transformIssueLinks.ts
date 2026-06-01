@@ -42,7 +42,7 @@ async function lookupIssuesByTicketNumbers(
 ): Promise<Map<number, IssueInfo>> {
   if (ticketNumbers.length === 0) return new Map();
 
-  const result = await pool.query(
+  const result = await pool.query<{ id: string; ticket_number: number }>(
     `SELECT id, ticket_number FROM documents
      WHERE workspace_id = $1
        AND document_type = 'issue'

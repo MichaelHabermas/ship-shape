@@ -104,3 +104,42 @@ The transferable rules:
 - Do not answer "yes, the demo exists" from authentication success alone.
 
 ShipShape example: the FleetGraph reviewer login worked, but it initially landed in a tiny FleetGraph-only workspace instead of the dense seeded workspace. The account authenticated successfully but did not expose the useful projects, issues, weeks, and controls needed for testing. The fix was to point the canonical reviewer at the loaded workspace when it exists and seed the FleetGraph controls there.
+
+## 8. Put Verifier Semantics On The Wire Once
+
+When a dashboard and an API both interpret the same proof gates, duplicate pure helpers on the client will drift. The UI can format labels, but it should not maintain a second required-step list or product-path definition.
+
+The transferable rules:
+
+- Compute presentation flags on the authoritative server response.
+- Share only pure selection/label helpers that both tiers import from one package.
+- Add explicit wire fields (`productPath`, `missingLabels`, `preferredChainId`) instead of re-deriving status in React.
+- Test the shared helper once; test the API boundary for enrichment.
+
+ShipShape example: reviewer `productPathStatus` on web checked six steps while API `REQUIRED_STEP_KEYS` tracked eight. Moving enrichment into `shared/src/fleetgraph/reviewer-verifier.ts` and emitting `productPath` on each chain removed the split-brain metric.
+
+For long-running reviewer operations, progress UI must read the same refreshed chain steps the API just wrote, not a cosmetic timer or a one-shot snapshot taken at start. While status is `running`, bind the drawer to live chain data; only freeze a snapshot after completion. Register OpenAPI from the shared wire factory—never duplicate finding/notification Zod beside the factory or codegen will drift from runtime validation.
+
+## 8. Clear ESLint Categories Before Tackling `no-unsafe-*`
+
+When a repo enables type-aware `@typescript-eslint/no-unsafe-*` rules, total warning count is dominated by those rules—not by `no-unused-vars`, `max-lines`, or `restrict-template-expressions`. Fix whole categories first: delete unused imports/destructures, turn param validators into type guards (`id is string`), and replace test `any` with `z.infer`, `unknown`, or shared mock types. Defer `seed.ts` non-null assertions and file splits until mechanical wins are exhausted.
+
+ShipShape example (2026-05-31): four unused-vars and four template-expression warnings cleared in minutes; ~45 `no-explicit-any` fixes in four API test files removed most of that category; non-null assertions in tests/e2e dropped ~41 while `api/src/db/seed.ts` stayed untouched for a later pass.
+
+## 9. Route Tests Should Prove The OpenAPI Contract, Not Just Parse JSON
+
+Integration tests that read `res.body.foo` without a schema catch lint noise at best. Tests that call `expectOpenApiResponse` with the same Zod schema registered in OpenAPI catch contract drift: missing fields, wrong nullability, and bulk/list shape mismatches before production or codegen do.
+
+ShipShape example (2026-05-31): migrating `api/src/routes/*.test.ts` surfaced that POST/PATCH issues omitted `assignee_name` while GET included it, and bulk updates returned explicit `null` for optional list fields. Fixing mappers (`extractIssueFromRow`, `mapIssueListItem` in bulk) aligned runtime JSON with the documented contract and cleared ~700 route-test `no-unsafe-*` warnings.
+
+## 10. E2E Needs Typed Boundaries Too — `readJsonAs` Alone Is Not Enough
+
+Playwright specs that call `readJsonAs` but still define loose inline types, or mix in raw `.json()`, keep most `no-unsafe-*` warnings. The fix is the same three-layer pattern as API routes: one parse helper (`typed-json.ts`), shared assertion-minimal types (`e2e-api-types.ts`), and typed SQL rows for Testcontainers seed code (`e2e-seed-rows.ts` in `isolated-env.ts`).
+
+ShipShape example (2026-05-31): Tier 3 cleared ~487 E2E warnings. Top file `weekly-accountability.spec.ts` had both `readJsonAs` and 27 raw `.json()` calls; migrating every parse site and deduplicating `PersonDocument` / weekly-plan types dropped it from 95 warnings to zero.
+
+## 11. Do Not Encode Product Chat As A Regex Template Router
+
+If users expect conversation, a deterministic intent classifier will feel robotic no matter how many branches you add. Tests that lock exact greeting strings, force `modelCalls: 0` on chat, or add a flag that disables the chat model will green-light a broken product. Separate concerns: keep detection, workers, and auth deterministic; use the model for PM chat when key and model name are configured; when unconfigured, fail honestly; assert outcomes (grounding, gates, no hallucination) instead of canned copy.
+
+ShipShape example (2026-06): FleetGraph `POST /api/fleetgraph/chat` fell back to an 800+ line template router whenever `OPENAI_API_KEY` was unset, while docs and evals treated zero-token chat as success. We removed the product router and the chat-deterministic env flag, return unavailable text without a key, and mock `@langchain/openai` in tests on the real `generateContextChatText` path.

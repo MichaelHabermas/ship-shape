@@ -29,7 +29,7 @@ function findCommentPositions(doc: ProseMirrorNode): Map<string, number> {
   doc.descendants((node: ProseMirrorNode, pos: number) => {
     if (node.isText) {
       for (const mark of node.marks) {
-        if (mark.type.name === 'commentMark' && mark.attrs.commentId) {
+        if (mark.type.name === 'commentMark' && typeof mark.attrs.commentId === 'string') {
           const commentId = mark.attrs.commentId;
           // Always overwrite — doc.descendants iterates in document order,
           // so the last block containing the mark wins.

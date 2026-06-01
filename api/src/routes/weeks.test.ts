@@ -1,11 +1,88 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import request from 'supertest'
 import crypto from 'crypto'
+import { z } from 'zod'
 import { createApp } from '../app.js'
-import { IdRow, RelatedIdRow, PropertiesRow, requireFirstRow } from '../test/pg-result.js';
+import { IdRow, RelatedIdRow, PropertiesRow, requireFirstRow } from '../test/pg-result.js'
 import { pool } from '../db/client.js'
-import { ActiveWeeksResponseSchema } from '../openapi/schemas/weeks.js'
+import { UuidSchema, DateSchema, ErrorResponseSchema } from '../openapi/schemas/common.js'
+import { ApprovalTrackingSchema } from '../openapi/schemas/projects.js'
+import { ReviewsResponseSchema } from '../openapi/schemas/team.js'
+import {
+  ActiveWeeksResponseSchema,
+  WeekResponseSchema,
+} from '../openapi/schemas/weeks.js'
+import { expectJsonBody } from '../test/expect-json-body.js'
 import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { getCsrfTokenFromApp } from '../test/session-csrf.js'
+
+const WeekCreateResponseSchema = z
+  .object({
+    id: UuidSchema,
+    name: z.string(),
+    sprint_number: z.number().int().positive(),
+    program_id: UuidSchema.nullable(),
+    workspace_sprint_start_date: DateSchema,
+    issue_count: z.number().int(),
+    completed_count: z.number().int(),
+    started_count: z.number().int(),
+    plan: z.string().nullable().optional(),
+    success_criteria: z.array(z.string()).nullable().optional(),
+    confidence: z.number().int().min(0).max(100).nullable().optional(),
+  })
+  .passthrough()
+
+const WeekStartResponseSchema = WeekResponseSchema.extend({
+  snapshot_issue_count: z.number().int(),
+})
+
+const WeekSprintIssueSchema = z
+  .object({
+    id: UuidSchema,
+    title: z.string(),
+    state: z.string(),
+    priority: z.string(),
+    ticket_number: z.number().int().nullable(),
+    display_id: z.string(),
+    assignee_id: UuidSchema.nullable(),
+    assignee_name: z.string().nullable(),
+  })
+  .passthrough()
+
+const WeekSprintIssuesResponseSchema = z.array(WeekSprintIssueSchema)
+
+const WeekCarryoverResponseSchema = z.object({
+  moved_count: z.number().int(),
+  source_sprint: z.object({
+    id: UuidSchema,
+    name: z.string(),
+    sprint_number: z.number().nullable(),
+  }),
+  target_sprint: z.object({
+    id: UuidSchema,
+    name: z.string(),
+    sprint_number: z.number().nullable(),
+  }),
+})
+
+const ReviewRatingSchema = z.object({
+  value: z.number().int().min(1).max(5),
+  rated_by: UuidSchema,
+  rated_at: z.string(),
+})
+
+const WeekPlanApprovalResponseSchema = z.object({
+  success: z.literal(true),
+  approval: ApprovalTrackingSchema,
+})
+
+const WeekReviewApprovalResponseSchema = WeekPlanApprovalResponseSchema.extend({
+  review_rating: ReviewRatingSchema,
+})
+
+const MyActionItemsResponseSchema = z.object({
+  action_items: z.array(z.unknown()),
+})
 
 describe('Sprints API', () => {
   const app = createApp()
@@ -53,15 +130,9 @@ describe('Sprints API', () => {
     )
     sessionCookie = `session_id=${sessionId}`
 
-    // Get CSRF token
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie)
-    csrfToken = csrfRes.body.token
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
+    csrfToken = csrf.token
+    sessionCookie = csrf.sessionCookie
 
     // Create a program (required for sprint)
     const programResult = await pool.query<IdRow>(
@@ -123,14 +194,19 @@ describe('Sprints API', () => {
         .get('/api/weeks')
         .set('Cookie', sessionCookie)
 
-      expect(res.status).toBe(200)
-      expect(res.body.weeks).toBeInstanceOf(Array)
-      expect(res.body.weeks.length).toBeGreaterThan(0)
+      const weeksBody = expectOpenApiResponse({
+        method: 'get',
+        path: '/weeks',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'ActiveWeeksResponse',
+        schema: ActiveWeeksResponseSchema,
+      })
+      expect(weeksBody.weeks.length).toBeGreaterThan(0)
 
-      // Find our test sprint
-      const testSprint = res.body.weeks.find((s: { id: string }) => s.id === testSprintId)
+      const testSprint = weeksBody.weeks.find((s) => s.id === testSprintId)
       expect(testSprint).toBeDefined()
-      expect(testSprint.name).toBe('Test Sprint for List')
+      expect(testSprint?.name).toBe('Test Sprint for List')
     })
 
     it('matches OpenAPI ActiveWeeksResponse wire format', async () => {
@@ -164,9 +240,15 @@ describe('Sprints API', () => {
         .get(`/api/weeks?program_id=${testProgramId}`)
         .set('Cookie', sessionCookie)
 
-      expect(res.status).toBe(200)
-      expect(res.body.weeks).toBeInstanceOf(Array)
-      const allMatchProgram = res.body.weeks.every((s: { program_id: string }) => s.program_id === testProgramId)
+      const filteredWeeks = expectOpenApiResponse({
+        method: 'get',
+        path: '/weeks',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'ActiveWeeksResponse',
+        schema: ActiveWeeksResponseSchema,
+      })
+      const allMatchProgram = filteredWeeks.weeks.every((s) => s.program_id === testProgramId)
       expect(allMatchProgram).toBe(true)
     })
 
@@ -202,9 +284,16 @@ describe('Sprints API', () => {
         .get(`/api/weeks/${testSprintId}`)
         .set('Cookie', sessionCookie)
 
-      expect(res.status).toBe(200)
-      expect(res.body.id).toBe(testSprintId)
-      expect(res.body.name).toBe('Test Sprint for Get')
+      const sprint = expectOpenApiResponse({
+        method: 'get',
+        path: '/weeks/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Week',
+        schema: WeekResponseSchema,
+      })
+      expect(sprint.id).toBe(testSprintId)
+      expect(sprint.name).toBe('Test Sprint for Get')
     })
 
     it('should return 404 for non-existent sprint', async () => {
@@ -229,10 +318,10 @@ describe('Sprints API', () => {
           sprint_number: 100,
         })
 
-      expect(res.status).toBe(201)
-      expect(res.body.id).toBeDefined()
-      expect(res.body.name).toBe('New Test Sprint')
-      expect(res.body.program_id).toBe(testProgramId)
+      const sprint = expectJsonBody(res, 201, WeekCreateResponseSchema)
+      expect(sprint.id).toBeDefined()
+      expect(sprint.name).toBe('New Test Sprint')
+      expect(sprint.program_id).toBe(testProgramId)
     })
 
     it('should create sprint with dates', async () => {
@@ -246,10 +335,9 @@ describe('Sprints API', () => {
           sprint_number: 2,
         })
 
-      // Dates are computed on frontend from sprint_number + workspace.sprint_start_date
-      expect(res.status).toBe(201)
-      expect(res.body.sprint_number).toBe(2)
-      expect(res.body.workspace_sprint_start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      const sprint = expectJsonBody(res, 201, WeekCreateResponseSchema)
+      expect(sprint.sprint_number).toBe(2)
+      expect(sprint.workspace_sprint_start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     })
 
     it('should create sprint with plan', async () => {
@@ -264,8 +352,8 @@ describe('Sprints API', () => {
           plan: 'If we implement feature X, then metric Y will improve by Z%',
         })
 
-      expect(res.status).toBe(201)
-      expect(res.body.plan).toBe('If we implement feature X, then metric Y will improve by Z%')
+      const sprint = expectJsonBody(res, 201, WeekCreateResponseSchema)
+      expect(sprint.plan).toBe('If we implement feature X, then metric Y will improve by Z%')
     })
 
     it('should require sprint_number', async () => {
@@ -310,8 +398,15 @@ describe('Sprints API', () => {
           title: 'Updated Sprint Title',
         })
 
-      expect(res.status).toBe(200)
-      expect(res.body.name).toBe('Updated Sprint Title')
+      const sprint = expectOpenApiResponse({
+        method: 'patch',
+        path: '/weeks/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Week',
+        schema: WeekResponseSchema,
+      })
+      expect(sprint.name).toBe('Updated Sprint Title')
     })
 
     it('should update sprint_number via PATCH', async () => {
@@ -324,8 +419,15 @@ describe('Sprints API', () => {
           sprint_number: 99,
         })
 
-      expect(res.status).toBe(200)
-      expect(res.body.sprint_number).toBe(99)
+      const sprint = expectOpenApiResponse({
+        method: 'patch',
+        path: '/weeks/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Week',
+        schema: WeekResponseSchema,
+      })
+      expect(sprint.sprint_number).toBe(99)
     })
 
     it('should return 404 for non-existent sprint', async () => {
@@ -353,10 +455,17 @@ describe('Sprints API', () => {
         .set('x-csrf-token', csrfToken)
         .send({ title: 'Planning week title', status: 'completed' });
 
-      expect(res.status).toBe(200);
-      expect(res.body.name).toBe('Planning week title');
-      expect(res.body.status).toBe('planning');
-    });
+      const sprint = expectOpenApiResponse({
+        method: 'patch',
+        path: '/weeks/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Week',
+        schema: WeekResponseSchema,
+      })
+      expect(sprint.name).toBe('Planning week title')
+      expect(sprint.status).toBe('planning')
+    })
   })
 
   describe('DELETE /api/weeks/:id', () => {
@@ -420,8 +529,15 @@ describe('Sprints API', () => {
           plan: 'Updated plan text',
         })
 
-      expect(res.status).toBe(200)
-      expect(res.body.plan).toBe('Updated plan text')
+      const sprint = expectOpenApiResponse({
+        method: 'patch',
+        path: '/weeks/{id}/plan',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Week',
+        schema: WeekResponseSchema,
+      })
+      expect(sprint.plan).toBe('Updated plan text')
     })
   })
 
@@ -466,11 +582,10 @@ describe('Sprints API', () => {
         .get(`/api/weeks/${testSprintId}/issues`)
         .set('Cookie', sessionCookie)
 
-      expect(res.status).toBe(200)
-      expect(res.body).toBeInstanceOf(Array)
-      expect(res.body.length).toBe(1)
-      expect(res.body[0].id).toBe(testIssueId)
-      expect(res.body[0].title).toBe('Issue in Sprint')
+      const issues = expectJsonBody(res, 200, WeekSprintIssuesResponseSchema)
+      expect(issues).toHaveLength(1)
+      expect(issues[0]?.id).toBe(testIssueId)
+      expect(issues[0]?.title).toBe('Issue in Sprint')
     })
   })
 
@@ -502,8 +617,15 @@ describe('Sprints API', () => {
           sprint_number: 11,
         })
 
-      expect(res.status).toBe(200)
-      expect(res.body.sprint_number).toBe(11)
+      const sprint = expectOpenApiResponse({
+        method: 'patch',
+        path: '/weeks/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Week',
+        schema: WeekResponseSchema,
+      })
+      expect(sprint.sprint_number).toBe(11)
     })
 
     it('should update sprint title', async () => {
@@ -515,8 +637,15 @@ describe('Sprints API', () => {
           title: 'Updated Lifecycle Sprint',
         })
 
-      expect(res.status).toBe(200)
-      expect(res.body.name).toBe('Updated Lifecycle Sprint')
+      const sprint = expectOpenApiResponse({
+        method: 'patch',
+        path: '/weeks/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Week',
+        schema: WeekResponseSchema,
+      })
+      expect(sprint.name).toBe('Updated Lifecycle Sprint')
     })
   })
 
@@ -526,9 +655,8 @@ describe('Sprints API', () => {
         .get('/api/weeks/my-week')
         .set('Cookie', sessionCookie)
 
-      expect(res.status).toBe(200)
-      // my-week returns aggregated data
-      expect(res.body).toBeDefined()
+      const myWeek = expectJsonBody(res, 200, z.record(z.unknown()))
+      expect(myWeek).toBeDefined()
     })
   })
 
@@ -538,8 +666,8 @@ describe('Sprints API', () => {
         .get('/api/weeks/my-action-items')
         .set('Cookie', sessionCookie)
 
-      expect(res.status).toBe(200)
-      expect(res.body.action_items).toBeInstanceOf(Array)
+      const body = expectJsonBody(res, 200, MyActionItemsResponseSchema)
+      expect(body.action_items).toBeInstanceOf(Array)
     })
   })
 
@@ -581,9 +709,9 @@ describe('Sprints API', () => {
         .set('Cookie', sessionCookie)
         .set('x-csrf-token', csrfToken)
 
-      expect(res.status).toBe(200)
-      expect(res.body.status).toBe('active')
-      expect(res.body.snapshot_issue_count).toBe(1)
+      const sprint = expectJsonBody(res, 200, WeekStartResponseSchema)
+      expect(sprint.status).toBe('active')
+      expect(sprint.snapshot_issue_count).toBe(1)
     })
 
     it('should reject starting an already active sprint', async () => {
@@ -607,8 +735,8 @@ describe('Sprints API', () => {
         .set('Cookie', sessionCookie)
         .set('x-csrf-token', csrfToken)
 
-      expect(res.status).toBe(400)
-      expect(res.body.error).toContain('already active')
+      const error = expectJsonBody(res, 400, ErrorResponseSchema)
+      expect(error.error).toContain('already active')
     })
 
     it('should return 404 for non-existent sprint', async () => {
@@ -706,10 +834,10 @@ describe('Sprints API', () => {
           target_sprint_id: targetSprintId
         })
 
-      expect(res.status).toBe(200)
-      expect(res.body.moved_count).toBe(1)
-      expect(res.body.source_sprint.id).toBe(sourceSprintId)
-      expect(res.body.target_sprint.id).toBe(targetSprintId)
+      const body = expectJsonBody(res, 200, WeekCarryoverResponseSchema)
+      expect(body.moved_count).toBe(1)
+      expect(body.source_sprint.id).toBe(sourceSprintId)
+      expect(body.target_sprint.id).toBe(targetSprintId)
 
       // Verify issue is now in target sprint
       const assocResult = await pool.query<RelatedIdRow>(
@@ -751,8 +879,8 @@ describe('Sprints API', () => {
           target_sprint_id: requireFirstRow(completedResult.rows).id
         })
 
-      expect(res.status).toBe(400)
-      expect(res.body.error).toContain('planning or active')
+      const error = expectJsonBody(res, 400, ErrorResponseSchema)
+      expect(error.error).toContain('planning or active')
     })
 
     it('should reject issues not in source sprint', async () => {
@@ -779,8 +907,8 @@ describe('Sprints API', () => {
           target_sprint_id: targetSprintId
         })
 
-      expect(res.status).toBe(400)
-      expect(res.body.error).toContain('not found in source week')
+      const error = expectJsonBody(res, 400, ErrorResponseSchema)
+      expect(error.error).toContain('not found in source week')
     })
 
     it('should return 404 for non-existent source sprint', async () => {
@@ -831,15 +959,9 @@ describe('Sprints API', () => {
       )
       adminCookie = `session_id=${adminSessionId}`
 
-      // Get CSRF token for admin
-      const csrfRes = await request(app)
-        .get('/api/csrf-token')
-        .set('Cookie', adminCookie)
-      adminCsrfToken = csrfRes.body.token
-      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-      if (connectSidCookie) {
-        adminCookie = `${adminCookie}; ${connectSidCookie}`
-      }
+      const adminCsrf = await getCsrfTokenFromApp(app, adminCookie)
+      adminCsrfToken = adminCsrf.token
+      adminCookie = adminCsrf.sessionCookie
 
       // Create sprint for approval tests
       const sprintResult = await pool.query<IdRow>(
@@ -864,8 +986,8 @@ describe('Sprints API', () => {
         .set('Cookie', adminCookie)
         .set('x-csrf-token', adminCsrfToken)
 
-      expect(res.status).toBe(400)
-      expect(res.body.error).toContain('Rating is required')
+      const error = expectJsonBody(res, 400, ErrorResponseSchema)
+      expect(error.error).toContain('Rating is required')
     })
 
     it('should approve review with rating', async () => {
@@ -875,13 +997,12 @@ describe('Sprints API', () => {
         .set('x-csrf-token', adminCsrfToken)
         .send({ rating: 3 })
 
-      expect(res.status).toBe(200)
-      expect(res.body.success).toBe(true)
-      expect(res.body.approval.state).toBe('approved')
-      expect(res.body.review_rating).toBeDefined()
-      expect(res.body.review_rating.value).toBe(3)
-      expect(res.body.review_rating.rated_by).toBe(adminUserId)
-      expect(res.body.review_rating.rated_at).toBeDefined()
+      const body = expectJsonBody(res, 200, WeekReviewApprovalResponseSchema)
+      expect(body.success).toBe(true)
+      expect(body.approval.state).toBe('approved')
+      expect(body.review_rating.value).toBe(3)
+      expect(body.review_rating.rated_by).toBe(adminUserId)
+      expect(body.review_rating.rated_at).toBeDefined()
     })
 
     it('should approve plan with optional comment', async () => {
@@ -891,10 +1012,10 @@ describe('Sprints API', () => {
         .set('x-csrf-token', adminCsrfToken)
         .send({ comment: 'Onboarding week, expected slower output' })
 
-      expect(res.status).toBe(200)
-      expect(res.body.success).toBe(true)
-      expect(res.body.approval.state).toBe('approved')
-      expect(res.body.approval.comment).toBe('Onboarding week, expected slower output')
+      const body = expectJsonBody(res, 200, WeekPlanApprovalResponseSchema)
+      expect(body.success).toBe(true)
+      expect(body.approval.state).toBe('approved')
+      expect(body.approval.comment).toBe('Onboarding week, expected slower output')
     })
 
     it('should approve review with rating and optional comment', async () => {
@@ -904,10 +1025,10 @@ describe('Sprints API', () => {
         .set('x-csrf-token', adminCsrfToken)
         .send({ rating: 4, comment: 'Strong retrospective with clear learnings' })
 
-      expect(res.status).toBe(200)
-      expect(res.body.success).toBe(true)
-      expect(res.body.approval.comment).toBe('Strong retrospective with clear learnings')
-      expect(res.body.review_rating.value).toBe(4)
+      const body = expectJsonBody(res, 200, WeekReviewApprovalResponseSchema)
+      expect(body.success).toBe(true)
+      expect(body.approval.comment).toBe('Strong retrospective with clear learnings')
+      expect(body.review_rating.value).toBe(4)
     })
 
     it('should accept all valid ratings (1-5)', async () => {
@@ -918,8 +1039,8 @@ describe('Sprints API', () => {
           .set('x-csrf-token', adminCsrfToken)
           .send({ rating })
 
-        expect(res.status).toBe(200)
-        expect(res.body.review_rating.value).toBe(rating)
+        const approved = expectJsonBody(res, 200, WeekReviewApprovalResponseSchema)
+        expect(approved.review_rating.value).toBe(rating)
       }
     })
 
@@ -930,8 +1051,8 @@ describe('Sprints API', () => {
         .set('x-csrf-token', adminCsrfToken)
         .send({ rating: 0 })
 
-      expect(res.status).toBe(400)
-      expect(res.body.error).toContain('Rating must be an integer between 1 and 5')
+      const error = expectJsonBody(res, 400, ErrorResponseSchema)
+      expect(error.error).toContain('Rating must be an integer between 1 and 5')
     })
 
     it('should reject rating of 6', async () => {
@@ -983,8 +1104,8 @@ describe('Sprints API', () => {
         .set('x-csrf-token', adminCsrfToken)
         .send({ rating: 3, comment: 'Updated note after follow-up' })
 
-      expect(res.status).toBe(200)
-      expect(res.body.approval.comment).toBe('Updated note after follow-up')
+      const body = expectJsonBody(res, 200, WeekReviewApprovalResponseSchema)
+      expect(body.approval.comment).toBe('Updated note after follow-up')
 
       const historyResult = await pool.query<{ field: string; old_value: string; new_value: string }>(
         `SELECT field, old_value, new_value
@@ -1054,11 +1175,18 @@ describe('Sprints API', () => {
         .get('/api/team/reviews')
         .set('Cookie', adminCookie2)
 
-      expect(res.status).toBe(200)
-      expect(res.body.people).toBeInstanceOf(Array)
-      expect(res.body.weeks).toBeInstanceOf(Array)
-      expect(res.body.reviews).toBeDefined()
-      expect(res.body.currentSprintNumber).toBeGreaterThan(0)
+      const reviews = expectOpenApiResponse({
+        method: 'get',
+        path: '/team/reviews',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'ReviewsResponse',
+        schema: ReviewsResponseSchema,
+      })
+      expect(reviews.people).toBeInstanceOf(Array)
+      expect(reviews.weeks).toBeInstanceOf(Array)
+      expect(reviews.reviews).toBeDefined()
+      expect(reviews.currentSprintNumber).toBeGreaterThan(0)
     })
 
     it('should support sprint_count parameter', async () => {
@@ -1066,8 +1194,15 @@ describe('Sprints API', () => {
         .get('/api/team/reviews?sprint_count=3')
         .set('Cookie', adminCookie2)
 
-      expect(res.status).toBe(200)
-      expect(res.body.weeks.length).toBeLessThanOrEqual(3)
+      const reviews = expectOpenApiResponse({
+        method: 'get',
+        path: '/team/reviews',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'ReviewsResponse',
+        schema: ReviewsResponseSchema,
+      })
+      expect(reviews.weeks.length).toBeLessThanOrEqual(3)
     })
 
     it('should reject non-admin user', async () => {

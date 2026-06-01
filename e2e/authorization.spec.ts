@@ -1,5 +1,9 @@
+// E2E tests for authorization controls (cross-workspace isolation, RBAC, super-admin gates).
+
 import { test, expect } from './fixtures/isolated-env'
 import { loginAsSuperAdmin, loginAsMember, getCsrfToken, login } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { BulkIssueUpdateResponse, UsersListResponse, WorkspaceCurrentResponse } from './fixtures/e2e-api-types';
 
 import type { Pool } from 'pg'
 import { randomUUID } from 'crypto'
@@ -13,33 +17,44 @@ import { randomUUID } from 'crypto'
  * - Super-admin restrictions (non-super-admins can't access /admin)
  */
 
+type SeedUserRow = {
+  id: string;
+  email: string;
+  password_hash: string;
+};
+
+type IdRow = { id: string };
+
 async function seedWorkspaceBoundaryCase(dbPool: Pool) {
   const uniqueId = randomUUID()
-  const users = await dbPool.query(
+  const users = await dbPool.query<SeedUserRow>(
     `SELECT id, email, password_hash
      FROM users
      WHERE email = 'dev@ship.local'`
   )
 
-  const devUser = users.rows.find((user: { email: string }) => user.email === 'dev@ship.local')
+  const devUser = users.rows.find((user) => user.email === 'dev@ship.local')
   expect(devUser).toBeTruthy()
+  if (!devUser) {
+    throw new Error('Expected dev@ship.local in seed users');
+  }
 
-  const ownedWorkspace = await dbPool.query(
+  const ownedWorkspace = await dbPool.query<IdRow>(
     `INSERT INTO workspaces (name, sprint_start_date)
      VALUES ($1, CURRENT_DATE)
      RETURNING id`,
     [`Owned Boundary Workspace ${uniqueId}`]
   )
-  const ownedWorkspaceId = ownedWorkspace.rows[0].id as string
+  const ownedWorkspaceId = ownedWorkspace.rows[0].id
 
   const ownedEmail = `owned-${uniqueId}@ship.local`
-  const ownedUser = await dbPool.query(
+  const ownedUser = await dbPool.query<IdRow>(
     `INSERT INTO users (email, password_hash, name, last_workspace_id)
      VALUES ($1, $2, $3, $4)
      RETURNING id`,
     [ownedEmail, devUser.password_hash, 'Owned Boundary User', ownedWorkspaceId]
   )
-  const ownedUserId = ownedUser.rows[0].id as string
+  const ownedUserId = ownedUser.rows[0].id
 
   await dbPool.query(
     `INSERT INTO workspace_memberships (workspace_id, user_id, role)
@@ -58,21 +73,21 @@ async function seedWorkspaceBoundaryCase(dbPool: Pool) {
     ]
   )
 
-  const foreignWorkspace = await dbPool.query(
+  const foreignWorkspace = await dbPool.query<IdRow>(
     `INSERT INTO workspaces (name, sprint_start_date)
      VALUES ($1, CURRENT_DATE)
      RETURNING id`,
     [`Foreign Workspace ${uniqueId}`]
   )
-  const foreignWorkspaceId = foreignWorkspace.rows[0].id as string
+  const foreignWorkspaceId = foreignWorkspace.rows[0].id
 
-  const foreignUser = await dbPool.query(
+  const foreignUser = await dbPool.query<IdRow>(
     `INSERT INTO users (email, password_hash, name, last_workspace_id)
      VALUES ($1, $2, $3, $4)
      RETURNING id`,
     [`foreign-${uniqueId}@ship.local`, devUser.password_hash, 'Foreign User', foreignWorkspaceId]
   )
-  const foreignUserId = foreignUser.rows[0].id as string
+  const foreignUserId = foreignUser.rows[0].id
 
   await dbPool.query(
     `INSERT INTO workspace_memberships (workspace_id, user_id, role)
@@ -80,7 +95,7 @@ async function seedWorkspaceBoundaryCase(dbPool: Pool) {
     [foreignWorkspaceId, foreignUserId]
   )
 
-  const ownedIssue = await dbPool.query(
+  const ownedIssue = await dbPool.query<IdRow>(
     `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
      VALUES ($1, 'issue', $2, $3, 9701, $4)
      RETURNING id`,
@@ -92,7 +107,7 @@ async function seedWorkspaceBoundaryCase(dbPool: Pool) {
     ]
   )
 
-  const foreignDoc = await dbPool.query(
+  const foreignDoc = await dbPool.query<IdRow>(
     `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
      VALUES ($1, 'wiki', $2, $3, $4)
      RETURNING id`,
@@ -104,7 +119,7 @@ async function seedWorkspaceBoundaryCase(dbPool: Pool) {
     ]
   )
 
-  const foreignIssue = await dbPool.query(
+  const foreignIssue = await dbPool.query<IdRow>(
     `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
      VALUES ($1, 'issue', $2, $3, 9702, $4)
      RETURNING id`,
@@ -119,10 +134,10 @@ async function seedWorkspaceBoundaryCase(dbPool: Pool) {
   return {
     ownedEmail,
     ownedWorkspaceId,
-    ownedIssueId: ownedIssue.rows[0].id as string,
+    ownedIssueId: ownedIssue.rows[0].id,
     foreignWorkspaceId,
-    foreignDocId: foreignDoc.rows[0].id as string,
-    foreignIssueId: foreignIssue.rows[0].id as string,
+    foreignDocId: foreignDoc.rows[0].id,
+    foreignIssueId: foreignIssue.rows[0].id,
   }
 }
 
@@ -255,8 +270,8 @@ test.describe('Authorization - Cross-Workspace Isolation', () => {
     })
 
     expect(response.status()).toBe(200)
-    const data = await response.json()
-    expect(data.updated.map((issue: { id: string }) => issue.id)).toEqual([boundary.ownedIssueId])
+    const data = await readJsonAs<BulkIssueUpdateResponse>(response)
+    expect(data.updated.map((issue) => issue.id)).toEqual([boundary.ownedIssueId])
     expect(data.failed).toContainEqual({ id: boundary.foreignIssueId, error: 'Issue not found' })
 
     const states = await dbPool.query(
@@ -279,9 +294,9 @@ test.describe('Authorization - Cross-Workspace Isolation', () => {
     const response = await page.request.get('/api/documents')
     expect(response.status()).toBe(200)
 
-    const data = await response.json()
+    const data = await readJsonAs<Array<{ id: string }>>(response)
     expect(Array.isArray(data)).toBe(true)
-    expect(data.some((doc: { id: string }) => doc.id === boundary.foreignDocId)).toBe(false)
+    expect(data.some((doc) => doc.id === boundary.foreignDocId)).toBe(false)
   })
 })
 
@@ -345,9 +360,12 @@ test.describe('Authorization - Impersonation Controls', () => {
     // First get a valid user ID
     const usersResponse = await page.request.get('/api/admin/users')
     expect(usersResponse.status()).toBe(200)
-    const usersData = await usersResponse.json()
-    const targetUser = usersData.data?.users?.find((u: { email: string }) => u.email !== 'dev@ship.local')
+    const usersData = await readJsonAs<UsersListResponse>(usersResponse)
+    const targetUser = usersData.data?.users?.find((u) => u.email !== 'dev@ship.local')
     expect(targetUser).toBeTruthy()
+    if (!targetUser) {
+      throw new Error('Expected a non-dev user for impersonation test');
+    }
     const csrfToken = await getCsrfToken(page)
 
     // Impersonate endpoint is POST /api/admin/impersonate/:userId
@@ -385,7 +403,7 @@ test.describe('Authorization - Audit Log Access', () => {
     })
 
     if (wsResponse.status() === 200) {
-      const wsData = await wsResponse.json()
+      const wsData = await readJsonAs<WorkspaceCurrentResponse>(wsResponse)
       const workspaceId = wsData.data?.workspace?.id
 
       if (workspaceId) {

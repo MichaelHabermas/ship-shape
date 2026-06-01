@@ -39,7 +39,7 @@ services:
       - key: FLEETGRAPH_REAL_MODEL_ENABLED
         value: "true"
       - key: FLEETGRAPH_MODEL
-        value: gpt-4.1-mini
+        value: gpt-5.5
       - key: OPENAI_API_KEY
         sync: false
       - key: LANGSMITH_TRACING

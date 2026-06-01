@@ -1,14 +1,48 @@
+// Workspace invite validation and password-based acceptance.
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
+import { PASSWORD_BCRYPT_ROUNDS, ERROR_CODES, HTTP_STATUS, SESSION_TIMEOUT_MS  } from '@ship/shared';
 import crypto from 'crypto';
 import { pool } from '../db/client.js';
-import { ERROR_CODES, HTTP_STATUS, SESSION_TIMEOUT_MS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 import { linkUserToWorkspaceViaInvite } from '../services/invite-acceptance.js';
 import { sessionCookieOptions } from '../config/session-cookies.js';
 
 const router = Router();
+
+interface InviteUserIdRow {
+  id: string;
+}
+
+interface InviteValidationRow {
+  id: string;
+  email: string;
+  role: string;
+  expires_at: string | Date;
+  used_at: string | Date | null;
+  workspace_id: string;
+  workspace_name: string;
+}
+
+interface InviteAcceptRow {
+  id: string;
+  email: string;
+  role: string;
+  expires_at: string | Date;
+  used_at: string | Date | null;
+  workspace_id: string;
+  workspace_name: string;
+}
+
+interface InviteUserRow {
+  id: string;
+  name: string;
+}
+
+interface NewInviteUserRow {
+  id: string;
+  name: string;
+}
 
 function generateSecureSessionId(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -19,7 +53,7 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
   const { token } = req.params;
 
   try {
-    const result = await pool.query(
+    const result = await pool.query<InviteValidationRow>(
       `SELECT wi.id, wi.email, wi.role, wi.expires_at, wi.used_at,
               w.id as workspace_id, w.name as workspace_name,
               u.name as invited_by_name
@@ -66,7 +100,7 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Check if user already exists
-    const existingUserResult = await pool.query(
+    const existingUserResult = await pool.query<InviteUserIdRow>(
       'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
       [invite.email]
     );
@@ -76,7 +110,7 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
     // Check if user is already a member of this workspace
     let alreadyMember = false;
     if (existingUser) {
-      const membershipResult = await pool.query(
+      const membershipResult = await pool.query<InviteUserIdRow>(
         'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
         [invite.workspace_id, existingUser.id]
       );
@@ -117,11 +151,11 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
 // POST /api/invites/:token/accept - Accept invite and create account
 router.post('/:token/accept', async (req: Request, res: Response): Promise<void> => {
   const { token } = req.params;
-  const { password, name } = req.body;
+  const acceptBody = req.body as { password?: unknown; name?: unknown };
 
   try {
     // Get invite details
-    const inviteResult = await pool.query(
+    const inviteResult = await pool.query<InviteAcceptRow>(
       `SELECT wi.id, wi.email, wi.role, wi.expires_at, wi.used_at, wi.workspace_id,
               w.name as workspace_name
        FROM workspace_invites wi
@@ -166,11 +200,11 @@ router.post('/:token/accept', async (req: Request, res: Response): Promise<void>
     }
 
     // Check if user already exists (case-insensitive email match)
-    const existingUserResult = await pool.query(
+    const existingUserResult = await pool.query<InviteUserRow>(
       'SELECT id, name FROM users WHERE LOWER(email) = LOWER($1)',
       [invite.email]
     );
-    let user = existingUserResult.rows[0];
+    let user: InviteUserRow | NewInviteUserRow | undefined = existingUserResult.rows[0];
 
     if (user) {
       // User exists - check if already member of workspace
@@ -197,7 +231,9 @@ router.post('/:token/accept', async (req: Request, res: Response): Promise<void>
       }
     } else {
       // Create new user
-      if (!password || password.length < 8) {
+      const password = acceptBody.password;
+      const name = acceptBody.name;
+      if (typeof password !== 'string' || password.length < 8) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           error: {
@@ -209,9 +245,10 @@ router.post('/:token/accept', async (req: Request, res: Response): Promise<void>
       }
 
       const passwordHash = await bcrypt.hash(password, PASSWORD_BCRYPT_ROUNDS);
-      const userName = name || invite.email.split('@')[0];
+      const userName =
+        (typeof name === 'string' && name.trim().length > 0 ? name : invite.email.split('@')[0]);
 
-      const newUserResult = await pool.query(
+      const newUserResult = await pool.query<NewInviteUserRow>(
         `INSERT INTO users (email, password_hash, name, last_workspace_id)
          VALUES ($1, $2, $3, $4)
          RETURNING id, name`,
@@ -219,6 +256,17 @@ router.post('/:token/accept', async (req: Request, res: Response): Promise<void>
       );
 
       user = newUserResult.rows[0];
+    }
+
+    if (!user) {
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: {
+          code: ERROR_CODES.INTERNAL_ERROR,
+          message: 'Failed to resolve user for invite acceptance',
+        },
+      });
+      return;
     }
 
     // Use shared service for membership + person doc + invite marking

@@ -2,7 +2,7 @@
 import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import fleetgraphRoutes from './fleetgraph.js';
+import fleetgraphRoutes from './fleetgraph/index.js';
 import { fleetGraphConfig } from '../config/fleetgraph.js';
 import { authorizeRequest } from '../security/route-capability.js';
 import { getFleetGraphBlastRadius } from '../fleetgraph/blast-radius.js';
@@ -30,7 +30,7 @@ import {
   runFleetGraphReviewerWeekBlockerScenario,
   runFleetGraphReviewerWorkerTick,
   sourceSnapshotForReviewerChat,
-} from '../fleetgraph/reviewer-proof.js';
+} from '../fleetgraph/reviewer-proof/index.js';
 import { noModelCostMetadata, noModelTokenMetadata } from '../fleetgraph/usage-metadata.js';
 import type { FleetGraphResult, FleetGraphVisibleOutput } from '../fleetgraph/types.js';
 import type { FleetGraphReviewerChain, FleetGraphReviewerProofVerdict } from '@ship/shared';
@@ -115,7 +115,7 @@ vi.mock('../fleetgraph/persistence.js', () => ({
   signalLabelForType: (signalType: string) => signalType === 'stale' ? 'Stale' : signalType === 'at_risk' ? 'At risk' : 'Blocked',
 }));
 
-vi.mock('../fleetgraph/reviewer-proof.js', () => ({
+vi.mock('../fleetgraph/reviewer-proof/index.js', () => ({
   fleetGraphReviewerProofEnabled: vi.fn(() => false),
   generateFleetGraphReviewerProof: vi.fn(),
   getFleetGraphReviewerChain: vi.fn(),
@@ -220,6 +220,8 @@ function reviewerChain(overrides: Partial<FleetGraphReviewerChain> = {}): FleetG
     scenario: 'week-blocker',
     status: 'complete',
     missing: [],
+    missingLabels: [],
+    productPath: 'working',
     generatedAt: '2026-05-29T00:00:00.000Z',
     freshness: {
       generatedAt: '2026-05-29T00:00:00.000Z',
@@ -1191,6 +1193,7 @@ describe('FleetGraph routes', () => {
       summary: {
         generatedAt: '2026-05-29T00:00:00.000Z',
         status: 'complete',
+        preferredChainId: findingId,
         chainCount: 1,
         completeCount: 1,
         brokenCount: 0,

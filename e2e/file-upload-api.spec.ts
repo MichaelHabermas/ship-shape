@@ -1,5 +1,8 @@
+/** E2E tests for file upload API auth, presigned URLs, and upload confirmation. */
 import { test, expect } from './fixtures/isolated-env';
 import { getCsrfToken, loginAndGetSessionCookieHeader } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { FileMetadataResponse, FileUploadInitResponse } from './fixtures/e2e-api-types';
 
 
 /**
@@ -51,7 +54,7 @@ test.describe('File Upload API', () => {
 
     expect(response.ok()).toBeTruthy();
 
-    const data = await response.json();
+    const data = await readJsonAs<FileUploadInitResponse>(response);
     expect(data).toHaveProperty('fileId');
     expect(data).toHaveProperty('uploadUrl');
     expect(data).toHaveProperty('s3Key');
@@ -88,7 +91,7 @@ test.describe('File Upload API', () => {
       },
     });
     expect(uploadResponse.ok()).toBeTruthy();
-    const uploadData = await uploadResponse.json();
+    const uploadData = await readJsonAs<FileUploadInitResponse>(uploadResponse);
     const { fileId, uploadUrl } = uploadData;
 
     // Step 2: Upload file data (to local endpoint in dev)
@@ -108,7 +111,7 @@ test.describe('File Upload API', () => {
     const fileResponse = await page.request.get(`${API_URL}/api/files/${fileId}`);
     expect(fileResponse.ok()).toBeTruthy();
 
-    const fileData = await fileResponse.json();
+    const fileData = await readJsonAs<FileMetadataResponse>(fileResponse);
     expect(fileData).toHaveProperty('cdn_url');
     expect(fileData.cdn_url).toBeTruthy();
     expect(fileData.status).toBe('uploaded');

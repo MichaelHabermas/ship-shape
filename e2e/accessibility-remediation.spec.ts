@@ -55,7 +55,10 @@ test.describe('Phase 1: Critical Violations', () => {
       // At least one of these MUST exist and have meaningful text
       const accessibleName = srText?.trim() || ariaLabel?.trim()
       expect(accessibleName).toBeTruthy()
-      expect(accessibleName!.length).toBeGreaterThan(2) // Not just empty or single char
+      if (!accessibleName) {
+        throw new Error('expected accessible name for status indicator')
+      }
+      expect(accessibleName.length).toBeGreaterThan(2) // Not just empty or single char
     })
   })
 
@@ -77,7 +80,10 @@ test.describe('Phase 1: Critical Violations', () => {
       // MUST have aria-label with keyboard instructions
       const ariaLabel = await kanban.getAttribute('aria-label')
       expect(ariaLabel).toBeTruthy()
-      expect(ariaLabel!.toLowerCase()).toContain('keyboard')
+      if (!ariaLabel) {
+        throw new Error('expected kanban aria-label with keyboard instructions')
+      }
+      expect(ariaLabel.toLowerCase()).toContain('keyboard')
     })
 
   })
@@ -923,9 +929,12 @@ test.describe('Phase 2: Serious Violations', () => {
 
       const childHref = await childDoc.getAttribute('href')
       expect(childHref).toBeTruthy()
+      if (!childHref) {
+        throw new Error('expected child document href')
+      }
 
       // Navigate directly to this URL (simulating deep link / refresh)
-      await page.goto(childHref!)
+      await page.goto(childHref)
       await page.waitForLoadState('networkidle')
 
       // CRITICAL: Tree MUST auto-expand to show this document

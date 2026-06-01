@@ -1,3 +1,4 @@
+/** Unit tests for collaborative session WebSocket lifecycle and cache-clear handling. */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import * as Y from 'yjs';
@@ -140,8 +141,12 @@ describe('useCollabSession', () => {
     );
 
     await waitFor(() => expect(mockWs).not.toBeNull());
+    const ws = mockWs;
+    if (!ws) {
+      throw new Error('expected websocket mock after connection');
+    }
 
-    const messageHandler = mockWs!.addEventListener.mock.calls.find(([event]) => event === 'message')?.[1] as
+    const messageHandler = ws.addEventListener.mock.calls.find(([event]) => event === 'message')?.[1] as
       | ((event: MessageEvent) => void)
       | undefined;
 
@@ -199,11 +204,15 @@ describe('useCollabSession', () => {
     );
 
     await waitFor(() => expect(mockWs).not.toBeNull());
-    expect(mockWs!.addEventListener).toHaveBeenCalled();
+    const ws = mockWs;
+    if (!ws) {
+      throw new Error('expected websocket mock after connection');
+    }
+    expect(ws.addEventListener).toHaveBeenCalled();
 
     unmount();
 
-    expect(mockWs!.removeEventListener).toHaveBeenCalled();
+    expect(ws.removeEventListener).toHaveBeenCalled();
     expect(mockDestroy).toHaveBeenCalled();
   });
 });

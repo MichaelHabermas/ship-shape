@@ -1,4 +1,6 @@
+/** E2E tests that /my-week refetches plan and retro edits after navigation. */
 import { test, expect } from './fixtures/isolated-env'
+import { readJsonAs } from './fixtures/typed-json'
 import type { Page } from '@playwright/test'
 
 /**
@@ -19,7 +21,7 @@ async function waitForDocumentContentInApi(page: Page, text: string) {
   await expect.poll(async () => {
     const response = await page.request.get(`/api/documents/${docId}/content`)
     if (!response.ok()) return false
-    const body = await response.json()
+    const body = await readJsonAs<unknown>(response)
     return JSON.stringify(body).includes(text)
   }, {
     timeout: 30000,
@@ -35,12 +37,29 @@ async function navigateToDashboardAndWaitForMyWeek(page: Page, expectedText: str
   await expect.poll(async () => {
     const response = await page.request.get('/api/dashboard/my-week')
     if (!response.ok()) return false
-    const body = await response.json()
+    const body = await readJsonAs<unknown>(response)
     return JSON.stringify(body).includes(expectedText)
   }, {
     timeout: 30000,
     intervals: [500, 1000, 2000],
   }).toBe(true)
+}
+
+async function waitForMyWeekPayload(page: Page) {
+  await expect.poll(async () => {
+    const response = await page.request.get('/api/dashboard/my-week')
+    return response.ok()
+  }, {
+    timeout: 30000,
+    intervals: [500, 1000, 2000],
+  }).toBe(true)
+}
+
+async function clickMyWeekAction(page: Page, name: RegExp) {
+  await waitForMyWeekPayload(page)
+  const action = page.getByRole('button', { name })
+  await expect(action).toBeVisible({ timeout: 15000 })
+  await action.click()
 }
 
 test.describe('My Week - stale data after editing plan/retro', () => {
@@ -60,7 +79,7 @@ test.describe('My Week - stale data after editing plan/retro', () => {
     await expect(page.getByRole('heading', { name: /^Week \d+$/ })).toBeVisible({ timeout: 10000 })
 
     // 2. Create a retro (click the main create button, not the nudge link)
-    await page.getByRole('button', { name: /create retro for this week/i }).click()
+    await clickMyWeekAction(page, /create retro for this week/i)
 
     // 3. Should navigate to the document editor
     await expect(page).toHaveURL(/\/documents\/[a-f0-9-]+/, { timeout: 10000 })
@@ -90,7 +109,7 @@ test.describe('My Week - stale data after editing plan/retro', () => {
     await expect(page.getByRole('heading', { name: /^Week \d+$/ })).toBeVisible({ timeout: 10000 })
 
     // 2. Create a plan (click the create button)
-    await page.getByRole('button', { name: /create plan for this week/i }).click()
+    await clickMyWeekAction(page, /create plan for this week/i)
 
     // 3. Should navigate to the document editor
     await expect(page).toHaveURL(/\/documents\/[a-f0-9-]+/, { timeout: 10000 })

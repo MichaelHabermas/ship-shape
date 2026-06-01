@@ -59,26 +59,23 @@ TEMP_FILE="/tmp/api_endpoints_$$"
 rm -f "$TEMP_FILE"
 touch "$TEMP_FILE"
 
-for route_file in api/src/routes/*.ts; do
-  [ -f "$route_file" ] || continue
+append_routes_from_file() {
+  local route_file="$1"
+  local rel="${route_file#api/src/routes/}"
+  local mount_prefix=""
 
-  # Skip test files
-  case "$route_file" in
-    *".test.ts") continue ;;
-  esac
-
-  # Get base name without .ts extension
-  basename_file=$(basename "$route_file" .ts)
-
-  # Find mount point for this file
-  # Check if this file's basename matches a mount point
-  mount_prefix=""
-  if echo "$MOUNT_POINTS" | grep -qx "$basename_file"; then
-    mount_prefix="$basename_file/"
+  if [[ "$rel" == */* ]]; then
+    local segment="${rel%%/*}"
+    if echo "$MOUNT_POINTS" | grep -qx "$segment"; then
+      mount_prefix="${segment}/"
+    fi
+  else
+    local basename_file="${rel%.ts}"
+    if echo "$MOUNT_POINTS" | grep -qx "$basename_file"; then
+      mount_prefix="${basename_file}/"
+    fi
   fi
 
-  # Extract routes from this file and prepend mount prefix.
-  # Supports same-line (.get('/path')) and multiline (.get(\n  '/path')) defineRoute patterns.
   awk '
     function extract_quoted_path(line,    start, rest, end) {
       start = index(line, "'\''")
@@ -105,13 +102,16 @@ for route_file in api/src/routes/*.ts; do
     }
   ' "$route_file" | sed 's/^\///' | while read -r route; do
     if [ -z "$route" ]; then
-      # Base route '/' becomes just the mount prefix (without trailing slash)
       echo "${mount_prefix%/}"
     else
       echo "${mount_prefix}${route}"
     fi
   done | grep -v '^$' >> "$TEMP_FILE" || true
-done
+}
+
+while IFS= read -r route_file; do
+  append_routes_from_file "$route_file"
+done < <(find api/src/routes -name '*.ts' ! -name '*.test.ts' ! -name 'types.ts' -print 2>/dev/null)
 
 # Also add direct app routes (app.get, app.post, etc.)
 {

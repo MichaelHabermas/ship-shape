@@ -4,6 +4,31 @@ import crypto from 'crypto';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
 import { requireFirstRow, type IdRow } from '../test/pg-result.js';
+import { AssociationSchema, DocumentContextResponseSchema } from '../openapi/schemas/backlinks.js';
+import { BootstrapResponseSchema } from '../openapi/schemas/bootstrap.js';
+import { IncompleteChildrenWarningSchema } from '../openapi/schemas/issues.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
+import { expectJsonBody } from '../test/expect-json-body.js';
+import { getCsrfTokenFromApp } from '../test/session-csrf.js';
+import { z } from 'zod';
+
+const AssociationListSchema = z.array(AssociationSchema);
+const TeamProjectOptionSchema = z.object({
+  id: z.string().uuid(),
+  programId: z.string().uuid().nullable(),
+}).passthrough();
+const TeamProjectListSchema = z.array(TeamProjectOptionSchema);
+const TeamJsonPayloadSchema = z.record(z.unknown());
+const IncompleteChildrenWarningTestSchema = IncompleteChildrenWarningSchema.extend({
+  incomplete_children: z.array(
+    z.object({
+      id: z.string().uuid(),
+      title: z.string(),
+      ticket_number: z.number().int().nullable(),
+      state: z.string(),
+    })
+  ),
+});
 
 describe('security graph visibility regressions', () => {
   const app = createApp();
@@ -59,10 +84,9 @@ describe('security graph visibility regressions', () => {
     );
     memberCookie = `session_id=${sessionId}`;
 
-    const csrf = await request(app).get('/api/csrf-token').set('Cookie', memberCookie);
-    csrfToken = csrf.body.token;
-    const connectSidCookie = csrf.headers['set-cookie']?.[0]?.split(';')[0] || '';
-    if (connectSidCookie) memberCookie = `${memberCookie}; ${connectSidCookie}`;
+    const csrf = await getCsrfTokenFromApp(app, memberCookie);
+    csrfToken = csrf.token;
+    memberCookie = csrf.sessionCookie;
   });
 
   afterAll(async () => {
@@ -101,12 +125,20 @@ describe('security graph visibility regressions', () => {
       .get(`/api/documents/${source}/associations`)
       .set('Cookie', memberCookie);
 
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveLength(1);
-    expect(response.body[0].related_id).toBe(visibleProgram);
-    expect(JSON.stringify(response.body)).not.toContain(privateProgram);
-    expect(JSON.stringify(response.body)).not.toContain('internal');
-    expect(response.body[0].metadata).toBeUndefined();
+    const associations = expectOpenApiResponse({
+      method: 'get',
+      path: '/documents/{id}/associations',
+      status: 200,
+      response,
+      openApiSchemaName: 'Association',
+      arrayItemSchemaName: 'Association',
+      schema: AssociationListSchema,
+    });
+    expect(associations).toHaveLength(1);
+    expect(associations[0].related_id).toBe(visibleProgram);
+    expect(JSON.stringify(associations)).not.toContain(privateProgram);
+    expect(JSON.stringify(associations)).not.toContain('internal');
+    expect(associations[0]).not.toHaveProperty('metadata');
   });
 
   it('omits hidden program ids from document context breadcrumbs', async () => {
@@ -122,9 +154,16 @@ describe('security graph visibility regressions', () => {
       .get(`/api/documents/${issue}/context`)
       .set('Cookie', memberCookie);
 
-    expect(response.status).toBe(200);
-    expect(JSON.stringify(response.body)).not.toContain(privateProgram);
-    expect(JSON.stringify(response.body)).not.toContain('Hidden Breadcrumb Program');
+    const context = expectOpenApiResponse({
+      method: 'get',
+      path: '/documents/{id}/context',
+      status: 200,
+      response,
+      openApiSchemaName: 'DocumentContextResponse',
+      schema: DocumentContextResponseSchema,
+    });
+    expect(JSON.stringify(context)).not.toContain(privateProgram);
+    expect(JSON.stringify(context)).not.toContain('Hidden Breadcrumb Program');
   });
 
   it('counts only visible associated documents in bootstrap aggregates', async () => {
@@ -138,8 +177,15 @@ describe('security graph visibility regressions', () => {
     );
 
     const response = await request(app).get('/api/bootstrap').set('Cookie', memberCookie);
-    expect(response.status).toBe(200);
-    const found = response.body.data.programs.find((item: { id: string }) => item.id === program);
+    const bootstrap = expectOpenApiResponse({
+      method: 'get',
+      path: '/bootstrap',
+      status: 200,
+      response,
+      openApiSchemaName: 'BootstrapResponse',
+      schema: BootstrapResponseSchema,
+    });
+    const found = bootstrap.data.programs.find((item) => item.id === program);
     expect(Number(found.issue_count)).toBe(1);
     expect(JSON.stringify(found)).not.toContain('Hidden Count Issue');
   });
@@ -155,12 +201,19 @@ describe('security graph visibility regressions', () => {
 
     const response = await request(app).get('/api/bootstrap').set('Cookie', memberCookie);
 
-    expect(response.status).toBe(200);
-    const found = response.body.data.projects.find((item: { id: string }) => item.id === project);
+    const bootstrap = expectOpenApiResponse({
+      method: 'get',
+      path: '/bootstrap',
+      status: 200,
+      response,
+      openApiSchemaName: 'BootstrapResponse',
+      schema: BootstrapResponseSchema,
+    });
+    const found = bootstrap.data.projects.find((item) => item.id === project);
     expect(found).toBeTruthy();
-    expect(found.program_id).toBeNull();
-    expect(JSON.stringify(response.body)).not.toContain(privateProgram);
-    expect(JSON.stringify(response.body)).not.toContain('Hidden Bootstrap Program');
+    expect(found?.program_id).toBeNull();
+    expect(JSON.stringify(bootstrap)).not.toContain(privateProgram);
+    expect(JSON.stringify(bootstrap)).not.toContain('Hidden Bootstrap Program');
   });
 
   it('does not reveal hidden program metadata from team project options', async () => {
@@ -177,13 +230,13 @@ describe('security graph visibility regressions', () => {
 
     const response = await request(app).get('/api/team/projects').set('Cookie', memberCookie);
 
-    expect(response.status).toBe(200);
-    const found = response.body.find((item: { id: string }) => item.id === project);
+    const teamProjects = expectJsonBody(response, 200, TeamProjectListSchema);
+    const found = teamProjects.find((item) => item.id === project);
     expect(found).toBeTruthy();
-    expect(found.programId).toBeNull();
-    expect(JSON.stringify(response.body)).not.toContain(privateProgram);
-    expect(JSON.stringify(response.body)).not.toContain('Hidden Team Project Program');
-    expect(JSON.stringify(response.body)).not.toContain('HIDDEN');
+    expect(found?.programId).toBeNull();
+    expect(JSON.stringify(teamProjects)).not.toContain(privateProgram);
+    expect(JSON.stringify(teamProjects)).not.toContain('Hidden Team Project Program');
+    expect(JSON.stringify(teamProjects)).not.toContain('HIDDEN');
   });
 
   it('does not reveal hidden project metadata from explicit team assignments', async () => {
@@ -196,9 +249,9 @@ describe('security graph visibility regressions', () => {
 
     const response = await request(app).get('/api/team/assignments').set('Cookie', memberCookie);
 
-    expect(response.status).toBe(200);
-    expect(JSON.stringify(response.body)).not.toContain(privateProject);
-    expect(JSON.stringify(response.body)).not.toContain('Hidden Explicit Assignment Project');
+    const assignments = expectJsonBody(response, 200, TeamJsonPayloadSchema);
+    expect(JSON.stringify(assignments)).not.toContain(privateProject);
+    expect(JSON.stringify(assignments)).not.toContain('Hidden Explicit Assignment Project');
   });
 
   it('does not reveal hidden project metadata from inferred team assignments', async () => {
@@ -217,9 +270,9 @@ describe('security graph visibility regressions', () => {
 
     const response = await request(app).get('/api/team/assignments').set('Cookie', memberCookie);
 
-    expect(response.status).toBe(200);
-    expect(JSON.stringify(response.body)).not.toContain(privateProject);
-    expect(JSON.stringify(response.body)).not.toContain('Hidden Inferred Assignment Project');
+    const assignments = expectJsonBody(response, 200, TeamJsonPayloadSchema);
+    expect(JSON.stringify(assignments)).not.toContain(privateProject);
+    expect(JSON.stringify(assignments)).not.toContain('Hidden Inferred Assignment Project');
   });
 
   it('does not reveal private program metadata in team grid', async () => {
@@ -245,10 +298,10 @@ describe('security graph visibility regressions', () => {
       .get('/api/team/grid?fromSprint=1&toSprint=2')
       .set('Cookie', memberCookie);
 
-    expect(response.status).toBe(200);
-    expect(JSON.stringify(response.body)).not.toContain(privateProgram);
-    expect(JSON.stringify(response.body)).not.toContain('Hidden Team Program');
-    expect(JSON.stringify(response.body)).not.toContain('LOCK');
+    const grid = expectJsonBody(response, 200, TeamJsonPayloadSchema);
+    expect(JSON.stringify(grid)).not.toContain(privateProgram);
+    expect(JSON.stringify(grid)).not.toContain('Hidden Team Program');
+    expect(JSON.stringify(grid)).not.toContain('LOCK');
   });
 
   it('shows only visible incomplete children in parent close warnings', async () => {
@@ -267,11 +320,18 @@ describe('security graph visibility regressions', () => {
       .set('x-csrf-token', csrfToken)
       .send({ state: 'done' });
 
-    expect(response.status).toBe(409);
-    expect(response.body.incomplete_children).toHaveLength(1);
-    expect(response.body.incomplete_children[0].id).toBe(visibleChild);
-    expect(JSON.stringify(response.body)).not.toContain(privateChild);
-    expect(JSON.stringify(response.body)).not.toContain('Private Child Warning');
+    const warning = expectOpenApiResponse({
+      method: 'patch',
+      path: '/issues/{id}',
+      status: 409,
+      response,
+      openApiSchemaName: 'IncompleteChildrenWarning',
+      schema: IncompleteChildrenWarningTestSchema,
+    });
+    expect(warning.incomplete_children).toHaveLength(1);
+    expect(warning.incomplete_children[0].id).toBe(visibleChild);
+    expect(JSON.stringify(warning)).not.toContain(privateChild);
+    expect(JSON.stringify(warning)).not.toContain('Private Child Warning');
   });
 
   it('blocks member public feedback enablement through generic document PATCH', async () => {

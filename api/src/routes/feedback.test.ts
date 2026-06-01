@@ -8,7 +8,9 @@ import {
   FeedbackLegacyErrorSchema,
   FeedbackProgramPublicSchema,
 } from '../openapi/schemas/feedback.js';
-import { expectOpenApiResponse } from '../test/openapi-response.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { requireFirstRow, type IdRow } from '../test/pg-result.js';
+import { expectJsonBody } from '../test/expect-json-body.js';
 
 describe('Public Feedback API', () => {
   const app = createApp();
@@ -23,54 +25,54 @@ describe('Public Feedback API', () => {
   let sessionCookie: string;
 
   beforeAll(async () => {
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1)
        RETURNING id`,
       [testWorkspaceName]
     );
-    testWorkspaceId = workspaceResult.rows[0].id;
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id;
 
-    const enabledProgramResult = await pool.query(
+    const enabledProgramResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, visibility, properties)
        VALUES ($1, 'program', 'Enabled Program', 'workspace', $2)
        RETURNING id`,
       [testWorkspaceId, JSON.stringify({ prefix: 'EN', public_feedback_enabled: true })]
     );
-    enabledProgramId = enabledProgramResult.rows[0].id;
+    enabledProgramId = requireFirstRow(enabledProgramResult.rows).id;
 
-    const disabledProgramResult = await pool.query(
+    const disabledProgramResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, visibility, properties)
        VALUES ($1, 'program', 'Disabled Program', 'workspace', $2)
        RETURNING id`,
       [testWorkspaceId, JSON.stringify({ prefix: 'DIS', public_feedback_enabled: false })]
     );
-    disabledProgramId = disabledProgramResult.rows[0].id;
+    disabledProgramId = requireFirstRow(disabledProgramResult.rows).id;
 
-    const privateProgramResult = await pool.query(
+    const privateProgramResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, visibility, properties)
        VALUES ($1, 'program', 'Private Program', 'private', $2)
        RETURNING id`,
       [testWorkspaceId, JSON.stringify({ prefix: 'PRI', public_feedback_enabled: true })]
     );
-    privateProgramId = privateProgramResult.rows[0].id;
+    privateProgramId = requireFirstRow(privateProgramResult.rows).id;
 
     const testEmail = `feedback-protected-${testRunId}@ship.local`;
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Feedback Test User')
        RETURNING id`,
       [testEmail]
     );
-    testUserId = userResult.rows[0].id;
+    testUserId = requireFirstRow(userResult.rows).id;
 
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [testWorkspaceId, testUserId]
     );
 
     const sessionId = crypto.randomBytes(32).toString('hex');
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
        VALUES ($1, $2, $3, now() + interval '1 hour')`,
       [sessionId, testUserId, testWorkspaceId]
@@ -90,7 +92,7 @@ describe('Public Feedback API', () => {
     await pool.query('DELETE FROM sessions WHERE user_id = $1', [testUserId]);
     await pool.query('DELETE FROM workspace_memberships WHERE user_id = $1', [testUserId]);
     await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-    await pool.query(
+    await pool.query<IdRow>(
       `DELETE FROM document_associations
        WHERE document_id IN (SELECT id FROM documents WHERE workspace_id = $1)
           OR related_id IN (SELECT id FROM documents WHERE workspace_id = $1)`,
@@ -115,15 +117,29 @@ describe('Public Feedback API', () => {
     expect(program.prefix).toBe('EN');
 
     const disabledRes = await request(app).get(`/api/feedback/program/${disabledProgramId}`);
-    expect(disabledRes.status).toBe(404);
-    expect(disabledRes.body.error).toBe('Program not found');
+    const disabledError = expectOpenApiResponse({
+      method: 'get',
+      path: '/feedback/program/{programId}',
+      status: 404,
+      response: disabledRes,
+      openApiSchemaName: 'FeedbackLegacyError',
+      schema: FeedbackLegacyErrorSchema,
+    });
+    expect(disabledError.error).toBe('Program not found');
   });
 
   it('does not expose private programs even when public feedback is enabled', async () => {
     const res = await request(app).get(`/api/feedback/program/${privateProgramId}`);
 
-    expect(res.status).toBe(404);
-    expect(res.body.error).toBe('Program not found');
+    const error = expectOpenApiResponse({
+      method: 'get',
+      path: '/feedback/program/{programId}',
+      status: 404,
+      response: res,
+      openApiSchemaName: 'FeedbackLegacyError',
+      schema: FeedbackLegacyErrorSchema,
+    });
+    expect(error.error).toBe('Program not found');
   });
 
   it('creates external feedback only for enabled workspace-visible programs', async () => {
@@ -136,7 +152,6 @@ describe('Public Feedback API', () => {
         content: { type: 'doc', content: [{ type: 'paragraph' }] },
       });
 
-    expect(createRes.status).toBe(201);
     const feedback = expectOpenApiResponse({
       method: 'post',
       path: '/feedback',
@@ -149,7 +164,7 @@ describe('Public Feedback API', () => {
     expect(feedback.source).toBe('external');
     expect(feedback.program_prefix).toBe('EN');
 
-    const assocResult = await pool.query(
+    const assocResult = await pool.query<IdRow>(
       `SELECT id FROM document_associations
        WHERE document_id = $1 AND related_id = $2 AND relationship_type = 'program'`,
       [feedback.id, enabledProgramId]
@@ -160,8 +175,15 @@ describe('Public Feedback API', () => {
       .post('/api/feedback')
       .send({ title: 'Blocked signal', program_id: disabledProgramId });
 
-    expect(disabledRes.status).toBe(404);
-    expect(disabledRes.body.error).toBe('Program not found');
+    const disabledError = expectOpenApiResponse({
+      method: 'post',
+      path: '/feedback',
+      status: 404,
+      response: disabledRes,
+      openApiSchemaName: 'FeedbackLegacyError',
+      schema: FeedbackLegacyErrorSchema,
+    });
+    expect(disabledError.error).toBe('Program not found');
   });
 
   it('preserves legacy validation response shape for invalid public feedback', async () => {
@@ -169,16 +191,23 @@ describe('Public Feedback API', () => {
       .post('/api/feedback')
       .send({ title: '', program_id: enabledProgramId });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Invalid input');
-    expect(res.body.details).toEqual(expect.any(Array));
+    const error = expectJsonBody(res, 400, FeedbackLegacyErrorSchema);
+    expect(error.error).toBe('Invalid input');
+    expect(error.details).toEqual(expect.any(Array));
   });
 
   it('returns legacy not-found shape for invalid public program IDs', async () => {
     const res = await request(app).get('/api/feedback/program/not-a-uuid');
 
-    expect(res.status).toBe(404);
-    expect(res.body.error).toBe('Program not found');
+    const error = expectOpenApiResponse({
+      method: 'get',
+      path: '/feedback/program/{programId}',
+      status: 404,
+      response: res,
+      openApiSchemaName: 'FeedbackLegacyError',
+      schema: FeedbackLegacyErrorSchema,
+    });
+    expect(error.error).toBe('Program not found');
   });
 
   it('rejects feedback for private programs', async () => {
@@ -186,8 +215,15 @@ describe('Public Feedback API', () => {
       .post('/api/feedback')
       .send({ title: 'Blocked private signal', program_id: privateProgramId });
 
-    expect(res.status).toBe(404);
-    expect(res.body.error).toBe('Program not found');
+    const error = expectOpenApiResponse({
+      method: 'post',
+      path: '/feedback',
+      status: 404,
+      response: res,
+      openApiSchemaName: 'FeedbackLegacyError',
+      schema: FeedbackLegacyErrorSchema,
+    });
+    expect(error.error).toBe('Program not found');
   });
 
   describe('GET /api/feedback/:id (protected)', () => {
@@ -222,8 +258,15 @@ describe('Public Feedback API', () => {
           content: { type: 'doc', content: [{ type: 'paragraph' }] },
         });
 
-      expect(createRes.status).toBe(201);
-      const feedbackId = createRes.body.id;
+      const created = expectOpenApiResponse({
+        method: 'post',
+        path: '/feedback',
+        status: 201,
+        response: createRes,
+        openApiSchemaName: 'FeedbackItem',
+        schema: FeedbackItemSchema,
+      });
+      const feedbackId = created.id;
 
       const res = await request(app)
         .get(`/api/feedback/${feedbackId}`)

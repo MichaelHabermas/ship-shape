@@ -5,7 +5,7 @@ import { UnifiedEditor } from '@/components/UnifiedEditor';
 import type { UnifiedDocument, SidebarData } from '@/components/UnifiedEditor';
 import { useAuth } from '@/hooks/useAuth';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
-import { apiPatch, apiDelete } from '@/lib/api';
+import { apiPatch, apiDelete, readJson } from '@/lib/api';
 import type { DocumentTabProps } from '@/lib/document-tabs';
 import { getProgramView } from '@/lib/document-view-mapper';
 
@@ -35,7 +35,7 @@ export default function ProgramOverviewTab({ documentId, document }: DocumentTab
       if (!response.ok) {
         throw new Error('Failed to update document');
       }
-      return response.json();
+      return readJson<UnifiedDocument>(response);
     },
     onMutate: async (updates) => {
       // Cancel any outgoing refetches

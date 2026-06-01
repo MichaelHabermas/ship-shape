@@ -1,16 +1,19 @@
 #!/bin/bash
-# Dev server wrapper that finds available ports for multi-worktree development
+# Dev server wrapper for stable local development ports.
 #
 # Strategy:
-# 1. Scan actual port usage (not files) to find what's in use
-# 2. Pick first available port pair (API: 3000+, Web: 5173+)
-# 3. Write .ports file for reference (which worktree is where)
-# 4. Start dev servers with those ports
+# 1. Prefer stable ports from env/.env.local, then API 3000 and Web 5173
+# 2. Restart only the previous dev server recorded for this worktree
+# 3. Fail loudly if another process owns the requested ports
+# 4. Allow old scan-up behavior only when SHIP_DEV_ANY_PORT=1
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+WORKTREE_NAME="$(basename "$ROOT_DIR")"
+DEV_DIR="$ROOT_DIR/.dev"
+SESSION_FILE="$DEV_DIR/session.json"
 
 # Ensure api/.env.local exists
 if [ ! -f "$ROOT_DIR/api/.env.local" ]; then
@@ -155,9 +158,148 @@ configure_database_url() {
 
 configure_database_url
 
-# Base ports
-API_BASE=3000
-WEB_BASE=5173
+read_env_setting() {
+  local file="$1"
+  local key="$2"
+
+  if [ -f "$file" ]; then
+    grep -E "^$key=" "$file" | tail -n 1 | cut -d= -f2-
+  fi
+}
+
+is_live_pid() {
+  local pid="$1"
+  [ -n "$pid" ] && kill -0 "$pid" >/dev/null 2>&1
+}
+
+port_listeners() {
+  local port="$1"
+  lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | tr '\n' ' '
+}
+
+pid_cwd() {
+  local pid="$1"
+  lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -n 1
+}
+
+pid_belongs_to_root() {
+  local pid="$1"
+  local cwd
+  cwd="$(pid_cwd "$pid")"
+
+  [ "$cwd" = "$ROOT_DIR" ] || [[ "$cwd" == "$ROOT_DIR/"* ]]
+}
+
+session_value() {
+  local key="$1"
+
+  if [ ! -f "$SESSION_FILE" ]; then
+    return 0
+  fi
+
+  node -e '
+    const fs = require("node:fs");
+    const key = process.argv[1];
+    try {
+      const session = JSON.parse(fs.readFileSync(process.env.SESSION_FILE, "utf8"));
+      if (session[key] !== undefined) console.log(session[key]);
+    } catch {}
+  ' "$key"
+}
+
+kill_pid_if_live() {
+  local pid="$1"
+
+  if is_live_pid "$pid"; then
+    kill "$pid" >/dev/null 2>&1 || true
+  fi
+}
+
+kill_port_listeners() {
+  local port="$1"
+  local pids
+  pids="$(port_listeners "$port")"
+
+  for pid in $pids; do
+    if pid_belongs_to_root "$pid"; then
+      kill_pid_if_live "$pid"
+    else
+      echo "Leaving port $port listener $pid alone; it is not owned by $ROOT_DIR."
+    fi
+  done
+}
+
+wait_for_port_free() {
+  local port="$1"
+
+  for _ in {1..30}; do
+    if [ -z "$(port_listeners "$port")" ]; then
+      return 0
+    fi
+    sleep 0.1
+  done
+
+  return 1
+}
+
+restart_previous_worktree_session() {
+  local previous_api=""
+  local previous_web=""
+  local previous_pid=""
+  local previous_worktree=""
+
+  if [ -f "$SESSION_FILE" ]; then
+    previous_api="$(SESSION_FILE="$SESSION_FILE" session_value apiPort)"
+    previous_web="$(SESSION_FILE="$SESSION_FILE" session_value webPort)"
+    previous_pid="$(SESSION_FILE="$SESSION_FILE" session_value pid)"
+    previous_worktree="$(SESSION_FILE="$SESSION_FILE" session_value rootDir)"
+  elif [ -f "$ROOT_DIR/.ports" ]; then
+    previous_api="$(grep -E '^API=' "$ROOT_DIR/.ports" | tail -n 1 | cut -d= -f2-)"
+    previous_web="$(grep -E '^WEB=' "$ROOT_DIR/.ports" | tail -n 1 | cut -d= -f2-)"
+    previous_worktree="$ROOT_DIR"
+  fi
+
+  if [ "$previous_worktree" != "$ROOT_DIR" ]; then
+    return 0
+  fi
+
+  if [ -z "$previous_api" ] && [ -z "$previous_web" ] && [ -z "$previous_pid" ]; then
+    return 0
+  fi
+
+  echo "Restarting previous dev session for $WORKTREE_NAME..."
+  kill_pid_if_live "$previous_pid"
+  [ -n "$previous_api" ] && kill_port_listeners "$previous_api"
+  [ -n "$previous_web" ] && kill_port_listeners "$previous_web"
+  [ -n "$previous_api" ] && wait_for_port_free "$previous_api" || true
+  [ -n "$previous_web" ] && wait_for_port_free "$previous_web" || true
+  rm -f "$SESSION_FILE" "$ROOT_DIR/.ports"
+}
+
+port_owner_details() {
+  local port="$1"
+  lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true
+}
+
+claim_strict_port() {
+  local label="$1"
+  local port="$2"
+  local listeners
+  listeners="$(port_listeners "$port")"
+
+  if [ -z "$listeners" ]; then
+    echo "$port"
+    return 0
+  fi
+
+  echo "ERROR: $label port $port is already in use." >&2
+  echo "" >&2
+  port_owner_details "$port" >&2
+  echo "" >&2
+  echo "Run 'pnpm dev:where' to see active Ship Shape services." >&2
+  echo "Use 'pnpm dev:any-port' only when you intentionally want a parallel server." >&2
+  return 1
+}
 
 # Find an available port starting from base
 find_available_port() {
@@ -177,15 +319,29 @@ find_available_port() {
   return 1
 }
 
-# Find available ports
-echo "Finding available ports..."
-API_PORT=$(find_available_port $API_BASE)
-WEB_PORT=$(find_available_port $WEB_BASE)
+api_env_port="$(read_env_setting "$ROOT_DIR/api/.env.local" PORT)"
+web_env_port="$(read_env_setting "$ROOT_DIR/web/.env.local" VITE_PORT)"
+API_BASE="${SHIP_DEV_API_PORT:-${PORT:-${api_env_port:-3000}}}"
+WEB_BASE="${SHIP_DEV_WEB_PORT:-${VITE_PORT:-${web_env_port:-5173}}}"
+
+restart_previous_worktree_session
+
+if [ "${SHIP_DEV_ANY_PORT:-0}" = "1" ]; then
+  echo "Finding available ports..."
+  API_PORT=$(find_available_port "$API_BASE")
+  WEB_PORT=$(find_available_port "$WEB_BASE")
+else
+  echo "Claiming stable ports..."
+  API_PORT=$(claim_strict_port "API" "$API_BASE")
+  WEB_PORT=$(claim_strict_port "Web" "$WEB_BASE")
+fi
 
 echo "Using API port: $API_PORT"
 echo "Using Web port: $WEB_PORT"
 
-# Write .ports file for reference
+mkdir -p "$DEV_DIR"
+
+# Write .ports file for backwards compatibility with existing scripts.
 cat > "$ROOT_DIR/.ports" << EOF
 # Auto-generated by scripts/dev.sh
 # This file shows which ports this worktree's dev server is using
@@ -193,17 +349,31 @@ cat > "$ROOT_DIR/.ports" << EOF
 API=$API_PORT
 WEB=$WEB_PORT
 STARTED=$(date -Iseconds)
-WORKTREE=$(basename "$ROOT_DIR")
+WORKTREE=$WORKTREE_NAME
+ROOT=$ROOT_DIR
 EOF
 
-echo "Wrote .ports file"
+SESSION_FILE="$SESSION_FILE" ROOT_DIR="$ROOT_DIR" WORKTREE_NAME="$WORKTREE_NAME" API_PORT="$API_PORT" WEB_PORT="$WEB_PORT" DATABASE_URL="$DATABASE_URL" node -e '
+  const fs = require("node:fs");
+  const session = {
+    pid: process.ppid,
+    rootDir: process.env.ROOT_DIR,
+    worktree: process.env.WORKTREE_NAME,
+    apiPort: Number(process.env.API_PORT),
+    webPort: Number(process.env.WEB_PORT),
+    apiUrl: `http://localhost:${process.env.API_PORT}`,
+    webUrl: `http://localhost:${process.env.WEB_PORT}`,
+    databaseUrl: process.env.DATABASE_URL,
+    startedAt: new Date().toISOString(),
+  };
+  fs.writeFileSync(process.env.SESSION_FILE, `${JSON.stringify(session, null, 2)}\n`);
+'
 
-# Clean up .ports file on exit
+echo "Wrote .ports and .dev/session.json"
+
 cleanup() {
-  if [ -f "$ROOT_DIR/.ports" ]; then
-    rm -f "$ROOT_DIR/.ports"
-    echo "Cleaned up .ports file"
-  fi
+  rm -f "$ROOT_DIR/.ports" "$SESSION_FILE"
+  echo "Cleaned up dev session files"
 }
 trap cleanup EXIT INT TERM
 

@@ -9,13 +9,30 @@
  */
 
 import { test, expect, Page } from './fixtures/isolated-env'
-import { loginAsSuperAdmin, getCsrfToken } from './fixtures/api-auth';
+import { loginAsSuperAdmin, getCsrfToken } from './fixtures/api-auth'
+import { readJsonAs } from './fixtures/typed-json';
+import type {
+  AssignResponse,
+  InviteCreateResponse,
+  TeamAssignmentsResponse,
+  TeamGridResponse,
+  TeamPerson,
+  TeamProgram,
+} from './fixtures/e2e-api-types';
+import { sprintAssignmentForPerson } from './fixtures/e2e-api-types';
 
+function expectDefined<T>(value: T | undefined, label: string): T {
+  expect(value).toBeDefined();
+  if (value === undefined) {
+    throw new Error(label);
+  }
+  return value;
+}
 
 // Helper to get current workspace ID
 async function getWorkspaceId(page: Page): Promise<string> {
   const response = await page.request.get('/api/workspaces/current')
-  const data = await response.json()
+  const data = await readJsonAs<{ data: { workspace: { id: string } } }>(response)
   return data.data.workspace.id
 }
 
@@ -53,11 +70,13 @@ test.describe('Pending Invites in Allocation Grid', () => {
 
     // Wait for the API response
     const response = await responsePromise
-    const data = await response.json()
+    const data = await readJsonAs<TeamGridResponse>(response)
 
     // Find the pending user in the response
-    const pendingUser = data.users.find((u: { email: string }) => u.email === testEmail)
-    expect(pendingUser).toBeDefined()
+    const pendingUser = expectDefined(
+      data.users.find((u) => u.email === testEmail),
+      'Expected pending user in team grid response',
+    );
     expect(pendingUser.isPending).toBe(true)
     expect(pendingUser.id).toBeNull() // Pending users have null user_id
     expect(pendingUser.name).toBeDefined()
@@ -72,11 +91,13 @@ test.describe('Pending Invites in Allocation Grid', () => {
     const response = await page.request.get('/api/team/people')
     expect(response.status()).toBe(200)
 
-    const people = await response.json()
+    const people = await readJsonAs<TeamPerson[]>(response)
 
     // Find the pending user
-    const pendingPerson = people.find((p: { email: string }) => p.email === testEmail)
-    expect(pendingPerson).toBeDefined()
+    const pendingPerson = expectDefined(
+      people.find((p) => p.email === testEmail),
+      'Expected pending person in team people list',
+    );
     expect(pendingPerson.isPending).toBe(true)
     expect(pendingPerson.user_id).toBeNull()
   })
@@ -186,17 +207,22 @@ test.describe('Pending Invites in Allocation Grid', () => {
     // Get the pending user's personId from the grid API
     const gridResponse = await page.request.get('/api/team/grid')
     expect(gridResponse.status()).toBe(200)
-    const gridData = await gridResponse.json()
-    const pendingUser = gridData.users.find((u: { email: string }) => u.email === testEmail)
-    expect(pendingUser).toBeDefined()
+    const gridData = await readJsonAs<TeamGridResponse>(gridResponse)
+    const pendingUser = expectDefined(
+      gridData.users.find((u) => u.email === testEmail),
+      'Expected pending user in team grid',
+    );
     expect(pendingUser.isPending).toBe(true)
     expect(pendingUser.id).toBeNull() // user_id is null for pending
     expect(pendingUser.personId).toBeDefined() // but personId exists
+    if (!pendingUser.personId) {
+      throw new Error('Expected personId for pending user');
+    }
 
     // Get a program ID
     const programsResponse = await page.request.get('/api/team/programs')
     expect(programsResponse.status()).toBe(200)
-    const programs = await programsResponse.json()
+    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
     expect(programs.length).toBeGreaterThan(0)
     const programId = programs[0].id
 
@@ -204,7 +230,7 @@ test.describe('Pending Invites in Allocation Grid', () => {
     const assignResponse = await page.request.post('/api/team/assign', {
       headers: { 'x-csrf-token': csrfToken },
       data: {
-        personId: pendingUser.personId,  // Use personId, not userId
+        personId: pendingUser.personId, // Use personId, not userId
         programId: programId,
         sprintNumber: 99  // Use high number to avoid conflicts
       }
@@ -212,7 +238,7 @@ test.describe('Pending Invites in Allocation Grid', () => {
 
     // Should succeed with personId
     expect(assignResponse.status()).toBe(200)
-    const assignData = await assignResponse.json()
+    const assignData = await readJsonAs<AssignResponse>(assignResponse)
     expect(assignData.success).toBe(true)
 
     // Clean up - delete the assignment
@@ -246,15 +272,16 @@ test.describe('Pending Invite Acceptance Flow', () => {
       data: { email: testEmail, role: 'member' }
     })
     expect(inviteResponse.status()).toBe(201)
-    const inviteData = await inviteResponse.json()
+    const inviteData = await readJsonAs<InviteCreateResponse>(inviteResponse)
     const inviteToken = inviteData.data.invite.token
 
     // Verify they appear as pending first
     let peopleResponse = await page.request.get('/api/team/people')
-    let people = await peopleResponse.json()
-    let pendingPerson = people.find((p: { email: string }) => p.email === testEmail)
-
-    expect(pendingPerson).toBeDefined()
+    let people = await readJsonAs<TeamPerson[]>(peopleResponse)
+    const pendingPerson = expectDefined(
+      people.find((p) => p.email === testEmail),
+      'Expected pending person in team people list',
+    );
     expect(pendingPerson.isPending).toBe(true)
     expect(pendingPerson.user_id).toBeNull()
 
@@ -274,12 +301,16 @@ test.describe('Pending Invite Acceptance Flow', () => {
     await loginAsSuperAdmin(page)
 
     peopleResponse = await page.request.get('/api/team/people')
-    people = await peopleResponse.json()
-    const acceptedPerson = people.find((p: { email: string }) => p.email === testEmail)
-
-    expect(acceptedPerson).toBeDefined()
+    people = await readJsonAs<TeamPerson[]>(peopleResponse)
+    const acceptedPerson = expectDefined(
+      people.find((p) => p.email === testEmail),
+      'Expected accepted person in team people list',
+    );
     expect(acceptedPerson.isPending).toBeFalsy() // Should be false or undefined
     expect(acceptedPerson.user_id).not.toBeNull()
+    if (!acceptedPerson.user_id) {
+      throw new Error('Expected accepted person to have user_id');
+    }
     expect(acceptedPerson.user_id.length).toBeGreaterThan(0)
     expect(acceptedPerson.name).toBe(testName)
   })
@@ -298,7 +329,7 @@ test.describe('Pending Invite Acceptance Flow', () => {
       headers: { 'x-csrf-token': csrfToken },
       data: { email: testEmail, role: 'member' }
     })
-    const inviteData = await inviteResponse.json()
+    const inviteData = await readJsonAs<InviteCreateResponse>(inviteResponse)
     const inviteToken = inviteData.data.invite.token
 
     // Accept invite - requires CSRF token
@@ -314,15 +345,16 @@ test.describe('Pending Invite Acceptance Flow', () => {
 
     // Get the user's ID (now they should have one)
     const gridResponse = await page.request.get('/api/team/grid')
-    const gridData = await gridResponse.json()
-    const acceptedUser = gridData.users.find((u: { email: string }) => u.email === testEmail)
-
-    expect(acceptedUser).toBeDefined()
+    const gridData = await readJsonAs<TeamGridResponse>(gridResponse)
+    const acceptedUser = expectDefined(
+      gridData.users.find((u) => u.email === testEmail),
+      'Expected accepted user in team grid',
+    );
     expect(acceptedUser.id).not.toBeNull()
 
     // Get a program
     const programsResponse = await page.request.get('/api/team/programs')
-    const programs = await programsResponse.json()
+    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
     expect(programs.length).toBeGreaterThan(0)
     const programId = programs[0].id
 
@@ -340,7 +372,7 @@ test.describe('Pending Invite Acceptance Flow', () => {
 
     // Should succeed now that they have a valid user_id
     expect(assignResponse.status()).toBe(200)
-    const assignData = await assignResponse.json()
+    const assignData = await readJsonAs<AssignResponse>(assignResponse)
     expect(assignData.success).toBe(true)
 
     // Clean up
@@ -376,25 +408,28 @@ test.describe('Full Pending User Allocation Flow (Story 7)', () => {
       data: { email: testEmail, role: 'member' }
     })
     expect(inviteResponse.status()).toBe(201)
-    const inviteData = await inviteResponse.json()
+    const inviteData = await readJsonAs<InviteCreateResponse>(inviteResponse)
     const inviteToken = inviteData.data.invite.token
 
     // Step 2: Get the pending user's personId from the grid API
     let gridResponse = await page.request.get('/api/team/grid')
     expect(gridResponse.status()).toBe(200)
-    let gridData = await gridResponse.json()
-    let pendingUser = gridData.users.find((u: { email: string }) => u.email === testEmail)
-
-    expect(pendingUser).toBeDefined()
+    let gridData = await readJsonAs<TeamGridResponse>(gridResponse)
+    const pendingUser = expectDefined(
+      gridData.users.find((u) => u.email === testEmail),
+      'Expected pending user in team grid',
+    );
     expect(pendingUser.isPending).toBe(true)
     expect(pendingUser.id).toBeNull() // user_id is null for pending
     expect(pendingUser.personId).toBeDefined() // but personId exists
-
+    if (!pendingUser.personId) {
+      throw new Error('Expected personId for pending invite user');
+    }
     const personDocId = pendingUser.personId
 
     // Step 3: Assign a program to the pending user using personId
     const programsResponse = await page.request.get('/api/team/programs')
-    const programs = await programsResponse.json()
+    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
     expect(programs.length).toBeGreaterThan(0)
     const programId = programs[0].id
     const sprintNumber = 97 // Use high number to avoid conflicts
@@ -414,12 +449,10 @@ test.describe('Full Pending User Allocation Flow (Story 7)', () => {
     // assignments structure: { [personId]: { [sprintNumber]: { programId, programName, ... } } }
     const assignmentsResponse = await page.request.get('/api/team/assignments')
     expect(assignmentsResponse.status()).toBe(200)
-    const assignmentsData = await assignmentsResponse.json()
-    const userAssignments = assignmentsData[personDocId]
-    expect(userAssignments).toBeDefined()
-    const sprintAssignment = userAssignments[sprintNumber]
+    const assignmentsData = await readJsonAs<TeamAssignmentsResponse>(assignmentsResponse)
+    const sprintAssignment = sprintAssignmentForPerson(assignmentsData, personDocId, sprintNumber)
     expect(sprintAssignment).toBeDefined()
-    expect(sprintAssignment.programId).toBe(programId)
+    expect(sprintAssignment?.programId).toBe(programId)
 
     // Step 5: Accept the invite (creates user account)
     const acceptCsrfToken = await getCsrfToken(page)
@@ -437,11 +470,13 @@ test.describe('Full Pending User Allocation Flow (Story 7)', () => {
 
     // Check grid API to verify user is now active (not pending)
     gridResponse = await page.request.get('/api/team/grid')
-    gridData = await gridResponse.json()
+    gridData = await readJsonAs<TeamGridResponse>(gridResponse)
 
     // The user should now appear as NON-pending with the same personId
-    const acceptedUser = gridData.users.find((u: { email: string }) => u.email === testEmail)
-    expect(acceptedUser).toBeDefined()
+    const acceptedUser = expectDefined(
+      gridData.users.find((u) => u.email === testEmail),
+      'Expected accepted user in team grid',
+    );
     expect(acceptedUser.isPending).toBeFalsy() // No longer pending
     expect(acceptedUser.id).not.toBeNull() // Now has user_id
     expect(acceptedUser.personId).toBe(personDocId) // SAME personId as before!
@@ -450,12 +485,14 @@ test.describe('Full Pending User Allocation Flow (Story 7)', () => {
     // The allocation should STILL exist because it was tied to personId, not userId
     // Check assignments API for the persisted allocation
     const persistedAssignmentsResponse = await page.request.get('/api/team/assignments')
-    const persistedAssignmentsData = await persistedAssignmentsResponse.json()
-    const persistedUserAssignments = persistedAssignmentsData[personDocId]
-    expect(persistedUserAssignments).toBeDefined()
-    const persistedSprintAssignment = persistedUserAssignments[sprintNumber]
+    const persistedAssignmentsData = await readJsonAs<TeamAssignmentsResponse>(persistedAssignmentsResponse)
+    const persistedSprintAssignment = sprintAssignmentForPerson(
+      persistedAssignmentsData,
+      personDocId,
+      sprintNumber,
+    )
     expect(persistedSprintAssignment).toBeDefined()
-    expect(persistedSprintAssignment.programId).toBe(programId)
+    expect(persistedSprintAssignment?.programId).toBe(programId)
 
     // Step 7: Clean up
     const cleanupCsrfToken = await getCsrfToken(page)
@@ -483,7 +520,7 @@ test.describe('Full Pending User Allocation Flow (Story 7)', () => {
       headers: { 'x-csrf-token': csrfToken },
       data: { email: testEmail, role: 'member' }
     })
-    const inviteData = await inviteResponse.json()
+    const inviteData = await readJsonAs<InviteCreateResponse>(inviteResponse)
     const inviteToken = inviteData.data.invite.token
 
     // Step 2: Navigate to grid and find pending user

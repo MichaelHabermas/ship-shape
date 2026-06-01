@@ -534,7 +534,11 @@ async function seedStableAttentionFixtures(input: {
 
   for (const group of singleSignalGroups) {
     for (let index = 0; index < group.summaries.length; index++) {
-      const [title, summary] = group.summaries[index]!;
+      const summaryEntry = group.summaries[index];
+      if (!summaryEntry) {
+        throw new Error(`Missing FleetGraph demo summary at index ${index}`);
+      }
+      const [title, summary] = summaryEntry;
       const issueTitle = `${group.prefix}-${String(index + 1).padStart(2, '0')} ${title}`;
       const issueId = await upsertDocument({
         workspaceId: input.workspaceId,
@@ -584,7 +588,10 @@ async function seedStableAttentionFixtures(input: {
   }
 
   for (let index = 0; index < multiSignalIssues.length; index++) {
-    const scenario = multiSignalIssues[index]!;
+    const scenario = multiSignalIssues[index];
+    if (!scenario) {
+      throw new Error(`Missing FleetGraph multi-signal scenario at index ${index}`);
+    }
     const issueTitle = `FG-MULTI-${String(index + 1).padStart(2, '0')} ${scenario.title}`;
     const issueId = await upsertDocument({
       workspaceId: input.workspaceId,
@@ -614,21 +621,24 @@ async function seedStableAttentionFixtures(input: {
       workspaceId: input.workspaceId,
       authorId: input.assignee.id,
       whatAttempted: `Stable FleetGraph multi-signal demo: ${scenario.title}`,
-      blockerText: scenario.signals.includes('blocked') ? scenario.reasons[0]! : null,
+      blockerText: scenario.signals.includes('blocked') ? (scenario.reasons[0] ?? null) : null,
       createdAt: new Date(now.getTime() - STALE_DEMO_ISSUE_DAYS * 86_400_000),
     });
     if (scenario.signals.includes('stale')) {
       await setDocumentUpdatedAt(issueId, new Date(now.getTime() - STALE_DEMO_ISSUE_DAYS * 86_400_000));
     }
     for (let signalIndex = 0; signalIndex < scenario.signals.length; signalIndex++) {
-      const signalType = scenario.signals[signalIndex]!;
+      const signalType = scenario.signals[signalIndex];
+      if (!signalType) {
+        throw new Error(`Missing FleetGraph signal at index ${signalIndex}`);
+      }
       await upsertStableDemoFinding({
         workspaceId: input.workspaceId,
         issueId,
         sprintId: input.sprintId,
         signalType,
         title: `${scenario.title} (${signalType})`,
-        summary: scenario.reasons[signalIndex] ?? scenario.reasons[0]!,
+        summary: scenario.reasons[signalIndex] ?? scenario.reasons[0] ?? scenario.title,
         assignee: input.assignee,
         signalIndex,
         multiSignal: true,

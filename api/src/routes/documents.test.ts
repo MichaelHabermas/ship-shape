@@ -1,9 +1,29 @@
+// Integration tests for document PATCH, weekly resubmission, delete, and type conversion APIs.
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import request from 'supertest'
 import crypto from 'crypto'
+import { z } from 'zod'
 import { createApp } from '../app.js'
-import { IdRow, PropertiesRow, CountRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js'
+import {
+  BaseDocumentSchema,
+  DocumentConvertValidationErrorSchema,
+  DocumentNotFoundErrorSchema,
+} from '../openapi/schemas/documents.js'
+import { expectJsonBody } from '../test/expect-json-body.js'
+import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { IdRow, PropertiesRow, CountRow, requireFirstRow } from '../test/pg-result.js'
+import { getCsrfTokenFromApp } from '../test/session-csrf.js'
+
+const PatchAssociationConflictSchema = z.object({
+  error: z.literal('Use either belongs_to or program_id/sprint_id association fields, not both'),
+})
+const RaciPatchDeniedSchema = z.object({
+  error: z.literal('Cannot modify RACI fields via this endpoint: owner_id'),
+})
+const ForbiddenErrorSchema = z.object({ error: z.literal('Forbidden') })
+
+type DeletedAtRow = { id: string; deleted_at: Date | null }
 
 describe('Documents API - PATCH with Issue Fields', () => {
   const app = createApp()
@@ -60,15 +80,9 @@ describe('Documents API - PATCH with Issue Fields', () => {
     )
     sessionCookie = `session_id=${sessionId}`
 
-    // Get CSRF token
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie)
-    csrfToken = csrfRes.body.token
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
+    csrfToken = csrf.token
+    sessionCookie = csrf.sessionCookie
   })
 
   afterAll(async () => {
@@ -102,8 +116,15 @@ describe('Documents API - PATCH with Issue Fields', () => {
         .set('x-csrf-token', csrfToken)
         .send({ state: 'in_progress' })
 
-      expect(response.status).toBe(200)
-      expect(response.body.properties.state).toBe('in_progress')
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      expect(document.properties.state).toBe('in_progress')
     })
 
     it('should accept priority at top level and store in properties', async () => {
@@ -113,8 +134,15 @@ describe('Documents API - PATCH with Issue Fields', () => {
         .set('x-csrf-token', csrfToken)
         .send({ priority: 'high' })
 
-      expect(response.status).toBe(200)
-      expect(response.body.properties.priority).toBe('high')
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      expect(document.properties.priority).toBe('high')
     })
 
     it('should accept estimate at top level and store in properties', async () => {
@@ -124,8 +152,15 @@ describe('Documents API - PATCH with Issue Fields', () => {
         .set('x-csrf-token', csrfToken)
         .send({ estimate: 3 })
 
-      expect(response.status).toBe(200)
-      expect(response.body.properties.estimate).toBe(3)
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      expect(document.properties.estimate).toBe(3)
     })
 
     it('should accept assignee_id at top level and store in properties', async () => {
@@ -135,8 +170,15 @@ describe('Documents API - PATCH with Issue Fields', () => {
         .set('x-csrf-token', csrfToken)
         .send({ assignee_id: testUserId })
 
-      expect(response.status).toBe(200)
-      expect(response.body.properties.assignee_id).toBe(testUserId)
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      expect(document.properties.assignee_id).toBe(testUserId)
     })
 
     it('should accept null estimate to clear hours', async () => {
@@ -154,8 +196,15 @@ describe('Documents API - PATCH with Issue Fields', () => {
         .set('x-csrf-token', csrfToken)
         .send({ estimate: null })
 
-      expect(response.status).toBe(200)
-      expect(response.body.properties.estimate).toBeNull()
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      expect(document.properties.estimate).toBeNull()
     })
 
     it('should accept belongs_to for sprint association', async () => {
@@ -167,7 +216,14 @@ describe('Documents API - PATCH with Issue Fields', () => {
           belongs_to: [{ id: testSprintId, type: 'sprint' }]
         })
 
-      expect(response.status).toBe(200)
+      expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
 
       // Verify the association was created
       const assocResult = await pool.query(
@@ -187,8 +243,8 @@ describe('Documents API - PATCH with Issue Fields', () => {
           sprint_id: testSprintId,
         })
 
-      expect(response.status).toBe(400)
-      expect(response.body.error).toBe('Use either belongs_to or program_id/sprint_id association fields, not both')
+      const error = expectJsonBody(response, 400, PatchAssociationConflictSchema)
+      expect(error.error).toBe('Use either belongs_to or program_id/sprint_id association fields, not both')
     })
 
     it('should reject non-admin top-level RACI fields', async () => {
@@ -198,8 +254,8 @@ describe('Documents API - PATCH with Issue Fields', () => {
         .set('x-csrf-token', csrfToken)
         .send({ owner_id: testUserId })
 
-      expect(response.status).toBe(403)
-      expect(response.body.error).toBe('Cannot modify RACI fields via this endpoint: owner_id')
+      const error = expectJsonBody(response, 403, RaciPatchDeniedSchema)
+      expect(error.error).toBe('Cannot modify RACI fields via this endpoint: owner_id')
     })
 
     it('should accept multiple top-level fields in one request', async () => {
@@ -214,11 +270,18 @@ describe('Documents API - PATCH with Issue Fields', () => {
           assignee_id: testUserId
         })
 
-      expect(response.status).toBe(200)
-      expect(response.body.properties.state).toBe('done')
-      expect(response.body.properties.priority).toBe('urgent')
-      expect(response.body.properties.estimate).toBe(8)
-      expect(response.body.properties.assignee_id).toBe(testUserId)
+      const document = expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      expect(document.properties.state).toBe('done')
+      expect(document.properties.priority).toBe('urgent')
+      expect(document.properties.estimate).toBe(8)
+      expect(document.properties.assignee_id).toBe(testUserId)
     })
   })
 })
@@ -281,14 +344,9 @@ describe('Documents API - Weekly Doc Resubmission', () => {
     )
     sessionCookie = `session_id=${sessionId}`
 
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie)
-    csrfToken = csrfRes.body.token
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
+    csrfToken = csrf.token
+    sessionCookie = csrf.sessionCookie
   })
 
   afterAll(async () => {
@@ -558,15 +616,9 @@ describe('Documents API - Delete', () => {
     )
     sessionCookie = `session_id=${sessionId}`
 
-    // Get CSRF token
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie)
-    csrfToken = csrfRes.body.token
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
+    csrfToken = csrf.token
+    sessionCookie = csrf.sessionCookie
 
     const otherSessionId = crypto.randomBytes(32).toString('hex')
     await pool.query(
@@ -575,14 +627,9 @@ describe('Documents API - Delete', () => {
       [otherSessionId, otherUserId, testWorkspaceId]
     )
     otherSessionCookie = `session_id=${otherSessionId}`
-    const otherCsrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', otherSessionCookie)
-    otherCsrfToken = otherCsrfRes.body.token
-    const otherConnectSidCookie = otherCsrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (otherConnectSidCookie) {
-      otherSessionCookie = `${otherSessionCookie}; ${otherConnectSidCookie}`
-    }
+    const otherCsrf = await getCsrfTokenFromApp(app, otherSessionCookie)
+    otherCsrfToken = otherCsrf.token
+    otherSessionCookie = otherCsrf.sessionCookie
   })
 
   // Cleanup after all tests
@@ -619,12 +666,12 @@ describe('Documents API - Delete', () => {
       expect(response.status).toBe(204)
 
       // Verify document is soft-deleted for retention/audit safety
-      const checkResult = await pool.query(
+      const checkResult = await pool.query<DeletedAtRow>(
         'SELECT id, deleted_at FROM documents WHERE id = $1',
         [testDocumentId]
       )
       expect(checkResult.rows.length).toBe(1)
-      expect(checkResult.rows[0].deleted_at).not.toBeNull()
+      expect(requireFirstRow(checkResult.rows).deleted_at).not.toBeNull()
     })
 
     it('should return 403 when a non-creator member deletes a workspace document', async () => {
@@ -633,8 +680,8 @@ describe('Documents API - Delete', () => {
         .set('Cookie', otherSessionCookie)
         .set('x-csrf-token', otherCsrfToken)
 
-      expect(response.status).toBe(403)
-      expect(response.body.error).toBe('Forbidden')
+      const error = expectJsonBody(response, 403, ForbiddenErrorSchema)
+      expect(error.error).toBe('Forbidden')
     })
 
     it('should return 404 when deleting non-existent document', async () => {
@@ -645,8 +692,15 @@ describe('Documents API - Delete', () => {
         .set('Cookie', sessionCookie)
         .set('x-csrf-token', csrfToken)
 
-      expect(response.status).toBe(404)
-      expect(response.body.error).toBe('Document not found')
+      const error = expectOpenApiResponse({
+        method: 'delete',
+        path: '/documents/{id}',
+        status: 404,
+        response,
+        openApiSchemaName: 'DocumentNotFoundError',
+        schema: DocumentNotFoundErrorSchema,
+      })
+      expect(error.error).toBe('Document not found')
     })
 
     it('should return 403 when not authenticated (CSRF check runs first)', async () => {
@@ -680,8 +734,15 @@ describe('Documents API - Delete', () => {
         .set('x-csrf-token', csrfToken)
 
       // Should return 404 because the document doesn't belong to user's workspace
-      expect(response.status).toBe(404)
-      expect(response.body.error).toBe('Document not found')
+      const error = expectOpenApiResponse({
+        method: 'delete',
+        path: '/documents/{id}',
+        status: 404,
+        response,
+        openApiSchemaName: 'DocumentNotFoundError',
+        schema: DocumentNotFoundErrorSchema,
+      })
+      expect(error.error).toBe('Document not found')
 
       // Cleanup
       await pool.query('DELETE FROM documents WHERE id = $1', [otherDocumentId])
@@ -704,12 +765,12 @@ describe('Documents API - Delete', () => {
       expect(response.status).toBe(204)
 
       // Verify parent document is soft-deleted and child row remains for retention
-      const checkResult = await pool.query(
+      const checkResult = await pool.query<DeletedAtRow>(
         'SELECT id, deleted_at FROM documents WHERE id = $1',
         [testDocumentId]
       )
       expect(checkResult.rows.length).toBe(1)
-      expect(checkResult.rows[0].deleted_at).not.toBeNull()
+      expect(requireFirstRow(checkResult.rows).deleted_at).not.toBeNull()
     })
 
     it('should return 403 when session is expired (CSRF check runs first)', async () => {
@@ -792,15 +853,9 @@ describe('Documents API - Conversion', () => {
     )
     sessionCookie = `session_id=${sessionId}`
 
-    // Get CSRF token
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie)
-    csrfToken = csrfRes.body.token
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
+    csrfToken = csrf.token
+    sessionCookie = csrf.sessionCookie
   })
 
   // Cleanup after all tests
@@ -838,10 +893,16 @@ describe('Documents API - Conversion', () => {
         .set('x-csrf-token', csrfToken)
         .send({ target_type: 'project' })
 
-      // In-place conversion returns 200 (OK), same document ID
-      expect(response.status).toBe(200)
-      expect(response.body.document_type).toBe('project')
-      expect(response.body.id).toBe(issueId) // Same ID with in-place conversion
+      const document = expectOpenApiResponse({
+        method: 'post',
+        path: '/documents/{id}/convert',
+        status: 200,
+        response,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      expect(document.document_type).toBe('project')
+      expect(document.id).toBe(issueId)
 
       // Verify program association was preserved (not copied - same document)
       const assocResult = await pool.query(
@@ -851,8 +912,7 @@ describe('Documents API - Conversion', () => {
       )
       expect(assocResult.rows.length).toBe(1)
 
-      // Verify converted_from_id points to itself (indicating it was converted)
-      expect(response.body.converted_from_id).toBe(issueId)
+      expect(document.converted_from_id).toBe(issueId)
     })
 
     it('should convert project to issue and copy program associations', async () => {
@@ -879,10 +939,16 @@ describe('Documents API - Conversion', () => {
         .set('x-csrf-token', csrfToken)
         .send({ target_type: 'issue' })
 
-      // In-place conversion returns 200 (OK), same document ID
-      expect(response.status).toBe(200)
-      expect(response.body.document_type).toBe('issue')
-      expect(response.body.id).toBe(projectId) // Same ID with in-place conversion
+      const document = expectOpenApiResponse({
+        method: 'post',
+        path: '/documents/{id}/convert',
+        status: 200,
+        response,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      expect(document.document_type).toBe('issue')
+      expect(document.id).toBe(projectId)
 
       // Verify program association was preserved (not copied - same document)
       const assocResult = await pool.query(
@@ -892,8 +958,7 @@ describe('Documents API - Conversion', () => {
       )
       expect(assocResult.rows.length).toBe(1)
 
-      // Verify converted_from_id points to itself (indicating it was converted)
-      expect(response.body.converted_from_id).toBe(projectId)
+      expect(document.converted_from_id).toBe(projectId)
     })
 
     it('should return 400 when converting an archived document', async () => {
@@ -911,8 +976,15 @@ describe('Documents API - Conversion', () => {
         .set('x-csrf-token', csrfToken)
         .send({ target_type: 'project' })
 
-      expect(response.status).toBe(400)
-      expect(response.body.error).toBe('Cannot convert an archived document')
+      const error = expectOpenApiResponse({
+        method: 'post',
+        path: '/documents/{id}/convert',
+        status: 400,
+        response,
+        openApiSchemaName: 'DocumentConvertValidationError',
+        schema: DocumentConvertValidationErrorSchema,
+      })
+      expect(error.error).toBe('Cannot convert an archived document')
     })
   })
 
@@ -941,20 +1013,31 @@ describe('Documents API - Conversion', () => {
         .set('x-csrf-token', csrfToken)
         .send({ target_type: 'project' })
 
-      // In-place conversion returns 200, same document ID
-      expect(convertResponse.status).toBe(200)
-      expect(convertResponse.body.id).toBe(originalIssueId) // Same ID
+      const converted = expectOpenApiResponse({
+        method: 'post',
+        path: '/documents/{id}/convert',
+        status: 200,
+        response: convertResponse,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      expect(converted.id).toBe(originalIssueId)
 
-      // Undo the conversion (restores from snapshot)
       const undoResponse = await request(app)
         .post(`/api/documents/${originalIssueId}/undo-conversion`)
         .set('Cookie', sessionCookie)
         .set('x-csrf-token', csrfToken)
 
-      // Undo returns the document directly (not wrapped in restored_document)
-      expect(undoResponse.status).toBe(200)
-      expect(undoResponse.body.id).toBe(originalIssueId)
-      expect(undoResponse.body.document_type).toBe('issue')
+      const restored = expectOpenApiResponse({
+        method: 'post',
+        path: '/documents/{id}/undo-conversion',
+        status: 200,
+        response: undoResponse,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      expect(restored.id).toBe(originalIssueId)
+      expect(restored.document_type).toBe('issue')
 
       // Verify program association is still there (same document, same associations)
       const assocResult = await pool.query(
@@ -1004,7 +1087,15 @@ describe('Documents API - Conversion', () => {
         .set('x-csrf-token', csrfToken)
         .send({ target_type: 'project' })
 
-      const projectId = convertResponse.body.id
+      const converted = expectOpenApiResponse({
+        method: 'post',
+        path: '/documents/{id}/convert',
+        status: 200,
+        response: convertResponse,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
+      const projectId = converted.id
 
       // Undo conversion
       await request(app)

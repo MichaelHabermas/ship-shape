@@ -156,13 +156,13 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Consequence:** FleetGraph must not rely on workspace-only SQL for user-visible claims. Stored finding evidence, summaries, drafts, recipient rationale, and trace metadata must not contain hidden document titles, hidden IDs, private excerpts, contact details, raw prompts, raw completions, session tokens, or API tokens.
 
-## D020 - FleetGraph Model Calls Are Hybrid And Explicitly Opt-In
+## D020 - FleetGraph Proactive Create Model Is Opt-In
 
 **Date:** 2026-05-26
 
-**Decision:** Epic 4 permits real model calls only for proactive create, and only when explicitly enabled with `FLEETGRAPH_REAL_MODEL_ENABLED=true` plus model/API-key configuration. Update, quiet, explain, refine, dismiss/resolve, and error paths remain deterministic and record zero model calls.
+**Decision:** Proactive blocked-create copy may call the model only when `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL`, and `OPENAI_API_KEY` are configured. Detector policy, worker ticks, explain/refine/dismiss/resolve graph paths, and structured finding output stay deterministic and record zero model calls unless a separate decision adds model use there.
 
-**Consequence:** Local tests and default worker/API wiring cannot accidentally spend tokens. If future slices enable real model traces, they must preserve the trace redaction contract and record token/cost metadata when available.
+**Consequence:** Local tests and default worker wiring do not spend tokens on detection. Proactive model traces must preserve the trace redaction contract and record token/cost metadata when available. PM context chat is governed by D095, not this decision.
 
 ## D021 - FleetGraph Golden Cases Execute Against The Shared Core
 
@@ -430,14 +430,6 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Consequence:** Future FleetGraph behavior should add graph nodes/decision handlers in `core.ts` only when orchestration changes. Product copy transforms, audience choice, output mapping, and persistence serialization should stay in `runtime/` unless moving them back clearly reduces complexity.
 
-## D054 - Context Chat Is A Bounded Graph Capsule
-
-**Date:** 2026-05-28
-
-**Decision:** The approved 10x on-demand path is a Context Capsule, not generic chat. Typed prompts enter the same FleetGraph runtime as `context_chat`, resolve the active notification/finding/page context, and support only bounded intents: `why_flagged`, `next_step`, and `summarize_changes`.
-
-**Consequence:** `/api/fleetgraph/chat` records `fleetgraph_runs` with distinct graph paths and zero model calls for the current deterministic slice. It must not create findings, mutate Ship state, send messages, or answer broad workspace questions without an attached source context. Unsupported prompts quietly explain the supported commands.
-
 ## D055 - FleetGraph Folders Follow Reasons To Change
 
 **Date:** 2026-05-28
@@ -578,9 +570,9 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Date:** 2026-05-29
 
-**Decision:** Treat FleetGraph chat quality as a behavior contract, not a function-output snapshot. Add `api/src/fleetgraph/eval/chat-behavior.ts` as the replayable corpus for real chat problems: greetings must stay conversational, summaries must be grounded in visible context, simplification must be materially shorter, sparse context must not invent facts, and follow-ups may use bounded recent history. `/api/fleetgraph/chat` accepts optional capped `history` entries so deterministic and future model-backed paths can distinguish a new request from a rewrite request.
+**Decision:** Treat FleetGraph chat quality as a behavior contract, not a function-output snapshot. Add `api/src/fleetgraph/eval/chat-behavior.ts` as the replayable corpus for real chat problems: greetings must stay conversational, summaries must be grounded in visible context, simplification must be materially shorter, sparse context must not invent facts, and follow-ups may use bounded recent history. `/api/fleetgraph/chat` accepts optional capped `history` entries so new requests can be distinguished from rewrite requests.
 
-**Consequence:** Every future chat regression should become a named golden case before or with the fix. CI-safe checks remain deterministic and no-model by default; Playwright smoke proves browser wiring only. Chat history is bounded request context, not a new persistence surface or a broad workspace assistant.
+**Consequence:** Every future chat regression should become a named golden case before or with the fix. CI uses rubric evals with mocked `@langchain/openai` on the real `generateContextChatText` path. Chat history is bounded request context, not a new persistence surface or a broad workspace assistant.
 
 ## D073 - FleetGraph Final Proof Requires Deployed All-Signal Evidence
 
@@ -693,3 +685,83 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Improve FleetGraph by making the existing chat understand current page context, attached document/page context, notification/finding context, and bounded recent turns. Do not add new buttons, quick actions, panels, banners, dashboards, or reviewer-only affordances for this slice.
 
 **Consequence:** Future contextual-chat work should add behavior cases and strengthen the existing context payload/runtime path. Chat context informs a free conversation; it must not become a guided workflow, mutation surface, or action menu. Mutation/contact requests remain human-gated and must never claim Ship records or people were changed/contacted. Client page labels are ID hints only; answer/model/source text must come from authorized server-loaded records.
+
+## D087 - FleetGraph Blast Radius Person Node Visibility
+
+**Date:** 2026-05-31
+
+**Decision:** Blast-radius person nodes follow the same source-visibility contract as FleetGraph evidence. The route already requires both source issue and source sprint to be readable before returning a map. Person documents are filtered in one batch via `filterReadableDocumentIds`. Rows resolved only through `users.name` (no person document) may appear when the root finding is visible, because assignee/owner IDs are properties on those already-authorized source documents.
+
+**Consequence:** Blast radius must not expose person documents the actor cannot read. It must not add a separate person-document read path per row when batch filtering is available. User-name fallback rows are assignee/owner labels from visible source context, not a bypass around document visibility for person records.
+
+## D088 - FleetGraph Reviewer Page Module Boundaries
+
+**Date:** 2026-05-31
+
+**Decision:** Decompose `FleetGraphReviewerPage` into three layers: pure helpers under `web/src/fleetgraph/reviewer/`, data hooks under `web/src/hooks/useFleetGraphReviewer*.ts`, and UI panels under `web/src/components/fleetgraph-reviewer/`. The page file remains the layout orchestrator only.
+
+**Consequence:** New reviewer UI should land in the component folder, not grow the page monolith. Integration tests stay on the page; pure helpers and hooks get colocated unit tests.
+
+## D089 - FleetGraph Deep Module Facades
+
+**Date:** 2026-05-31
+
+**Decision:** Introduce small FleetGraph facades instead of splitting god files immediately. Shared `reviewer-verifier` owns gate step keys, `proofGapLabel`, `productPath`, `preferredReviewerProofChain`, and chain enrichment. API adds `finding-projection`, `attention-pipeline`, `fleetgraph-runtime`, `context-chat-service`, and `wire-contract`. Reviewer chains on the wire include `productPath`, `missingLabels`, and `summary.preferredChainId` so web does not re-derive verifier semantics.
+
+**Consequence:** New reviewer presentation must consume server wire fields. Do not reintroduce web-only `productPathStatus` math against a different step list. Blast radius and finding routes should project through `projectFindingForActor`. Zod-in-shared / OpenAPI codegen for the full wire layer stays a follow-up, not mixed into this facade pass.
+
+## D090 - FleetGraph Galaxy-Brain Follow-Through
+
+**Date:** 2026-05-31
+
+**Decision:** Ship the three deferred deep-module upgrades together: (1) reviewer + core FleetGraph wire Zod lives in `shared/src/fleetgraph/wire-schema-factory.ts` with API OpenAPI wrappers in `openapi-wire-schemas.ts` and regenerated `web/src/api/generated/ship-openapi.d.ts`; (2) `reviewer-proof/` folder replaces the monolithic file; (3) live operation drawer progress reads refreshed proof-chain steps via `operation-chain-steps.ts`, not cosmetic timers.
+
+**Consequence:** Extend non-reviewer FleetGraph Zod into the shared factory before adding more hand types. Reviewer imports use `reviewer-proof/index.js` explicitly (NodeNext). Operation UI must not reintroduce catalog-only progress that ignores chain steps.
+
+**Audit (2026-05-31, `/are-you-sure`):** OpenAPI wrappers must reference `wire-schema-factory` schemas (no parallel finding/notification Zod). Live drawer uses `chainStepsForOperation` on refreshed chains while `running`; `activeChainStepIndex` treats all-pass mid-run as last step. Route/test fixtures include `productPath`, `missingLabels`, `preferredChainId`.
+
+**Follow-through (2026-05-31):** `buildFleetGraphRouteWireSchemas` covers blast radius, chat, run/manual, and list wrappers; reviewer routes use `reviewer-wire-response.ts` `.parse()` before `res.json`; dead `operationSteps()` removed; UI gap copy uses `chainMissingLabels` (server `missingLabels` first).
+
+## D091 - ESLint Category-First Cleanup (Phases 1–4)
+
+**Date:** 2026-05-31
+
+**Decision:** Reduce lint noise by clearing whole rule categories in order: unused vars and template expressions first, then concentrated `no-explicit-any` in API tests, then `no-non-null-assertion` in tests/e2e/scripts (excluding `api/src/db/seed.ts` for now). Do not start `max-lines` file splits or broad `no-unsafe-*` typing in the same pass.
+
+**Consequence:** New lint fixes should prefer mechanical category completion (delete unused bindings, type guards, `z.infer` in tests) over eslint-disable or config carve-outs. Seed non-null and `max-lines` remain a follow-up slice. FleetGraph reviewer page should not destructure unused hook fields (`setError`, `refresh`).
+
+**Follow-through (2026-05-31):** Promoted the four mechanical rules to `error` after clearing warnings. `seed.ts` uses `seedAt()` for invariant array/map access; `max-lines` and `no-unsafe-*` stay warn until a dedicated pass.
+
+**Follow-through (2026-05-31, unsafe return/call/argument):** Cleared `no-unsafe-return`, `no-unsafe-call`, and `no-unsafe-argument` repo-wide; promoted all three to `error`. E2E JSON boundaries use `e2e/fixtures/typed-json.ts`; web fetch JSON uses `web/src/api/read-json.ts`.
+
+## D092 - Tier 1 Route Test OpenAPI Boundaries
+
+**Date:** 2026-05-31
+
+**Decision:** API route integration tests must assert HTTP JSON through registered OpenAPI Zod schemas (`expectOpenApiResponse`), not raw `res.body`. Shared helpers: `getCsrfTokenFromApp`, `expectApiErrorResponse`, `expectJsonBody` under `api/src/test/`. When tests fail schema validation, fix the API/OpenAPI registration (e.g. bulk issue responses use `mapIssueListItem`; `assignee_name` nullable on `extractIssueFromRow`) instead of weakening tests.
+
+**Consequence:** New route tests copy the helper pattern; paths in assertions omit the `/api` prefix. Legacy shapes without OpenAPI JSON use `expectJsonBody` only. Tier 2 is production route JSONB narrowing; Tier 3 is E2E `readJsonAs`.
+
+## D093 - Tier 2 Production Route SQL + JSONB Boundaries
+
+**Date:** 2026-05-31
+
+**Decision:** Production API route handlers under `api/src/routes/**` (excluding `*.test.ts`) must type every `pool.query` row projection and narrow persisted `documents.properties` JSONB at named boundaries — not inline dot-access on `Record<string, unknown>`. Shared helpers: `api/src/routes/route-query-rows.ts` (comment/standup/iteration row types + response mappers + `requireFirstRow` re-export), `api/src/utils/document-properties.ts` (read-only property flatteners for list/GET/bootstrap/restore). `pickBootstrapDocumentProperties` lives in `document-properties.ts` and is re-exported from `constants/bootstrap-document.ts`.
+
+**Consequence:** Production route `no-unsafe-assignment` + `no-unsafe-member-access` at zero (~389 cleared). When typing exposes an OpenAPI/runtime mismatch, fix the mapper or handler — do not eslint-disable. Tier 3 is E2E typed JSON; `max-lines` route splits remain a separate pass.
+
+## D094 - Tier 3 E2E Typed JSON + Seed SQL Rows
+
+**Date:** 2026-05-31
+
+**Decision:** E2E specs and fixtures must parse Playwright `APIResponse` JSON through `readJsonAs<T>` (`e2e/fixtures/typed-json.ts`) with assertion-minimal types in `e2e/fixtures/e2e-api-types.ts` — not raw `.json()` plus dot-access on `any`. Testcontainers seed SQL in `e2e/fixtures/isolated-env.ts` uses `e2e/fixtures/e2e-seed-rows.ts` (`IdRow`, `requireFirstRow`) for `pool.query` rows. Do not import web OpenAPI generated types into E2E; full wire validation stays in Tier 1 API route tests.
+
+**Consequence:** E2E `no-unsafe-assignment` + `no-unsafe-member-access` at zero (~487 cleared). Partial `readJsonAs` without shared types or mixed `.json()` calls does not count as migrated. Next: repo tail (`seed.ts`, services, collaboration) and optional ESLint error promotion on cleaned paths.
+
+## D095 - FleetGraph PM Chat Is Model-Primary Conversation
+
+**Date:** 2026-06-01
+
+**Decision:** PM-facing `POST /api/fleetgraph/chat` is a conversational LLM path. Context chips and page/finding attachments name the topic; they are not regex intents or command menus. `shouldUseChatModel()` is true when `OPENAI_API_KEY` and `FLEETGRAPH_MODEL` are set. Without them, `chatModelUnavailableAnswer` returns an honest configuration message only. The old template router (`deterministicContextChatAnswer`) and the chat-deterministic env flag are removed.
+
+**Consequence:** Do not reintroduce large deterministic chat templates, intent classifiers, or flags that disable the chat model in dev/prod. Detection/worker SQL policy, human gates, and permission filtering stay as-is. Active contract: `my-docs/fleetgraph-conversational-chat.md`. Excised submission text: `my-docs/project-weeks-sot/week-5/archive/submission-deterministic-chat/`.

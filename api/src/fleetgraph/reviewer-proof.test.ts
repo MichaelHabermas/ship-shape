@@ -4,15 +4,15 @@ import path from 'path';
 import {
   CAUSAL_TIMESTAMP_SKEW_MS,
   normalizeCausalDiffMs,
-  preferredReviewerProofChain,
   proofCommandEnv,
   publicReviewerChainProof,
   recordFleetGraphReviewerChatMutationProof,
   fleetGraphReviewerProofEnabled,
   REVIEWER_PROOF_BLOCKER_TEXT,
   reviewerProofRepoRoot,
-} from './reviewer-proof.js';
+} from './reviewer-proof/index.js';
 import type { FleetGraphReviewerChain } from '@ship/shared';
+import { preferredReviewerProofChain } from '@ship/shared';
 
 describe('reviewerProofRepoRoot', () => {
   const originalCwd = process.cwd;
@@ -105,6 +105,8 @@ describe('publicReviewerChainProof', () => {
       scenario: 'week-blocker',
       status: 'complete',
       missing: [],
+      missingLabels: [],
+      productPath: 'partial',
       generatedAt: '2026-05-30T00:00:00.000Z',
       freshness: {
         generatedAt: '2026-05-30T00:00:00.000Z',
@@ -275,6 +277,8 @@ function reviewerChain(overrides: Partial<FleetGraphReviewerChain> = {}): FleetG
     scenario: 'week-blocker',
     status: 'complete',
     missing: [],
+    missingLabels: [],
+    productPath: 'partial',
     generatedAt: '2026-05-30T00:00:00.000Z',
     freshness: {
       generatedAt: '2026-05-30T00:00:00.000Z',

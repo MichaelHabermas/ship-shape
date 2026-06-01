@@ -1,9 +1,16 @@
+// API tests: document mutation endpoints enforce API token read/write scopes.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
+import { z } from 'zod';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
+import { DocumentContentPayloadSchema } from '../openapi/schemas/documents.js';
+import { expectJsonBody } from '../test/expect-json-body.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
 import { IdRow, requireFirstRow } from '../test/pg-result.js';
+
+const TokenScopeDeniedSchema = z.object({ error: z.literal('token_scope_denied') });
 
 describe('Documents API — API token scopes at mutation entry', () => {
   const app = createApp();
@@ -88,8 +95,8 @@ describe('Documents API — API token scopes at mutation entry', () => {
       .set('Authorization', `Bearer ${readOnlyToken}`)
       .send({ content: { type: 'doc', content: [] } });
 
-    expect(res.status).toBe(403);
-    expect(res.body.error).toBe('token_scope_denied');
+    const error = expectJsonBody(res, 403, TokenScopeDeniedSchema);
+    expect(error.error).toBe('token_scope_denied');
   });
 
   it('denies governance commands for write-only API tokens', async () => {
@@ -98,8 +105,8 @@ describe('Documents API — API token scopes at mutation entry', () => {
       .set('Authorization', `Bearer ${writeToken}`)
       .send({ type: 'set_governance', properties: { accountable_id: testUserId } });
 
-    expect(res.status).toBe(403);
-    expect(res.body.error).toBe('token_scope_denied');
+    const error = expectJsonBody(res, 403, TokenScopeDeniedSchema);
+    expect(error.error).toBe('token_scope_denied');
   });
 
   it('allows write-scoped tokens to patch content', async () => {
@@ -108,6 +115,13 @@ describe('Documents API — API token scopes at mutation entry', () => {
       .set('Authorization', `Bearer ${writeToken}`)
       .send({ content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'scoped' }] }] } });
 
-    expect(res.status).toBe(200);
+    expectOpenApiResponse({
+      method: 'patch',
+      path: '/documents/{id}/content',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'DocumentContentPayload',
+      schema: DocumentContentPayloadSchema,
+    });
   });
 });

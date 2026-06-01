@@ -1,4 +1,6 @@
+// Sprint plan/review approval routes (supervisor auth, accountability broadcasts).
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { pool } from '../../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
@@ -22,9 +24,53 @@ import {
   broadcastAccountabilityUpdateToSprintOwner,
   getSprintOwnerReportsTo,
 } from './shared.js';
+import { requireFirstRow } from '../../utils/query-rows.js';
 import { requireWeekWrite } from './week-access.js';
 
 const router = Router();
+
+interface SprintApprovalQueryRow {
+  id: string;
+  properties: Record<string, unknown>;
+  sprint_owner_id: string | null;
+  program_accountable_id: string | null;
+}
+
+interface SprintUnapproveQueryRow {
+  id: string;
+  properties: Record<string, unknown>;
+  program_accountable_id: string | null;
+}
+
+interface WeeklyReviewIdRow {
+  id: string;
+}
+
+const requestChangesBodySchema = z.object({
+  feedback: z.string().min(1).max(2000),
+});
+
+function requestChangesValidationError(body: unknown): string | null {
+  const parsedChanges = requestChangesBodySchema.safeParse(body ?? {});
+  if (parsedChanges.success) {
+    return null;
+  }
+
+  const feedback = body && typeof body === 'object' && 'feedback' in body
+    ? (body as { feedback?: unknown }).feedback
+    : undefined;
+
+  if (typeof feedback === 'string' && feedback.length > 2000) {
+    return 'Feedback must be 2000 characters or less';
+  }
+
+  return 'Feedback is required when requesting changes';
+}
+
+const approveReviewBodySchema = z.object({
+  rating: z.unknown(),
+  comment: z.string().optional(),
+});
 
 // POST /api/weeks/:id/approve-plan - Approve sprint plan
 router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Response) => {
@@ -44,7 +90,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists, get properties and program's accountable_id
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<SprintApprovalQueryRow>(
       `SELECT d.id, d.properties, d.properties->>'owner_id' as sprint_owner_id,
               prog.properties->>'accountable_id' as program_accountable_id
        FROM documents d
@@ -60,7 +106,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
       return;
     }
 
-    const sprint = sprintResult.rows[0];
+    const sprint = requireFirstRow(sprintResult.rows, 'Sprint not found');
     const ownerReportsTo = await getSprintOwnerReportsTo(id, workspaceId);
     const auth = checkSprintSupervisorAuth(
       sprint.program_accountable_id,
@@ -126,7 +172,7 @@ router.post('/:id/unapprove-plan', authMiddleware, async (req: Request, res: Res
 
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<SprintUnapproveQueryRow>(
       `SELECT d.id, d.properties, prog.properties->>'accountable_id' as program_accountable_id
        FROM documents d
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
@@ -141,7 +187,7 @@ router.post('/:id/unapprove-plan', authMiddleware, async (req: Request, res: Res
       return;
     }
 
-    const sprint = sprintResult.rows[0];
+    const sprint = requireFirstRow(sprintResult.rows, 'Sprint not found');
     const ownerReportsTo = await getSprintOwnerReportsTo(id, workspaceId);
     const auth = checkSprintSupervisorAuth(
       sprint.program_accountable_id,
@@ -182,7 +228,12 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
     if (!id) {
       return;
     }
-    const { rating } = req.body || {};
+    const parsedBody = approveReviewBodySchema.safeParse(req.body ?? {});
+    if (!parsedBody.success) {
+      res.status(400).json({ error: 'Invalid request body' });
+      return;
+    }
+    const { rating } = parsedBody.data;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const parsedComment = parseApprovalComment(req.body);
     if (parsedComment.error) {
@@ -201,7 +252,7 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists, get properties and program's accountable_id
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<SprintApprovalQueryRow>(
       `SELECT d.id, d.properties, d.properties->>'owner_id' as sprint_owner_id,
               prog.properties->>'accountable_id' as program_accountable_id
        FROM documents d
@@ -217,7 +268,7 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
       return;
     }
 
-    const sprint = sprintResult.rows[0];
+    const sprint = requireFirstRow(sprintResult.rows, 'Sprint not found');
     const ownerReportsTo = await getSprintOwnerReportsTo(id, workspaceId);
     const auth = checkSprintSupervisorAuth(
       sprint.program_accountable_id,
@@ -231,7 +282,7 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
       return;
     }
 
-    const reviewResult = await pool.query(
+    const reviewResult = await pool.query<WeeklyReviewIdRow>(
       `SELECT d.id FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'sprint'
        WHERE d.document_type = 'weekly_review' AND d.workspace_id = $2`,
@@ -240,7 +291,7 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
 
     let versionId: number | null = null;
     if (reviewResult.rows.length > 0) {
-      const reviewId = reviewResult.rows[0].id;
+      const reviewId = requireFirstRow(reviewResult.rows).id;
       versionId = await resolveApprovedVersionId(reviewId, 'review_content');
     }
 
@@ -294,11 +345,16 @@ router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, re
     if (!id) {
       return;
     }
-    const { feedback } = req.body || {};
+    const validationError = requestChangesValidationError(req.body);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
+      return;
+    }
+    const { feedback } = requestChangesBodySchema.parse(req.body);
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Validate feedback is provided and not too long
-    if (!feedback || typeof feedback !== 'string' || feedback.trim().length === 0) {
+    if (feedback.trim().length === 0) {
       res.status(400).json({ error: 'Feedback is required when requesting changes' });
       return;
     }
@@ -310,7 +366,7 @@ router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, re
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists and get authorization info
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<SprintApprovalQueryRow>(
       `SELECT d.id, d.properties, d.properties->>'owner_id' as sprint_owner_id,
               prog.properties->>'accountable_id' as program_accountable_id
        FROM documents d
@@ -326,7 +382,7 @@ router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, re
       return;
     }
 
-    const sprint = sprintResult.rows[0];
+    const sprint = requireFirstRow(sprintResult.rows, 'Sprint not found');
     const ownerReportsTo = await getSprintOwnerReportsTo(id, workspaceId);
     const auth = checkSprintSupervisorAuth(
       sprint.program_accountable_id,
@@ -375,11 +431,16 @@ router.post('/:id/request-retro-changes', authMiddleware, async (req: Request, r
     if (!id) {
       return;
     }
-    const { feedback } = req.body || {};
+    const validationError = requestChangesValidationError(req.body);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
+      return;
+    }
+    const { feedback } = requestChangesBodySchema.parse(req.body);
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Validate feedback is provided and not too long
-    if (!feedback || typeof feedback !== 'string' || feedback.trim().length === 0) {
+    if (feedback.trim().length === 0) {
       res.status(400).json({ error: 'Feedback is required when requesting changes' });
       return;
     }
@@ -391,7 +452,7 @@ router.post('/:id/request-retro-changes', authMiddleware, async (req: Request, r
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists and get authorization info
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<SprintApprovalQueryRow>(
       `SELECT d.id, d.properties, d.properties->>'owner_id' as sprint_owner_id,
               prog.properties->>'accountable_id' as program_accountable_id
        FROM documents d
@@ -407,7 +468,7 @@ router.post('/:id/request-retro-changes', authMiddleware, async (req: Request, r
       return;
     }
 
-    const sprint = sprintResult.rows[0];
+    const sprint = requireFirstRow(sprintResult.rows, 'Sprint not found');
     const ownerReportsTo = await getSprintOwnerReportsTo(id, workspaceId);
     const auth = checkSprintSupervisorAuth(
       sprint.program_accountable_id,

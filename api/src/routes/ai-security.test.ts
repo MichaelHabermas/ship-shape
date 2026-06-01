@@ -4,6 +4,16 @@ import crypto from 'crypto';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
 import { requireFirstRow, type IdRow } from '../test/pg-result.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
+import { expectJsonBody } from '../test/expect-json-body.js';
+import { getCsrfTokenFromApp } from '../test/session-csrf.js';
+import { z } from 'zod';
+
+const AiStatusSchema = z.union([
+  z.object({ available: z.literal(true) }),
+  z.object({ available: z.literal(false), error: z.literal('ai_unavailable') }),
+]);
+const CsrfRejectedSchema = z.object({ error: z.literal('Cross-site request rejected') });
 
 describe('AI route validation security', () => {
   const app = createApp();
@@ -41,13 +51,9 @@ describe('AI route validation security', () => {
     );
     cookie = `session_id=${sessionId}`;
 
-    const csrf = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', cookie)
-      .set('User-Agent', 'ai-security-agent');
-    csrfToken = csrf.body.token;
-    const connectSidCookie = csrf.headers['set-cookie']?.[0]?.split(';')[0] || '';
-    if (connectSidCookie) cookie = `${cookie}; ${connectSidCookie}`;
+    const csrf = await getCsrfTokenFromApp(app, cookie);
+    csrfToken = csrf.token;
+    cookie = csrf.sessionCookie;
   });
 
   afterAll(async () => {
@@ -63,8 +69,15 @@ describe('AI route validation security', () => {
       .set('Cookie', cookie)
       .set('User-Agent', 'ai-security-agent');
 
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual(expect.objectContaining({ available: expect.any(Boolean) }));
+    const status = expectOpenApiResponse({
+      method: 'get',
+      path: '/ai/status',
+      status: 200,
+      response,
+      openApiSchemaName: 'AiStatus',
+      schema: AiStatusSchema,
+    });
+    expect(typeof status.available).toBe('boolean');
   });
 
   it('rejects malformed analyze-plan bodies before analysis', async () => {
@@ -101,8 +114,8 @@ describe('AI route validation security', () => {
       .set('x-csrf-token', csrfToken)
       .send({ content: 'Ship one measurable thing.' });
 
-    expect(response.status).toBe(200);
-    expect(response.body).not.toHaveProperty('details');
+    const body = expectJsonBody(response, 200, z.record(z.unknown()));
+    expect(body).not.toHaveProperty('details');
   });
 
   it('rejects cross-site cookie-auth mutations even with a CSRF token', async () => {
@@ -114,7 +127,7 @@ describe('AI route validation security', () => {
       .set('x-csrf-token', csrfToken)
       .send({ content: 'Ship one measurable thing.' });
 
-    expect(response.status).toBe(403);
-    expect(response.body).toEqual({ error: 'Cross-site request rejected' });
+    const error = expectJsonBody(response, 403, CsrfRejectedSchema);
+    expect(error).toEqual({ error: 'Cross-site request rejected' });
   });
 });

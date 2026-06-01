@@ -1,5 +1,7 @@
+/** E2E syntax highlighting: code blocks, language selection, and persistence. */
 import { test, expect, Page } from './fixtures/isolated-env'
 import { login } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
 
 
 /**
@@ -74,10 +76,12 @@ test.describe('Syntax Highlighting - Code Blocks', () => {
     await expect(codeBlock).toBeVisible()
 
     // Check if language class is applied (Prism.js adds language-javascript)
-    const hasLanguageClass = await codeBlock.evaluate(el => {
-      return el.className.includes('language-javascript') ||
-             el.className.includes('javascript') ||
-             el.parentElement?.getAttribute('data-language') === 'javascript'
+    const hasLanguageClass = await codeBlock.evaluate((el: HTMLElement) => {
+      return (
+        el.className.includes('language-javascript') ||
+        el.className.includes('javascript') ||
+        el.parentElement?.getAttribute('data-language') === 'javascript'
+      );
     })
     expect(hasLanguageClass).toBeTruthy()
   })
@@ -170,7 +174,7 @@ test.describe('Syntax Highlighting - Code Blocks', () => {
     await expect.poll(async () => {
       const response = await page.request.get(`/api/documents/${docId}/content`)
       if (!response.ok()) return false
-      const body = await response.json()
+      const body = await readJsonAs<unknown>(response)
       return JSON.stringify(body).includes(uniqueCode)
     }, {
       timeout: 30000,

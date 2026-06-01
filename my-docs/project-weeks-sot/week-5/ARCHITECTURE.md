@@ -4,7 +4,7 @@ FleetGraph has one shared execution boundary: `api/src/fleetgraph/core.ts` expor
 
 Subfolders are used only where the reason-to-change is distinct:
 
-- `runtime/`: deterministic helper logic behind `runFleetGraph`, including audience selection, draft shaping, output mapping, run serialization, JSON guards, and bounded chat helpers.
+- `runtime/`: helper logic behind `runFleetGraph`, including audience selection, draft shaping, output mapping, run serialization, JSON guards, context assembly for chat, and a thin offline chat fallback.
 - `detection/`: read-only candidate selection, current-week resolution, and manual detector preview.
 - `execution/`: worker tick orchestration, scheduled proactive execution, and bounded manual admin execution.
 

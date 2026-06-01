@@ -1,3 +1,4 @@
+/** Activity API route tests for workspace feed and entity-scoped activity queries. */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type NextFunction, type Request, type Response } from 'express';
@@ -254,9 +255,10 @@ describe('Activity API', () => {
         const response = await request(app)
           .get(`/activity/program/${programId}`)
           .expect(200);
+        const body = response.body as { days: unknown[] };
 
         // Should return exactly 30 days
-        expect(response.body.days).toHaveLength(30);
+        expect(body.days).toHaveLength(30);
 
         // Verify query uses 29 days interval (today + 29 previous days = 30 total)
         expect(pool.query).toHaveBeenCalledWith(
@@ -276,7 +278,9 @@ describe('Activity API', () => {
           .get(`/activity/program/${programId}`)
           .expect(200);
 
-        const activityQuery = vi.mocked(pool.query).mock.calls[3]![0];
+        const fourthCall = vi.mocked(pool.query).mock.calls[3];
+        expect(fourthCall, 'activity route should issue fourth pool query').toBeDefined();
+        const activityQuery = fourthCall[0];
 
         // Verify query structure includes all relevant associations via document_associations
         expect(activityQuery).toContain('program_projects');
@@ -296,7 +300,9 @@ describe('Activity API', () => {
           .get(`/activity/project/${projectId}`)
           .expect(200);
 
-        const activityQuery = vi.mocked(pool.query).mock.calls[3]![0];
+        const fourthCall = vi.mocked(pool.query).mock.calls[3];
+        expect(fourthCall, 'activity route should issue fourth pool query').toBeDefined();
+        const activityQuery = fourthCall[0];
 
         expect(activityQuery).toContain('project_sprints');
         // Project and sprint associations use document_associations junction table
@@ -314,7 +320,9 @@ describe('Activity API', () => {
           .get(`/activity/sprint/${sprintId}`)
           .expect(200);
 
-        const activityQuery = vi.mocked(pool.query).mock.calls[3]![0];
+        const fourthCall = vi.mocked(pool.query).mock.calls[3];
+        expect(fourthCall, 'activity route should issue fourth pool query').toBeDefined();
+        const activityQuery = fourthCall[0];
 
         // Issues linked via junction table
         expect(activityQuery).toContain('document_associations');

@@ -42,6 +42,8 @@ Do **not** copy-paste login flows into spec files. Import from `e2e/fixtures/api
 
 `e2e/fixtures/app.ts` re-exports `login` and provides `authenticatedPage` for fixture-based specs.
 
+**API JSON in specs:** use `readJsonAs<T>` from `e2e/fixtures/typed-json.ts` with types from `e2e/fixtures/e2e-api-types.ts` — not raw `response.json()`. See D094 in `DECISION_LOG-w5.md`.
+
 ## Reusable Helpers
 
 Import helpers from `e2e/fixtures/test-helpers.ts` instead of writing inline retry logic:

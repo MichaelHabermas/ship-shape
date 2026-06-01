@@ -238,11 +238,16 @@ async function callBedrock(systemPrompt: string, userPrompt: string): Promise<st
     body: new TextEncoder().encode(body),
   });
 
-  const response = await client.send(command);
-  const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+  type BedrockResponseBody = {
+    content?: Array<{ text?: string }>;
+  };
 
-  if (responseBody.content && responseBody.content[0]?.text) {
-    return responseBody.content[0].text;
+  const response = await client.send(command);
+  const responseBody = JSON.parse(new TextDecoder().decode(response.body)) as BedrockResponseBody;
+
+  const text = responseBody.content?.[0]?.text;
+  if (text) {
+    return text;
   }
 
   return null;

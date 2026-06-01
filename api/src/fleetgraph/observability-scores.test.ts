@@ -25,7 +25,7 @@ describe('scoreFleetGraphObservabilityResult', () => {
       tokenMetadata: {
         modelCalls: 1,
         provider: 'openai',
-        model: 'gpt-4.1-mini',
+        model: 'gpt-5.5',
         inputTokens: 90,
         outputTokens: 90,
         totalTokens: 180,

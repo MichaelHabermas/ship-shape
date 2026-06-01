@@ -1,3 +1,4 @@
+// Password login, session lifecycle, and /me for authenticated users.
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -15,6 +16,35 @@ interface WorkspaceMembershipRow {
   role: string;
 }
 
+interface LoginUserRow {
+  id: string;
+  email: string;
+  password_hash: string | null;
+  name: string;
+  is_super_admin: boolean;
+  last_workspace_id: string | null;
+}
+
+interface SessionInfoRow {
+  id: string;
+  created_at: string | Date;
+  expires_at: string | Date;
+  last_activity: string | Date;
+}
+
+interface UserMeRow {
+  id: string;
+  email: string;
+  name: string;
+  is_super_admin: boolean;
+}
+
+interface CurrentWorkspaceRow {
+  id: string;
+  name: string;
+  role: string | null;
+}
+
 // Generate cryptographically secure session ID (256 bits of entropy)
 function generateSecureSessionId(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -22,9 +52,14 @@ function generateSecureSessionId(): string {
 
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+  const body = req.body as { email?: unknown; password?: unknown };
 
-  if (!email || !password) {
+  if (
+    typeof body.email !== 'string'
+    || typeof body.password !== 'string'
+    || !body.email
+    || !body.password
+  ) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: {
@@ -35,9 +70,12 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  const email = body.email;
+  const password = body.password;
+
   try {
     // Find user with their workspace memberships (case-insensitive email lookup)
-    const userResult = await pool.query(
+    const userResult = await pool.query<LoginUserRow>(
       `SELECT u.id, u.email, u.password_hash, u.name, u.is_super_admin, u.last_workspace_id
        FROM users u
        WHERE LOWER(u.email) = LOWER($1)`,
@@ -170,7 +208,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Session fixation prevention: Delete any existing session from this request
-    const oldSessionId = req.cookies.session_id;
+    const oldSessionId = typeof req.cookies.session_id === 'string' ? req.cookies.session_id : undefined;
     if (oldSessionId) {
       await pool.query('DELETE FROM sessions WHERE id = $1', [oldSessionId]);
     }
@@ -281,7 +319,7 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response): Prom
 // GET /api/auth/me
 router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await pool.query(
+    const result = await pool.query<UserMeRow>(
       `SELECT id, email, name, is_super_admin FROM users WHERE id = $1`,
       [req.userId]
     );
@@ -312,18 +350,19 @@ router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<v
     // Get current workspace info
     let currentWorkspace = null;
     if (req.workspaceId) {
-      const currentResult = await pool.query(
+      const currentResult = await pool.query<CurrentWorkspaceRow>(
         `SELECT w.id, w.name, wm.role
          FROM workspaces w
          LEFT JOIN workspace_memberships wm ON w.id = wm.workspace_id AND wm.user_id = $2
          WHERE w.id = $1`,
         [req.workspaceId, req.userId]
       );
-      if (currentResult.rows[0]) {
+      const currentRow = currentResult.rows[0];
+      if (currentRow) {
         currentWorkspace = {
-          id: currentResult.rows[0].id,
-          name: currentResult.rows[0].name,
-          role: currentResult.rows[0].role || 'admin', // Super-admin without membership
+          id: currentRow.id,
+          name: currentRow.name,
+          role: currentRow.role || 'admin', // Super-admin without membership
         };
       }
     }
@@ -405,7 +444,7 @@ router.post('/extend-session', authMiddleware, async (req: Request, res: Respons
 // GET /api/auth/session - Get session info for timeout tracking
 router.get('/session', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await pool.query(
+    const result = await pool.query<SessionInfoRow>(
       `SELECT id, created_at, expires_at, last_activity FROM sessions WHERE id = $1`,
       [req.sessionId]
     );

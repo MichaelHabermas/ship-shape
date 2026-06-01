@@ -91,7 +91,11 @@ async function upsertDeployUser(pool: pg.Pool, workspaceId: string, spec: Deploy
        RETURNING id`,
       [spec.email, passwordHash, spec.name, spec.isSuperAdmin, workspaceId]
     );
-    userId = created.rows[0]!.id;
+    const createdRow = created.rows[0];
+    if (!createdRow) {
+      throw new Error(`Failed to create user ${spec.email}`);
+    }
+    userId = createdRow.id;
     console.log(`Created user ${spec.email}`);
   }
 

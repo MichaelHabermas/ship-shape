@@ -51,17 +51,26 @@ export const PlanReferenceBlockExtension = Node.create<PlanReferenceBlockOptions
       planItemText: {
         default: '',
         parseHTML: (element) => element.getAttribute('data-plan-item-text') || '',
-        renderHTML: (attributes) => ({ 'data-plan-item-text': attributes.planItemText }),
+        renderHTML: (attributes) => {
+          const attrs = attributes as { planItemText?: unknown };
+          return { 'data-plan-item-text': typeof attrs.planItemText === 'string' ? attrs.planItemText : '' };
+        },
       },
       planDocumentId: {
         default: '',
         parseHTML: (element) => element.getAttribute('data-plan-document-id') || '',
-        renderHTML: (attributes) => ({ 'data-plan-document-id': attributes.planDocumentId }),
+        renderHTML: (attributes) => {
+          const attrs = attributes as { planDocumentId?: unknown };
+          return { 'data-plan-document-id': typeof attrs.planDocumentId === 'string' ? attrs.planDocumentId : '' };
+        },
       },
       itemIndex: {
         default: 0,
         parseHTML: (element) => parseInt(element.getAttribute('data-item-index') || '0', 10),
-        renderHTML: (attributes) => ({ 'data-item-index': String(attributes.itemIndex) }),
+        renderHTML: (attributes) => {
+          const attrs = attributes as { itemIndex?: unknown };
+          return { 'data-item-index': typeof attrs.itemIndex === 'number' ? String(attrs.itemIndex) : '0' };
+        },
       },
     };
   },

@@ -3,7 +3,7 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateTimeSchema, BelongsToTypeSchema } from './common.js';
+import { UuidSchema, DateTimeSchema, BelongsToTypeSchema, ErrorResponseSchema, ApiErrorResponseSchema } from './common.js';
 import { jsonResponse, SuccessOnlyResponseSchema } from './route-helpers.js';
 import { DocumentTypeSchema } from './documents.js';
 
@@ -111,9 +111,8 @@ registry.registerPath({
         },
       },
     },
-    404: {
-      description: 'Document not found',
-    },
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
+    404: jsonResponse(ErrorResponseSchema, 'Document not found'),
   },
 });
 
@@ -139,9 +138,9 @@ registry.registerPath({
   },
   responses: {
     200: jsonResponse(SuccessOnlyResponseSchema, 'Links updated'),
-    404: {
-      description: 'Document not found',
-    },
+    400: jsonResponse(ErrorResponseSchema, 'Invalid input or target documents'),
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
+    404: jsonResponse(ErrorResponseSchema, 'Document not found'),
   },
 });
 

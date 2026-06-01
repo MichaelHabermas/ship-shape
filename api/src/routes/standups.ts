@@ -1,3 +1,4 @@
+/** Standup document routes (create, list, due-status checks). */
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../db/client.js';
@@ -17,6 +18,26 @@ import {
   StandupsListResponseSchema,
   StandupLegacyErrorSchema,
 } from '../openapi/schemas/standups.js';
+import {
+  type StandupDocumentRow,
+  mapStandupDocumentResponse,
+  requireFirstRow,
+} from './route-query-rows.js';
+
+type SprintStartDateRow = { sprint_start_date: Date | string | null };
+type StandupAuthorRow = { author_id: string | null };
+type StandupLastPostedRow = { last_posted: Date | string | null };
+type UpdatedStandupRow = {
+  id: string;
+  parent_id: string | null;
+  title: string;
+  content: unknown;
+  author_id: string | null;
+  author_name: string | null;
+  author_email: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+};
 
 const router = Router();
 
@@ -43,7 +64,7 @@ router.post(
         const { date } = body;
         const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
-        const existingResult = await pool.query(
+        const existingResult = await pool.query<StandupDocumentRow>(
           `SELECT id, title, content, properties, created_at, updated_at
        FROM documents
        WHERE workspace_id = $1
@@ -55,16 +76,7 @@ router.post(
         );
 
         if (existingResult.rows.length > 0) {
-          const doc = existingResult.rows[0];
-          res.status(200).json({
-            id: doc.id,
-            title: doc.title,
-            document_type: 'standup',
-            content: doc.content,
-            properties: doc.properties,
-            created_at: doc.created_at,
-            updated_at: doc.updated_at,
-          });
+          res.status(200).json(mapStandupDocumentResponse(requireFirstRow(existingResult.rows)));
           return;
         }
 
@@ -97,23 +109,14 @@ router.post(
           ],
         };
 
-        const insertResult = await pool.query(
+        const insertResult = await pool.query<StandupDocumentRow>(
           `INSERT INTO documents (id, workspace_id, document_type, title, content, properties, visibility, created_by, position)
        VALUES ($1, $2, 'standup', $3, $4, $5, 'workspace', $6, 0)
        RETURNING id, title, content, properties, created_at, updated_at`,
           [docId, workspaceId, title, JSON.stringify(defaultContent), JSON.stringify(properties), userId]
         );
 
-        const doc = insertResult.rows[0];
-        res.status(201).json({
-          id: doc.id,
-          title: doc.title,
-          document_type: 'standup',
-          content: doc.content,
-          properties: doc.properties,
-          created_at: doc.created_at,
-          updated_at: doc.updated_at,
-        });
+        res.status(201).json(mapStandupDocumentResponse(requireFirstRow(insertResult.rows)));
       } catch (err) {
         sendInternalError(res, err, 'Create standup error');
       }
@@ -142,7 +145,7 @@ router.get(
         const { userId, workspaceId } = getAuthenticatedRouteContext(req);
         const { date_from, date_to } = query;
 
-        const result = await pool.query(
+        const result = await pool.query<StandupDocumentRow>(
           `SELECT id, title, content, properties, created_at, updated_at
        FROM documents
        WHERE workspace_id = $1
@@ -155,17 +158,7 @@ router.get(
           [workspaceId, userId, date_from, date_to]
         );
 
-        const standups = result.rows.map((row) => ({
-          id: row.id,
-          title: row.title,
-          document_type: 'standup' as const,
-          content: row.content,
-          properties: row.properties,
-          created_at: row.created_at,
-          updated_at: row.updated_at,
-        }));
-
-        res.json(standups);
+        res.json(result.rows.map(mapStandupDocumentResponse));
       } catch (err) {
         sendInternalError(res, err, 'Get standups error');
       }
@@ -190,7 +183,7 @@ router.get(
       try {
         const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
-        const workspaceResult = await pool.query(
+        const workspaceResult = await pool.query<SprintStartDateRow>(
           `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
           [workspaceId]
         );
@@ -200,7 +193,7 @@ router.get(
           return;
         }
 
-        const rawStartDate = workspaceResult.rows[0].sprint_start_date;
+        const rawStartDate = requireFirstRow(workspaceResult.rows).sprint_start_date;
         const sprintDuration = 7;
 
         let workspaceStartDate: Date;
@@ -221,7 +214,7 @@ router.get(
         );
         const currentSprintNumber = Math.floor(daysSinceStart / sprintDuration) + 1;
 
-        const activeSprintsResult = await pool.query(
+        const activeSprintsResult = await pool.query<{ sprint_id: string }>(
           `SELECT DISTINCT s.id as sprint_id
        FROM documents i
        JOIN document_associations da ON da.document_id = i.id AND da.relationship_type = 'sprint'
@@ -241,7 +234,7 @@ router.get(
         const activeSprints = activeSprintsResult.rows.map((r) => r.sprint_id);
         const todayStr = today.toISOString().split('T')[0];
 
-        const standupResult = await pool.query(
+        const standupResult = await pool.query<StandupLastPostedRow>(
           `SELECT MAX(created_at) as last_posted
        FROM documents
        WHERE workspace_id = $1
@@ -255,7 +248,7 @@ router.get(
           [workspaceId, userId, todayStr, activeSprints, today.toISOString()]
         );
 
-        const lastPosted = standupResult.rows[0]?.last_posted || null;
+        const lastPosted = standupResult.rows[0]?.last_posted ?? null;
         const due = !lastPosted;
 
         res.json({ due, lastPosted });
@@ -293,8 +286,8 @@ router.patch(
 
         const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
-        const existing = await pool.query(
-          `SELECT id, properties->>'author_id' as author_id FROM documents
+        const existing = await pool.query<StandupAuthorRow>(
+          `SELECT properties->>'author_id' as author_id FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'standup'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
           [id, workspaceId, userId, isAdmin]
@@ -305,7 +298,7 @@ router.patch(
           return;
         }
 
-        const authorId = existing.rows[0].author_id;
+        const authorId = requireFirstRow(existing.rows).author_id;
         if (authorId !== userId && !isAdmin) {
           res.status(403).json({ error: 'Only the author or admin can update this standup' });
           return;
@@ -338,7 +331,7 @@ router.patch(
           [...values, id, workspaceId]
         );
 
-        const result = await pool.query(
+        const result = await pool.query<UpdatedStandupRow>(
           `SELECT d.id, d.parent_id, d.title, d.content, d.created_at, d.updated_at,
               d.properties->>'author_id' as author_id,
               u.name as author_name, u.email as author_email
@@ -348,7 +341,7 @@ router.patch(
           [id]
         );
 
-        const standup = result.rows[0];
+        const standup = requireFirstRow(result.rows);
         res.json({
           id: standup.id,
           sprint_id: standup.parent_id,
@@ -391,8 +384,8 @@ router.delete(
 
         const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
-        const existing = await pool.query(
-          `SELECT id, properties->>'author_id' as author_id FROM documents
+        const existing = await pool.query<StandupAuthorRow>(
+          `SELECT properties->>'author_id' as author_id FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'standup'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
           [id, workspaceId, userId, isAdmin]
@@ -403,7 +396,7 @@ router.delete(
           return;
         }
 
-        const authorId = existing.rows[0].author_id;
+        const authorId = requireFirstRow(existing.rows).author_id;
         if (authorId !== userId && !isAdmin) {
           res.status(403).json({ error: 'Only the author or admin can delete this standup' });
           return;

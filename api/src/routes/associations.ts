@@ -1,3 +1,4 @@
+/** Document association CRUD and document context (ancestors, children, breadcrumbs). */
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
@@ -11,6 +12,7 @@ import {
   visibilityPredicate,
 } from '../services/document-access.js';
 import { sendInternalError, sendLegacyError, sendValidationError } from '../utils/route-http.js';
+import { requireFirstRow } from '../utils/query-rows.js';
 
 const router = Router();
 
@@ -47,6 +49,22 @@ type ReverseAssociationRow = {
   created_at: Date | string;
   document_title?: string | null;
   document_document_type?: string | null;
+};
+
+type AncestorContextRow = {
+  id: string;
+  title: string | null;
+  document_type: string;
+  ticket_number: number | null;
+  depth: number;
+};
+
+type BelongsToContextRow = {
+  type: RelationshipType;
+  id: string;
+  title: string;
+  document_type: string;
+  color: string | null;
 };
 
 function toAssociationResponse(row: AssociationRow) {
@@ -152,7 +170,7 @@ router.post('/:id/associations', authMiddleware, async (req: Request, res: Respo
     }
 
     // Create association (ON CONFLICT handles duplicate check)
-    const result = await pool.query(
+    const result = await pool.query<AssociationRow>(
       `INSERT INTO document_associations (document_id, related_id, relationship_type, metadata)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (document_id, related_id, relationship_type) DO UPDATE SET
@@ -162,7 +180,7 @@ router.post('/:id/associations', authMiddleware, async (req: Request, res: Respo
       [id, related_id, relationship_type, metadata || {}]
     );
 
-    return res.status(201).json(toAssociationResponse(result.rows[0]));
+    return res.status(201).json(toAssociationResponse(requireFirstRow(result.rows)));
   } catch (error) {
     sendInternalError(res, error, 'Error creating association:', { error: 'Failed to create association' });
     return;
@@ -204,7 +222,7 @@ router.delete('/:id/associations/:relatedId', authMiddleware, async (req: Reques
 
     query += ` RETURNING id, document_id, related_id, relationship_type, created_at`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<AssociationRow>(query, params);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Association not found' });
@@ -285,7 +303,15 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
 
     // Get the current document
     // Programs are stored as documents with document_type = 'program', not a separate table
-    const currentDoc = await pool.query(
+    const currentDoc = await pool.query<{
+      id: string;
+      title: string | null;
+      document_type: string;
+      ticket_number: number | null;
+      program_id: string | null;
+      program_name: string | null;
+      program_color: string | null;
+    }>(
       `SELECT d.id, d.title, d.document_type, d.ticket_number,
               prog.id as program_id,
               prog.title as program_name,
@@ -311,8 +337,10 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
       return res.status(404).json({ error: 'Document not found' });
     }
 
+    const current = requireFirstRow(currentDoc.rows, 'Document not found');
+
     // Recursive CTE to get all ancestors (parent chain)
-    const ancestorsQuery = await pool.query(
+    const ancestorsQuery = await pool.query<AncestorContextRow>(
       `WITH RECURSIVE ancestors AS (
         -- Base case: direct parent of current document
         SELECT
@@ -353,7 +381,15 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
     );
 
     // Get children (documents that have this document as parent)
-    const childrenQuery = await pool.query(
+    type ChildContextRow = {
+      id: string;
+      title: string;
+      document_type: string;
+      ticket_number: number | null;
+      child_count: string;
+    };
+
+    const childrenQuery = await pool.query<ChildContextRow>(
       `SELECT
         d.id,
         d.title,
@@ -382,7 +418,7 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
 
     // Get belongs_to associations (project, sprint, program)
     // Both programs and projects are documents, so color is in properties JSONB
-    const belongsToQuery = await pool.query(
+    const belongsToQuery = await pool.query<BelongsToContextRow>(
       `SELECT
         da.relationship_type as type,
         d.id,
@@ -413,10 +449,10 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
     const program = belongsToQuery.rows.find(b => b.type === 'program');
     if (program) {
       breadcrumbs.push({ id: program.id, title: program.title, type: 'program' });
-    } else if (currentDoc.rows[0].program_id) {
+    } else if (current.program_id) {
       breadcrumbs.push({
-        id: currentDoc.rows[0].program_id,
-        title: currentDoc.rows[0].program_name || 'Unknown Program',
+        id: current.program_id,
+        title: current.program_name || 'Unknown Program',
         type: 'program'
       });
     }
@@ -439,20 +475,20 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
         id: ancestor.id,
         title: ancestor.title || 'Untitled',
         type: ancestor.document_type,
-        ticket_number: ancestor.ticket_number
+        ticket_number: ancestor.ticket_number ?? undefined
       });
     }
 
     // Add current document
     breadcrumbs.push({
-      id: currentDoc.rows[0].id,
-      title: currentDoc.rows[0].title || 'Untitled',
-      type: currentDoc.rows[0].document_type,
-      ticket_number: currentDoc.rows[0].ticket_number
+      id: current.id,
+      title: current.title || 'Untitled',
+      type: current.document_type,
+      ticket_number: current.ticket_number ?? undefined
     });
 
     return res.json({
-      current: currentDoc.rows[0],
+      current,
       ancestors: ancestorsQuery.rows,
       children: childrenQuery.rows.map(c => ({
         ...c,

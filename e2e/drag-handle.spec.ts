@@ -514,7 +514,11 @@ test.describe('Drag Handle - Block Reordering', () => {
               const embedHtml = `<div data-document-embed="${docId}" data-title="Embeddable Doc">Embeddable Doc</div>`
               const tempDiv = document.createElement('div')
               tempDiv.innerHTML = embedHtml
-              proseMirror.appendChild(tempDiv.firstChild!)
+              const embedNode = tempDiv.firstChild
+              if (!embedNode) {
+                throw new Error('expected embed node from demo HTML')
+              }
+              proseMirror.appendChild(embedNode)
             }
           }, embeddableDocId)
         }

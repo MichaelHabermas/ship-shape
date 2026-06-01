@@ -11,17 +11,4 @@ export const BOOTSTRAP_DOCUMENT_PROPERTY_KEYS = [
 
 export type BootstrapDocumentPropertyKey = (typeof BOOTSTRAP_DOCUMENT_PROPERTY_KEYS)[number];
 
-export function pickBootstrapDocumentProperties(
-  properties: Record<string, unknown> | null
-): Record<string, unknown> | null {
-  if (!properties) return null;
-
-  const picked: Record<string, unknown> = {};
-  for (const key of BOOTSTRAP_DOCUMENT_PROPERTY_KEYS) {
-    if (properties[key] !== undefined) {
-      picked[key] = properties[key];
-    }
-  }
-
-  return Object.keys(picked).length > 0 ? picked : null;
-}
+export { pickBootstrapDocumentProperties } from '../utils/document-properties.js';

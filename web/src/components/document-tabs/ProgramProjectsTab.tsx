@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
+import { apiGet, readJson } from '@/lib/api';
 import type { DocumentTabProps } from '@/lib/document-tabs';
 import { useCreateProject } from '@/hooks/useProjectsQuery';
 import { useToast } from '@/components/ui/Toast';
@@ -34,7 +34,7 @@ export default function ProgramProjectsTab({ documentId }: DocumentTabProps) {
       if (!response.ok) {
         throw new Error('Failed to fetch projects');
       }
-      return response.json();
+      return readJson<ProgramProject[]>(response);
     },
   });
 

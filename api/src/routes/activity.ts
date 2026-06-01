@@ -11,6 +11,11 @@ import {
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 
+type ActivityDayRow = {
+  date: string;
+  count: number;
+};
+
 const router = Router();
 
 // Valid entity types for activity queries
@@ -228,7 +233,7 @@ router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: R
         return;
     }
 
-    const result = await pool.query(activityQuery, [entityId, workspaceId, actor.userId, isAdmin]);
+    const result = await pool.query<ActivityDayRow>(activityQuery, [entityId, workspaceId, actor.userId, isAdmin]);
 
     res.json({
       days: result.rows.map(row => ({

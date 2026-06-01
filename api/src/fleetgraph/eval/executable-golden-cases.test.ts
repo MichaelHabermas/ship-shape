@@ -1,5 +1,7 @@
 // Executes representative FleetGraph golden cases against the shared core with mocked model/persistence.
-import { describe, expect, it, vi } from 'vitest';
+import '../test/setup-chat-openai-mock.js';
+import { resetChatOpenAIMock } from '../test/setup-chat-openai-mock.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { pgResult } from '../../test/pg-result.js';
 import { runFleetGraph, type FleetGraphPersistencePort } from '../core.js';
 import {
@@ -27,6 +29,13 @@ const principal: Principal = {
   workspaceId,
   isSuperAdmin: false,
 };
+
+beforeEach(() => {
+  process.env.OPENAI_API_KEY = 'test-key';
+  process.env.FLEETGRAPH_MODEL = 'gpt-4o-mini';
+  delete process.env.FLEETGRAPH_REAL_MODEL_ENABLED;
+  resetChatOpenAIMock();
+});
 
 const candidate = {
   workspace_id: workspaceId,
@@ -392,7 +401,7 @@ describe('FleetGraph executable golden cases', () => {
       decision: 'needs_confirmation',
       triggerReason: 'context_chat',
     }));
-    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 1 });
   });
 
   it('executes dismiss finding as FleetGraph-only status update', async () => {

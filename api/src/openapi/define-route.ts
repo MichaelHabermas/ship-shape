@@ -22,6 +22,15 @@ type RouteResponseSchema = {
   description?: string;
 };
 
+type ZodOpenApiMetadata = {
+  openapi?: {
+    metadata?: {
+      refId?: unknown;
+      title?: unknown;
+    };
+  };
+};
+
 type InferParsedPart<TPart> = NonNullable<TPart> extends z.ZodTypeAny
   ? z.infer<NonNullable<TPart>>
   : undefined;
@@ -63,7 +72,8 @@ function registerOpenApiResponses(
   for (const [statusCode, responseConfig] of Object.entries(config.responses)) {
     const status = Number(statusCode);
     const schema = responseConfig.schema;
-    const schemaName = schema._def.openapi?.metadata?.refId ?? schema._def.openapi?.metadata?.title;
+    const schemaDef = schema._def as ZodOpenApiMetadata;
+    const schemaName = schemaDef.openapi?.metadata?.refId ?? schemaDef.openapi?.metadata?.title;
     if (typeof schemaName === 'string') {
       metadata[status] = { openApiSchemaName: schemaName, schema };
     }
@@ -118,7 +128,7 @@ function parsePart<T extends z.ZodTypeAny | undefined>(
     const message = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ');
     throw new RouteValidationError(`${label} validation failed: ${message}`, parsed.error);
   }
-  return parsed.data;
+  return parsed.data as T extends z.ZodTypeAny ? z.infer<T> : undefined;
 }
 
 export class RouteValidationError extends Error {
@@ -136,10 +146,15 @@ export function defineRoute<T extends RouteRequestSchemas>(
 
   const handler: RequestHandler = async (req, res) => {
     try {
+      const parsed = {
+        params: parsePart(req.params, config.request?.params, 'params') as InferParsedPart<T['params']>,
+        query: parsePart(req.query, config.request?.query, 'query') as InferParsedPart<T['query']>,
+        body: parsePart(req.body, config.request?.body, 'body') as InferParsedPart<T['body']>,
+      };
       await config.handler(req, res, {
-        params: parsePart(req.params, config.request?.params, 'params'),
-        query: parsePart(req.query, config.request?.query, 'query'),
-        body: parsePart(req.body, config.request?.body, 'body'),
+        params: parsed.params,
+        query: parsed.query,
+        body: parsed.body,
       });
     } catch (error) {
       if (error instanceof RouteValidationError) {

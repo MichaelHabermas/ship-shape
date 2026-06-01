@@ -123,7 +123,7 @@ export const FileAttachmentExtension = Node.create({
 
   atom: true,
 
-  addOptions() {
+  addOptions(): { documentId: string | undefined } {
     return {
       documentId: undefined,
     };
@@ -196,8 +196,10 @@ export const FileAttachmentExtension = Node.create({
             event.preventDefault();
 
             // Upload all dropped non-image files
+            const rawDocumentId: unknown = extensionThis.options.documentId;
+            const documentId = typeof rawDocumentId === 'string' ? rawDocumentId : undefined;
             nonImageFiles.forEach((file) => {
-              handleFileUpload(extensionThis.editor, file, undefined, extensionThis.options.documentId);
+              handleFileUpload(extensionThis.editor, file, undefined, documentId);
             });
 
             return true;
@@ -219,7 +221,9 @@ export const FileAttachmentExtension = Node.create({
             fileItems.forEach((item) => {
               const file = item.getAsFile();
               if (file) {
-                handleFileUpload(extensionThis.editor, file, undefined, extensionThis.options.documentId);
+                const rawDocumentId: unknown = extensionThis.options.documentId;
+                const documentId = typeof rawDocumentId === 'string' ? rawDocumentId : undefined;
+                handleFileUpload(extensionThis.editor, file, undefined, documentId);
               }
             });
 

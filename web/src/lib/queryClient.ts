@@ -161,7 +161,7 @@ export const queryClient = new QueryClient({
   },
   queryCache: new QueryCache({
     onError: (error, query) => {
-      console.error(`Query ${query.queryKey} failed:`, error);
+      console.error(`Query ${JSON.stringify(query.queryKey)} failed:`, error);
     },
   }),
   mutationCache: new MutationCache({

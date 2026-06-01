@@ -28,6 +28,24 @@ interface ProgressEntry {
   error?: string;
 }
 
+type ProgressSummary = {
+  total: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  pending: number;
+  ts: number;
+};
+
+function parseProgressSummary(raw: string): ProgressSummary {
+  const parsed: unknown = JSON.parse(raw);
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Invalid progress summary JSON');
+  }
+  const summary = parsed as ProgressSummary;
+  return summary;
+}
+
 const RESULTS_DIR = process.env.E2E_RESULTS_DIR ?? 'test-results';
 const PROGRESS_FILE = path.join(RESULTS_DIR, 'progress.jsonl');
 const ERRORS_DIR = path.join(RESULTS_DIR, 'errors');
@@ -121,7 +139,7 @@ class ProgressReporter implements Reporter {
   private updateSummaryCounter(testId: string, status: 'passed' | 'failed' | 'skipped'): void {
     try {
       const data = fs.readFileSync(SUMMARY_FILE, 'utf-8');
-      const summary = JSON.parse(data);
+      const summary = parseProgressSummary(data);
       const previousStatus = this.testStatuses.get(testId);
 
       if (previousStatus === status) {

@@ -1,3 +1,4 @@
+// First-run setup: create super admin, workspace, and seed documents.
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
@@ -12,6 +13,15 @@ import {
 } from '../openapi/schemas/setup.js';
 import { authorize } from '../security/capabilities.js';
 import { setupPrincipalFromRequest } from '../security/setup-access.js';
+import { requireFirstRow } from '../utils/query-rows.js';
+import { type IdRow } from './route-query-rows.js';
+
+type SetupUserRow = {
+  id: string;
+  email: string;
+  name: string;
+  is_super_admin: boolean;
+};
 
 const router = Router();
 
@@ -45,8 +55,8 @@ router.get(
     },
     handler: async (req, res) => {
       try {
-        const result = await pool.query('SELECT COUNT(*) as count FROM users');
-        const userCount = parseInt(result.rows[0].count);
+        const result = await pool.query<{ count: string }>('SELECT COUNT(*) as count FROM users');
+        const userCount = parseInt(requireFirstRow(result.rows).count, 10);
         const needsSetup = userCount === 0;
         const auth = await ensureSetupAuthorized(req);
 
@@ -120,8 +130,8 @@ router.post(
         await client.query('BEGIN');
         await client.query(`SELECT pg_advisory_xact_lock(hashtext('ship_setup_initialize'))`);
 
-        const countResult = await client.query('SELECT COUNT(*) as count FROM users');
-        const userCount = parseInt(countResult.rows[0].count);
+        const countResult = await client.query<{ count: string }>('SELECT COUNT(*) as count FROM users');
+        const userCount = parseInt(requireFirstRow(countResult.rows).count, 10);
 
         if (userCount > 0) {
           await client.query('ROLLBACK');
@@ -135,21 +145,21 @@ router.post(
           return;
         }
 
-        const workspaceResult = await client.query(
+        const workspaceResult = await client.query<IdRow>(
           `INSERT INTO workspaces (name)
            VALUES ($1)
            RETURNING id`,
           [`${name}'s Workspace`]
         );
-        const workspaceId = workspaceResult.rows[0].id;
+        const workspaceId = requireFirstRow(workspaceResult.rows).id;
 
-        const userResult = await client.query(
+        const userResult = await client.query<SetupUserRow>(
           `INSERT INTO users (email, password_hash, name, is_super_admin, last_workspace_id)
            VALUES ($1, $2, $3, true, $4)
            RETURNING id, email, name, is_super_admin`,
           [email.toLowerCase(), passwordHash, name, workspaceId]
         );
-        const user = userResult.rows[0];
+        const user = requireFirstRow(userResult.rows);
 
         await client.query(
           `INSERT INTO workspace_memberships (workspace_id, user_id, role)

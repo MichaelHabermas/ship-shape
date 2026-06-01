@@ -8,7 +8,7 @@ import {
   useSensor,
   useSensors,
   DragStartEvent,
-  DragEndEvent,
+  DragEndEvent, useDroppable 
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -16,7 +16,6 @@ import {
   verticalListSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
-import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/cn';
 import { Tooltip } from '@/components/ui/Tooltip';

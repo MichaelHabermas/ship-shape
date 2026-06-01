@@ -307,7 +307,7 @@ function buildInputSchema(
       }
     }
     if (Array.isArray(bodySchema.required)) {
-      required.push(...bodySchema.required);
+      required.push(...(bodySchema.required as string[]));
     }
   }
 
@@ -434,7 +434,7 @@ async function executeToolCall(
     // Try to parse as JSON for structured error, fall back to text
     let errorMessage: string;
     try {
-      const errorData = JSON.parse(text);
+      const errorData: unknown = JSON.parse(text);
       errorMessage = JSON.stringify(errorData);
     } catch {
       errorMessage = text.substring(0, 500);

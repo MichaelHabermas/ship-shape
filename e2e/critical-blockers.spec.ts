@@ -1,5 +1,8 @@
+/** E2E critical blocker remediation: ticket uniqueness, auth consistency, WebSocket. */
 import { test, expect } from './fixtures/isolated-env';
 import { login } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { ApiAuthErrorResponse, CsrfTokenResponse, IssueCreateResponse } from './fixtures/e2e-api-types';
 
 import type { Page } from '@playwright/test';
 
@@ -32,7 +35,7 @@ test.describe('Critical Blocker: Ticket Number Uniqueness', () => {
 
     const csrfResponse = await page.request.get(`${apiServer.url}/api/csrf-token`);
     expect(csrfResponse.ok()).toBeTruthy();
-    const { token: csrfToken } = await csrfResponse.json();
+    const { token: csrfToken } = await readJsonAs<CsrfTokenResponse>(csrfResponse);
 
     // Create 10 issues concurrently and verify all have unique ticket numbers
     const promises = Array.from({ length: 10 }, (_, i) =>
@@ -49,10 +52,14 @@ test.describe('Critical Blocker: Ticket Number Uniqueness', () => {
 
     for (const response of responses) {
       expect(response.ok()).toBeTruthy();
-      const data = await response.json();
+      const data = await readJsonAs<IssueCreateResponse>(response);
       expect(data.ticket_number).toBeDefined();
-      expect(ticketNumbers.has(data.ticket_number)).toBeFalsy();
-      ticketNumbers.add(data.ticket_number);
+      const ticketNumber = data.ticket_number;
+      if (ticketNumber === undefined) {
+        throw new Error('Expected ticket_number on created issue');
+      }
+      expect(ticketNumbers.has(ticketNumber)).toBeFalsy();
+      ticketNumbers.add(ticketNumber);
     }
 
     expect(ticketNumbers.size).toBe(10);
@@ -68,9 +75,9 @@ test.describe('Critical Blocker: Ticket Number Uniqueness', () => {
 
     const csrfResponse = await page.request.get(`${apiServer.url}/api/csrf-token`);
     expect(csrfResponse.ok()).toBeTruthy();
-    const { token: csrfToken } = await csrfResponse.json();
+    const { token: csrfToken } = await readJsonAs<CsrfTokenResponse>(csrfResponse);
 
-    const issues = [];
+    const issues: IssueCreateResponse[] = [];
     for (let i = 0; i < 5; i++) {
       const response = await page.request.post(`${apiServer.url}/api/issues`, {
         headers: {
@@ -79,12 +86,17 @@ test.describe('Critical Blocker: Ticket Number Uniqueness', () => {
         data: { title: `Sequential Issue ${i}` },
       });
       expect(response.ok()).toBeTruthy();
-      issues.push(await response.json());
+      issues.push(await readJsonAs<IssueCreateResponse>(response));
     }
 
     // Verify ticket numbers are sequential
     for (let i = 1; i < issues.length; i++) {
-      expect(issues[i].ticket_number).toBe(issues[i - 1].ticket_number + 1);
+      const previousTicket = issues[i - 1]?.ticket_number;
+      const currentTicket = issues[i]?.ticket_number;
+      if (previousTicket === undefined || currentTicket === undefined) {
+        throw new Error('Expected ticket numbers on sequential issues');
+      }
+      expect(currentTicket).toBe(previousTicket + 1);
     }
   });
 });
@@ -122,7 +134,7 @@ test.describe('Critical Blocker: Consistent Auth Across Routes', () => {
       });
 
       expect(response.status).toBe(401);
-      const data = await response.json();
+      const data = await readJsonAs<ApiAuthErrorResponse>(response);
 
       // All routes should return the same error format from centralized auth
       expect(data).toHaveProperty('success', false);

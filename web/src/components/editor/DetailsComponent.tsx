@@ -10,7 +10,7 @@ import { useCallback } from 'react';
  * - Nested content area
  */
 export function DetailsComponent({ node, updateAttributes }: NodeViewProps) {
-  const isOpen = node.attrs.open;
+  const isOpen = !!node.attrs.open;
 
   const toggleOpen = useCallback((e: React.MouseEvent) => {
     e.preventDefault();

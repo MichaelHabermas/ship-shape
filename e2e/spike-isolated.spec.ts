@@ -1,15 +1,12 @@
 /**
- * Spike test for isolated environment
- *
- * This test verifies the testcontainers-based isolation works:
- * - PostgreSQL container starts and migrations run
- * - API server starts with correct DATABASE_URL
- * - Vite dev server starts and proxies to API
+ * Spike test for isolated environment (Testcontainers Postgres + API + Vite).
  *
  * Run with: npx playwright test --config=playwright.isolated.config.ts
  */
 
 import { test, expect } from './fixtures/isolated-env';
+import { readJsonAs } from './fixtures/typed-json';
+import type { HealthResponse } from './fixtures/e2e-api-types';
 
 test.describe('Isolated Environment Spike', () => {
   test('login page shows with seeded database (proves isolation + seeding)', async ({ page }) => {
@@ -31,7 +28,7 @@ test.describe('Isolated Environment Spike', () => {
     const response = await request.get(`${apiServer.url}/health`);
 
     expect(response.ok()).toBe(true);
-    const body = await response.json();
+    const body = await readJsonAs<HealthResponse>(response);
     expect(body.status).toBe('ok');
   });
 

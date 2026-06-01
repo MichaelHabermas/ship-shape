@@ -99,7 +99,8 @@ function findPlanReferenceNodes(doc: ProseMirrorNode): Array<{ endPos: number; t
 
   doc.descendants((node: ProseMirrorNode, pos: number) => {
     if (node.type.name === 'planReference') {
-      const text = node.attrs.planItemText || '';
+      const attrs = node.attrs as { planItemText?: unknown };
+      const text = typeof attrs.planItemText === 'string' ? attrs.planItemText : '';
       if (text) {
         const endPos = pos + node.nodeSize;
         items.push({ endPos, text });

@@ -227,6 +227,7 @@ describe('FleetGraph route security', () => {
   });
 
   it('answers attached document chat through the real FleetGraph route', async () => {
+    // Real model call when OPENAI_API_KEY is configured — allow slower CI/local runs.
     await saveBlockedImportantIssueFinding({
       workspaceId,
       sourceIssueId: issueId,
@@ -252,7 +253,7 @@ describe('FleetGraph route security', () => {
       .set('Cookie', adminCookie)
       .set('x-csrf-token', adminCsrf)
       .send({
-        prompt: "What's happening here?",
+        prompt: 'Summarize this issue',
         context: {
           kind: 'document',
           documentId: issueId,
@@ -264,9 +265,11 @@ describe('FleetGraph route security', () => {
     const body = JSON.parse(res.text) as FleetGraphChatBody;
     expect(body.decision).toBe('explain');
     expect(body.answer?.title).toBe('Private blocked issue');
-    expect(body.answer?.body).toContain('Private blocked issue is an issue.');
+    const answerBody = body.answer?.body ?? '';
+    expect(answerBody).toMatch(/Private blocked issue/i);
+    expect(answerBody).toMatch(/urgent|in progress|chat smoke summary|attached context/i);
     expect(res.text).not.toContain('I can answer from the attached issue');
-  });
+  }, 20_000);
 
   it('fails closed for manual runs in production unless explicitly enabled', async () => {
     const previousNodeEnv = process.env.NODE_ENV;

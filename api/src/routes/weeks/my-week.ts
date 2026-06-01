@@ -1,14 +1,21 @@
+// My-week aggregation and personal sprint action-item routes.
 import { Router, Request, Response } from 'express';
 import { pool } from '../../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
 import { sendInternalError } from '../../utils/route-http.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
+import { requireFirstRow } from '../../utils/query-rows.js';
+import { readIssueListFields } from '../../utils/document-properties.js';
 import type {
   SprintActionItemRow,
   MyWeekIssueRow,
   MyWeekIssue,
 } from './types.js';
+
+type WorkspaceSprintStartRow = {
+  sprint_start_date: Date | string | null;
+};
 
 const router = Router();
 
@@ -17,7 +24,7 @@ router.get('/my-action-items', authMiddleware, async (req: Request, res: Respons
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get workspace sprint configuration
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -27,7 +34,7 @@ router.get('/my-action-items', authMiddleware, async (req: Request, res: Respons
       return;
     }
 
-    const rawStartDate = workspaceResult.rows[0].sprint_start_date;
+    const rawStartDate = requireFirstRow(workspaceResult.rows).sprint_start_date;
     const sprintDuration = 7; // 7-day sprints
 
     // Calculate the current sprint number
@@ -188,7 +195,7 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Get workspace sprint_start_date to calculate current sprint number
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -198,7 +205,7 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const rawStartDate = workspaceResult.rows[0].sprint_start_date;
+    const rawStartDate = requireFirstRow(workspaceResult.rows).sprint_start_date;
     const sprintDuration = 7;
 
     // Calculate current sprint number
@@ -303,12 +310,12 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
     for (const row of result.rows) {
       const sprintKey = row.sprint_id;
       if (!groupedData[sprintKey]) {
-        const sprintProps = row.sprint_properties || {};
+        const sprintProps = row.sprint_properties;
         groupedData[sprintKey] = {
           sprint: {
             id: row.sprint_id,
             name: row.sprint_name,
-            sprint_number: sprintProps.sprint_number || targetSprintNumber,
+            sprint_number: sprintProps?.sprint_number ?? targetSprintNumber,
           },
           program: row.program_id ? {
             id: row.program_id,
@@ -319,16 +326,16 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
         };
       }
 
-      const issueProps = row.issue_properties || {};
+      const issueFields = readIssueListFields(row.issue_properties);
       groupedData[sprintKey].issues.push({
         id: row.issue_id,
         title: row.issue_title,
-        state: issueProps.state || 'backlog',
-        priority: issueProps.priority || 'medium',
-        assignee_id: issueProps.assignee_id || null,
+        state: issueFields.state ?? 'backlog',
+        priority: issueFields.priority ?? 'medium',
+        assignee_id: issueFields.assignee_id ?? null,
         assignee_name: row.assignee_name,
         assignee_archived: row.assignee_archived || false,
-        estimate: issueProps.estimate ?? null,
+        estimate: issueFields.estimate ?? null,
         ticket_number: row.ticket_number,
         display_id: `#${row.ticket_number}`,
         created_at: row.issue_created_at,

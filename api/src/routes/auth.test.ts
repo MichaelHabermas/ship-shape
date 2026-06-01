@@ -5,11 +5,27 @@ import bcrypt from 'bcryptjs'
 import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
+import {
+  AuthErrorResponseSchema,
+  CurrentUserResponseSchema,
+  ExtendSessionResponseSchema,
+  LoginResponseSchema,
+  SessionResponseSchema,
+} from '../openapi/schemas/auth.js'
+import { SuccessResponseSchema } from '../openapi/schemas/common.js'
+import { expectApiErrorResponse } from '../test/expect-api-error.js'
+import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { requireFirstRow, type IdRow } from '../test/pg-result.js'
+import { getCsrfTokenFromApp } from '../test/session-csrf.js'
 
-// Helper to normalize set-cookie header (can be string or string[])
 function getCookiesArray(setCookie: string | string[] | undefined): string[] {
   if (!setCookie) return []
   return Array.isArray(setCookie) ? setCookie : [setCookie]
+}
+
+function sessionIdFromSetCookie(setCookie: string | string[] | undefined): string {
+  const cookies = getCookiesArray(setCookie)
+  return cookies.find((c: string) => c.startsWith('session_id='))?.split(';')[0] ?? ''
 }
 
 describe('Auth API', () => {
@@ -23,47 +39,33 @@ describe('Auth API', () => {
   let testUserId: string
   let passwordHash: string
 
-  // Helper to get CSRF token and session cookie for requests
-  async function getCsrfTokenAndCookie(): Promise<{ csrfToken: string; cookie: string }> {
-    const csrfRes = await request(app).get('/api/csrf-token')
-    const csrfToken = csrfRes.body.token
-    const cookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    return { csrfToken, cookie }
-  }
-
-  // Helper to login with CSRF token
-  async function loginWithCsrf(email: string, password: string, extraCookie?: string) {
-    const { csrfToken, cookie } = await getCsrfTokenAndCookie()
-    const fullCookie = extraCookie ? `${cookie}; ${extraCookie}` : cookie
+  async function loginWithCsrf(email: string, password: string, sessionCookie = '') {
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
     return request(app)
       .post('/api/auth/login')
-      .set('Cookie', fullCookie)
-      .set('x-csrf-token', csrfToken)
+      .set('Cookie', csrf.sessionCookie)
+      .set('x-csrf-token', csrf.token)
       .send({ email, password })
   }
 
   beforeAll(async () => {
-    // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
-    // Create password hash
     passwordHash = await bcrypt.hash(testPassword, PASSWORD_BCRYPT_ROUNDS)
 
-    // Create test user with password
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, $2, 'Auth Test User')
        RETURNING id`,
       [testEmail, passwordHash]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
-    // Create workspace membership
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [testWorkspaceId, testUserId]
@@ -71,7 +73,6 @@ describe('Auth API', () => {
   })
 
   afterAll(async () => {
-    // Clean up in correct order (foreign key constraints)
     await pool.query('DELETE FROM sessions WHERE user_id = $1', [testUserId])
     await pool.query('DELETE FROM workspace_memberships WHERE user_id = $1', [testUserId])
     await pool.query('DELETE FROM users WHERE id = $1', [testUserId])
@@ -80,69 +81,97 @@ describe('Auth API', () => {
 
   describe('POST /api/auth/login', () => {
     it('should reject login without email', async () => {
-      const { csrfToken, cookie } = await getCsrfTokenAndCookie()
+      const csrf = await getCsrfTokenFromApp(app, '')
       const res = await request(app)
         .post('/api/auth/login')
-        .set('Cookie', cookie)
-        .set('x-csrf-token', csrfToken)
+        .set('Cookie', csrf.sessionCookie)
+        .set('x-csrf-token', csrf.token)
         .send({ password: testPassword })
 
-      expect(res.status).toBe(400)
-      expect(res.body.success).toBe(false)
-      expect(res.body.error.message).toContain('Email and password are required')
+      const error = expectApiErrorResponse({
+        method: 'post',
+        path: '/auth/login',
+        status: 400,
+        response: res,
+        openApiSchemaName: 'AuthErrorResponse',
+        schema: AuthErrorResponseSchema,
+      })
+      expect(error.error.message).toContain('Email and password are required')
     })
 
     it('should reject login without password', async () => {
-      const { csrfToken, cookie } = await getCsrfTokenAndCookie()
+      const csrf = await getCsrfTokenFromApp(app, '')
       const res = await request(app)
         .post('/api/auth/login')
-        .set('Cookie', cookie)
-        .set('x-csrf-token', csrfToken)
+        .set('Cookie', csrf.sessionCookie)
+        .set('x-csrf-token', csrf.token)
         .send({ email: testEmail })
 
-      expect(res.status).toBe(400)
-      expect(res.body.success).toBe(false)
-      expect(res.body.error.message).toContain('Email and password are required')
+      const error = expectApiErrorResponse({
+        method: 'post',
+        path: '/auth/login',
+        status: 400,
+        response: res,
+        openApiSchemaName: 'AuthErrorResponse',
+        schema: AuthErrorResponseSchema,
+      })
+      expect(error.error.message).toContain('Email and password are required')
     })
 
     it('should reject login with non-existent email', async () => {
-      const { csrfToken, cookie } = await getCsrfTokenAndCookie()
+      const csrf = await getCsrfTokenFromApp(app, '')
       const res = await request(app)
         .post('/api/auth/login')
-        .set('Cookie', cookie)
-        .set('x-csrf-token', csrfToken)
+        .set('Cookie', csrf.sessionCookie)
+        .set('x-csrf-token', csrf.token)
         .send({ email: 'nonexistent@ship.local', password: testPassword })
 
-      expect(res.status).toBe(401)
-      expect(res.body.success).toBe(false)
-      expect(res.body.error.message).toBe('Invalid email or password')
+      const error = expectApiErrorResponse({
+        method: 'post',
+        path: '/auth/login',
+        status: 401,
+        response: res,
+        openApiSchemaName: 'AuthErrorResponse',
+        schema: AuthErrorResponseSchema,
+      })
+      expect(error.error.message).toBe('Invalid email or password')
     })
 
     it('should reject login with wrong password', async () => {
-      const { csrfToken, cookie } = await getCsrfTokenAndCookie()
+      const csrf = await getCsrfTokenFromApp(app, '')
       const res = await request(app)
         .post('/api/auth/login')
-        .set('Cookie', cookie)
-        .set('x-csrf-token', csrfToken)
+        .set('Cookie', csrf.sessionCookie)
+        .set('x-csrf-token', csrf.token)
         .send({ email: testEmail, password: 'WrongPassword123!' })
 
-      expect(res.status).toBe(401)
-      expect(res.body.success).toBe(false)
-      expect(res.body.error.message).toBe('Invalid email or password')
+      const error = expectApiErrorResponse({
+        method: 'post',
+        path: '/auth/login',
+        status: 401,
+        response: res,
+        openApiSchemaName: 'AuthErrorResponse',
+        schema: AuthErrorResponseSchema,
+      })
+      expect(error.error.message).toBe('Invalid email or password')
     })
 
     it('should accept valid credentials and set session cookie', async () => {
       const res = await loginWithCsrf(testEmail, testPassword)
 
-      expect(res.status).toBe(200)
-      expect(res.body.success).toBe(true)
-      expect(res.body.data.user).toBeDefined()
-      expect(res.body.data.user.email).toBe(testEmail)
-      expect(res.body.data.user.id).toBe(testUserId)
-      expect(res.body.data.currentWorkspace).toBeDefined()
-      expect(res.body.data.workspaces).toBeInstanceOf(Array)
+      const body = expectOpenApiResponse({
+        method: 'post',
+        path: '/auth/login',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'LoginResponse',
+        schema: LoginResponseSchema,
+      })
+      expect(body.data.user.email).toBe(testEmail)
+      expect(body.data.user.id).toBe(testUserId)
+      expect(body.data.currentWorkspace).toBeDefined()
+      expect(body.data.workspaces.length).toBeGreaterThan(0)
 
-      // Check cookie is set
       const cookies = getCookiesArray(res.headers['set-cookie'])
       expect(cookies.length).toBeGreaterThan(0)
       const sessionCookie = cookies.find((c: string) => c.startsWith('session_id='))
@@ -153,23 +182,27 @@ describe('Auth API', () => {
     it('should handle case-insensitive email lookup', async () => {
       const res = await loginWithCsrf(testEmail.toUpperCase(), testPassword)
 
-      expect(res.status).toBe(200)
-      expect(res.body.success).toBe(true)
+      expectOpenApiResponse({
+        method: 'post',
+        path: '/auth/login',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'LoginResponse',
+        schema: LoginResponseSchema,
+      })
     })
 
     it('should reject PIV-only user attempting password login', async () => {
-      // Create PIV-only user (no password_hash)
       const pivEmail = `piv-user-${testRunId}@ship.local`
-      const pivUserResult = await pool.query(
+      const pivUserResult = await pool.query<IdRow>(
         `INSERT INTO users (email, password_hash, name)
          VALUES ($1, NULL, 'PIV User')
          RETURNING id`,
         [pivEmail]
       )
-      const pivUserId = pivUserResult.rows[0].id
+      const pivUserId = requireFirstRow(pivUserResult.rows).id
 
-      // Add to workspace
-      await pool.query(
+      await pool.query<IdRow>(
         `INSERT INTO workspace_memberships (workspace_id, user_id, role)
          VALUES ($1, $2, 'member')`,
         [testWorkspaceId, pivUserId]
@@ -177,10 +210,16 @@ describe('Auth API', () => {
 
       const res = await loginWithCsrf(pivEmail, 'anypassword')
 
-      expect(res.status).toBe(401)
-      expect(res.body.error.message).toContain('PIV authentication only')
+      const error = expectApiErrorResponse({
+        method: 'post',
+        path: '/auth/login',
+        status: 401,
+        response: res,
+        openApiSchemaName: 'AuthErrorResponse',
+        schema: AuthErrorResponseSchema,
+      })
+      expect(error.error.message).toContain('PIV authentication only')
 
-      // Cleanup
       await pool.query('DELETE FROM workspace_memberships WHERE user_id = $1', [pivUserId])
       await pool.query('DELETE FROM users WHERE id = $1', [pivUserId])
     })
@@ -188,75 +227,69 @@ describe('Auth API', () => {
 
   describe('POST /api/auth/logout', () => {
     it('should reject logout without session', async () => {
-      const { csrfToken, cookie } = await getCsrfTokenAndCookie()
+      const csrf = await getCsrfTokenFromApp(app, '')
       const res = await request(app)
         .post('/api/auth/logout')
-        .set('Cookie', cookie)
-        .set('x-csrf-token', csrfToken)
+        .set('Cookie', csrf.sessionCookie)
+        .set('x-csrf-token', csrf.token)
 
-      expect(res.status).toBe(401)
+      expectApiErrorResponse({
+        method: 'post',
+        path: '/auth/logout',
+        status: 401,
+        response: res,
+      })
     })
 
     it('should successfully logout with valid session', async () => {
-      // First login to get a session
       const loginRes = await loginWithCsrf(testEmail, testPassword)
+      const sessionCookie = sessionIdFromSetCookie(loginRes.headers['set-cookie'])
+      const csrf = await getCsrfTokenFromApp(app, sessionCookie)
 
-      expect(loginRes.status).toBe(200)
-      const cookies = getCookiesArray(loginRes.headers['set-cookie'])
-      const sessionCookie = cookies.find((c: string) => c.startsWith('session_id='))?.split(';')[0]
-
-      // Get CSRF token with session
-      const csrfRes = await request(app)
-        .get('/api/csrf-token')
-        .set('Cookie', sessionCookie || '')
-
-      const csrfToken = csrfRes.body.token
-      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-      const fullCookie = connectSidCookie ? `${sessionCookie}; ${connectSidCookie}` : sessionCookie
-
-      // Now logout
       const logoutRes = await request(app)
         .post('/api/auth/logout')
-        .set('Cookie', fullCookie || '')
-        .set('x-csrf-token', csrfToken || '')
+        .set('Cookie', csrf.sessionCookie)
+        .set('x-csrf-token', csrf.token)
 
-      expect(logoutRes.status).toBe(200)
-      expect(logoutRes.body.success).toBe(true)
+      expectOpenApiResponse({
+        method: 'post',
+        path: '/auth/logout',
+        status: 200,
+        response: logoutRes,
+        openApiSchemaName: 'SuccessResponse',
+        schema: SuccessResponseSchema,
+      })
 
-      // Verify session is invalidated - subsequent requests should fail
       const meRes = await request(app)
         .get('/api/auth/me')
-        .set('Cookie', fullCookie || '')
+        .set('Cookie', csrf.sessionCookie)
 
-      expect(meRes.status).toBe(401)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/auth/me',
+        status: 401,
+        response: meRes,
+      })
     })
   })
 
   describe('GET /api/auth/me', () => {
     let sessionCookie: string
     beforeAll(async () => {
-      // Login to get a session
       const loginRes = await loginWithCsrf(testEmail, testPassword)
-
-      const cookies = getCookiesArray(loginRes.headers['set-cookie'])
-      sessionCookie = cookies.find((c: string) => c.startsWith('session_id='))?.split(';')[0] || ''
-
-      // Get CSRF token with session
-      const csrfRes = await request(app)
-        .get('/api/csrf-token')
-        .set('Cookie', sessionCookie)
-
-      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-      if (connectSidCookie) {
-        sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-      }
+      const csrf = await getCsrfTokenFromApp(app, sessionIdFromSetCookie(loginRes.headers['set-cookie']))
+      sessionCookie = csrf.sessionCookie
     })
 
     it('should reject request without session', async () => {
-      const res = await request(app)
-        .get('/api/auth/me')
+      const res = await request(app).get('/api/auth/me')
 
-      expect(res.status).toBe(401)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/auth/me',
+        status: 401,
+        response: res,
+      })
     })
 
     it('should return user info for valid session', async () => {
@@ -264,20 +297,23 @@ describe('Auth API', () => {
         .get('/api/auth/me')
         .set('Cookie', sessionCookie)
 
-      expect(res.status).toBe(200)
-      expect(res.body.success).toBe(true)
-      expect(res.body.data.user).toBeDefined()
-      expect(res.body.data.user.email).toBe(testEmail)
-      expect(res.body.data.user.id).toBe(testUserId)
-      expect(res.body.data.currentWorkspace).toBeDefined()
-      expect(res.body.data.workspaces).toBeInstanceOf(Array)
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/auth/me',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'CurrentUserResponse',
+        schema: CurrentUserResponseSchema,
+      })
+      expect(body.data.user.email).toBe(testEmail)
+      expect(body.data.user.id).toBe(testUserId)
+      expect(body.data.currentWorkspace).toBeDefined()
+      expect(body.data.workspaces.length).toBeGreaterThan(0)
     })
 
     it('should reject expired session', async () => {
-      // Create a session that expired due to inactivity (last_activity > 15 minutes ago)
-      // Auth middleware checks last_activity against 15-minute timeout, not expires_at
       const expiredSessionId = crypto.randomBytes(32).toString('hex')
-      await pool.query(
+      await pool.query<IdRow>(
         `INSERT INTO sessions (id, user_id, workspace_id, expires_at, last_activity)
          VALUES ($1, $2, $3, now() + interval '1 hour', now() - interval '20 minutes')`,
         [expiredSessionId, testUserId, testWorkspaceId]
@@ -287,130 +323,111 @@ describe('Auth API', () => {
         .get('/api/auth/me')
         .set('Cookie', `session_id=${expiredSessionId}`)
 
-      expect(res.status).toBe(401)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/auth/me',
+        status: 401,
+        response: res,
+      })
 
-      // Session should be auto-deleted by middleware, but cleanup anyway
       await pool.query('DELETE FROM sessions WHERE id = $1', [expiredSessionId])
     })
   })
 
   describe('POST /api/auth/extend-session', () => {
     it('should extend session expiry', async () => {
-      // Login to get a session
       const loginRes = await loginWithCsrf(testEmail, testPassword)
+      const csrf = await getCsrfTokenFromApp(app, sessionIdFromSetCookie(loginRes.headers['set-cookie']))
 
-      const cookies = getCookiesArray(loginRes.headers['set-cookie'])
-      let sessionCookie = cookies.find((c: string) => c.startsWith('session_id='))?.split(';')[0] || ''
-
-      // Get CSRF token with session
-      const csrfRes = await request(app)
-        .get('/api/csrf-token')
-        .set('Cookie', sessionCookie)
-
-      const csrfToken = csrfRes.body.token
-      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-      if (connectSidCookie) {
-        sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-      }
-
-      // Extend session
       const res = await request(app)
         .post('/api/auth/extend-session')
-        .set('Cookie', sessionCookie)
-        .set('x-csrf-token', csrfToken || '')
+        .set('Cookie', csrf.sessionCookie)
+        .set('x-csrf-token', csrf.token)
 
-      expect(res.status).toBe(200)
-      expect(res.body.success).toBe(true)
-      expect(res.body.data.expiresAt).toBeDefined()
-      expect(res.body.data.lastActivity).toBeDefined()
-
-      // Verify expiry is in the future
-      const expiresAt = new Date(res.body.data.expiresAt)
+      const body = expectOpenApiResponse({
+        method: 'post',
+        path: '/auth/extend-session',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'ExtendSessionResponse',
+        schema: ExtendSessionResponseSchema,
+      })
+      const expiresAt = new Date(body.data.expiresAt)
       expect(expiresAt.getTime()).toBeGreaterThan(Date.now())
     })
   })
 
   describe('GET /api/auth/session', () => {
     it('should return session info', async () => {
-      // Login to get a session
       const loginRes = await loginWithCsrf(testEmail, testPassword)
+      const csrf = await getCsrfTokenFromApp(app, sessionIdFromSetCookie(loginRes.headers['set-cookie']))
 
-      const cookies = getCookiesArray(loginRes.headers['set-cookie'])
-      let sessionCookie = cookies.find((c: string) => c.startsWith('session_id='))?.split(';')[0] || ''
-
-      // Get CSRF token with session
-      const csrfRes = await request(app)
-        .get('/api/csrf-token')
-        .set('Cookie', sessionCookie)
-
-      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-      if (connectSidCookie) {
-        sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-      }
-
-      // Get session info
       const res = await request(app)
         .get('/api/auth/session')
-        .set('Cookie', sessionCookie)
+        .set('Cookie', csrf.sessionCookie)
 
-      expect(res.status).toBe(200)
-      expect(res.body.success).toBe(true)
-      expect(res.body.data.createdAt).toBeDefined()
-      expect(res.body.data.expiresAt).toBeDefined()
-      expect(res.body.data.absoluteExpiresAt).toBeDefined()
-      expect(res.body.data.lastActivity).toBeDefined()
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/auth/session',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'SessionResponse',
+        schema: SessionResponseSchema,
+      })
+      expect(body.data.createdAt).toBeDefined()
+      expect(body.data.expiresAt).toBeDefined()
+      expect(body.data.absoluteExpiresAt).toBeDefined()
+      expect(body.data.lastActivity).toBeDefined()
     })
   })
 
   describe('Session Security', () => {
     it('should generate unique session IDs for each login', async () => {
-      // Login twice and verify different session IDs
       const login1 = await loginWithCsrf(testEmail, testPassword)
-
-      const cookies1 = getCookiesArray(login1.headers['set-cookie'])
-      const session1 = cookies1.find((c: string) => c.startsWith('session_id='))?.split(';')[0]?.split('=')[1]
+      const session1 = getCookiesArray(login1.headers['set-cookie'])
+        .find((c: string) => c.startsWith('session_id='))
+        ?.split(';')[0]
+        ?.split('=')[1]
 
       const login2 = await loginWithCsrf(testEmail, testPassword)
-
-      const cookies2 = getCookiesArray(login2.headers['set-cookie'])
-      const session2 = cookies2.find((c: string) => c.startsWith('session_id='))?.split(';')[0]?.split('=')[1]
+      const session2 = getCookiesArray(login2.headers['set-cookie'])
+        .find((c: string) => c.startsWith('session_id='))
+        ?.split(';')[0]
+        ?.split('=')[1]
 
       expect(session1).not.toBe(session2)
     })
 
     it('should invalidate old session on re-login (session fixation prevention)', async () => {
-      // Login to get first session
       const login1 = await loginWithCsrf(testEmail, testPassword)
+      const session1Cookie = sessionIdFromSetCookie(login1.headers['set-cookie'])
+      const csrf = await getCsrfTokenFromApp(app, session1Cookie)
 
-      const cookies1 = getCookiesArray(login1.headers['set-cookie'])
-      let session1Cookie = cookies1.find((c: string) => c.startsWith('session_id='))?.split(';')[0] || ''
-
-      // Get CSRF for first session
-      const csrfRes = await request(app)
-        .get('/api/csrf-token')
-        .set('Cookie', session1Cookie)
-
-      const csrfToken = csrfRes.body.token
-      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-      if (connectSidCookie) {
-        session1Cookie = `${session1Cookie}; ${connectSidCookie}`
-      }
-
-      // Re-login with the old session cookie (simulates session fixation attempt)
       const login2 = await request(app)
         .post('/api/auth/login')
-        .set('Cookie', session1Cookie)
-        .set('x-csrf-token', csrfToken)
+        .set('Cookie', csrf.sessionCookie)
+        .set('x-csrf-token', csrf.token)
         .send({ email: testEmail, password: testPassword })
 
-      expect(login2.status).toBe(200)
+      expectOpenApiResponse({
+        method: 'post',
+        path: '/auth/login',
+        status: 200,
+        response: login2,
+        openApiSchemaName: 'LoginResponse',
+        schema: LoginResponseSchema,
+      })
 
-      // Old session should be invalid
       const meRes = await request(app)
         .get('/api/auth/me')
-        .set('Cookie', session1Cookie)
+        .set('Cookie', csrf.sessionCookie)
 
-      expect(meRes.status).toBe(401)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/auth/me',
+        status: 401,
+        response: meRes,
+      })
     })
   })
 })

@@ -1,3 +1,4 @@
+/** Bootstrap payload: user, workspace, programs, projects, issues, and wiki documents. */
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -14,6 +15,7 @@ import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError } from '../utils/route-http.js';
 import { INFERRED_PROJECT_STATUS_SUBQUERY } from '../sql/bootstrap-queries.js';
 import { pickBootstrapDocumentProperties } from '../constants/bootstrap-document.js';
+import { readProgramListFields, readProjectBootstrapFields } from '../utils/document-properties.js';
 import { listIssuesMetadata } from '../db/documents-repository.js';
 import { visibleAssociatedDocumentCountSql } from '../services/document-graph-visibility.js';
 
@@ -72,13 +74,26 @@ type ProjectRow = {
   converted_from_id?: string | null;
 };
 
+type BootstrapUserRow = {
+  id: string;
+  email: string;
+  name: string;
+  is_super_admin: boolean;
+};
+
+type BootstrapWorkspaceRow = {
+  id: string;
+  name: string;
+  role: string | null;
+};
+
 function mapProgram(row: ProgramRow) {
-  const props = row.properties || {};
+  const programFields = readProgramListFields(row.properties);
   return {
     id: row.id,
     name: row.title,
-    color: props.color || '#6366f1',
-    emoji: props.emoji || null,
+    color: programFields.color,
+    emoji: programFields.emoji,
     archived_at: row.archived_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -89,15 +104,15 @@ function mapProgram(row: ProgramRow) {
       name: row.owner_name,
       email: row.owner_email,
     } : null,
-    owner_id: props.owner_id || null,
-    accountable_id: props.accountable_id || null,
-    consulted_ids: props.consulted_ids || [],
-    informed_ids: props.informed_ids || [],
+    owner_id: programFields.owner_id,
+    accountable_id: programFields.accountable_id,
+    consulted_ids: programFields.consulted_ids,
+    informed_ids: programFields.informed_ids,
   };
 }
 
 function mapProject(row: ProjectRow) {
-  const props = row.properties || {};
+  const props = readProjectBootstrapFields(row.properties);
   const impact = props.impact !== undefined ? props.impact : null;
   const confidence = props.confidence !== undefined ? props.confidence : null;
   const ease = props.ease !== undefined ? props.ease : null;
@@ -110,7 +125,7 @@ function mapProject(row: ProjectRow) {
     ease,
     ice_score: computeICEScore(impact, confidence, ease),
     color: props.color || DEFAULT_PROJECT_PROPERTIES.color,
-    emoji: props.emoji || null,
+    emoji: props.emoji ?? null,
     program_id: row.program_id || null,
     archived_at: row.archived_at,
     created_at: row.created_at,
@@ -126,12 +141,12 @@ function mapProject(row: ProjectRow) {
     missing_fields: props.missing_fields ?? [],
     inferred_status: row.inferred_status || 'backlog',
     converted_from_id: row.converted_from_id || null,
-    owner_id: props.owner_id || null,
-    accountable_id: props.accountable_id || null,
-    consulted_ids: props.consulted_ids || [],
-    informed_ids: props.informed_ids || [],
+    owner_id: props.owner_id ?? null,
+    accountable_id: props.accountable_id ?? null,
+    consulted_ids: props.consulted_ids ?? [],
+    informed_ids: props.informed_ids ?? [],
     has_retro: props.has_retro ?? false,
-    target_date: props.target_date || null,
+    target_date: props.target_date ?? null,
     has_design_review: props.has_design_review ?? null,
   };
 }
@@ -179,8 +194,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
       projectsResult,
       issuesResult,
     ] = await Promise.all([
-      pool.query('SELECT id, email, name, is_super_admin FROM users WHERE id = $1', [userId]),
-      pool.query(
+      pool.query<BootstrapUserRow>('SELECT id, email, name, is_super_admin FROM users WHERE id = $1', [userId]),
+      pool.query<BootstrapWorkspaceRow>(
         `SELECT w.id, w.name, wm.role
          FROM workspaces w
          JOIN workspace_memberships wm ON w.id = wm.workspace_id
@@ -188,7 +203,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
          ORDER BY w.name`,
         [userId]
       ),
-      pool.query(
+      pool.query<BootstrapWorkspaceRow>(
         `SELECT w.id, w.name, wm.role
          FROM workspaces w
          LEFT JOIN workspace_memberships wm ON w.id = wm.workspace_id AND wm.user_id = $2
