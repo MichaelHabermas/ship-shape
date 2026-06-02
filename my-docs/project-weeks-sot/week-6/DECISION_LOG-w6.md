@@ -29,3 +29,13 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Public document create honors explicit titles only for OAuth public principals. Internal document create keeps `"Untitled"` semantics.
 - `@ship/cli` keeps `@ship/sdk` as a peer dependency plus workspace devDependency so packed fresh installs use local SDK+CLI tarballs instead of resolving `@ship/sdk` from npm.
 - `ship webhooks tail --once` is the actual receiver used by `pnpm drill ttfe`; it returns 200 only for verified signed events once a subscription secret is present.
+
+## 2026-06-02 — Developer Ops Control Plane + Webhook Reliability
+
+- Build operability before new integrations: Slack/GitLab/plugin runtime stay deferred until OAuth apps, webhook delivery, DLQ, replay, and public audit rows are inspectable and recoverable from workspace settings.
+- Webhook delivery logic uses injected clock, deliverer, timeout, validation, and DB runner dependencies so retry/DLQ tests advance fake time over canon delays instead of polling with `setTimeout`.
+- Retry semantics are fixed as: 2xx succeeds, 429/5xx/transport errors retry, non-429 4xx goes terminal DLQ, and the sixth failed attempt goes DLQ.
+- OAuth app rotation uses `oauth_app_secrets` rows with per-secret IDs and statuses. The default rotation gives the previous active secret 24h grace; immediate revoke flips active/grace secrets to revoked before inserting the new active secret.
+- Portal routes live under session-auth `/api/platform/apps`; public `/api/v1/webhooks` remains the external client contract. Portal subscription, delivery, and replay paths call the same webhook services instead of duplicating transport/replay logic.
+- The Developer settings tab is intentionally dense ops UI, not a marketing developer portal: app selector/create, one-time secret panel, secret rotation/revoke, subscriptions, delivery log with DLQ filter/replay, and public audit rows.
+- Fresh E2E databases use `api/src/db/schema.sql` and then mark migrations applied, so migration 056 also updates the schema snapshot.

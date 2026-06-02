@@ -1,10 +1,8 @@
-// Public webhook API tests prove signed document.created delivery and replay idempotency.
+// Public webhook API tests prove signed delivery, cursor listing, idempotency, and replay.
 import crypto from 'node:crypto';
-import http from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import {
-  PublicDocumentSchema,
   PublicApiErrorSchema,
   PublicWebhookDeliveriesListResponseSchema,
   PublicWebhookSubscriptionCreatedSchema,
@@ -13,41 +11,55 @@ import {
 import { createApp } from '../../../app.js';
 import { pool } from '../../../db/client.js';
 import { createOAuthAccessToken } from '../../oauth/tokens.js';
-import { enqueueWebhookEvent } from '../../webhooks/service.js';
+import type { IWebhookDeliverer, WebhookDelivererRequest } from '../../webhooks/deliverer.js';
+import {
+  configureWebhookServiceDependencies,
+  dispatchWebhookDeliveries,
+  enqueueWebhookEvent,
+} from '../../webhooks/service.js';
 import { expectJsonBody } from '../../../test/expect-json-body.js';
 import { type IdRow, requireFirstRow } from '../../../test/pg-result.js';
+
+type CapturedWebhookDelivery = {
+  headers: Record<string, string>;
+  rawBody: string;
+};
+
+class CapturingWebhookDeliverer implements IWebhookDeliverer {
+  constructor(private readonly deliveries: CapturedWebhookDelivery[]) {}
+
+  async deliver(delivery: WebhookDelivererRequest) {
+    this.deliveries.push({
+      headers: delivery.headers,
+      rawBody: delivery.rawBody,
+    });
+    return {
+      responseStatus: 200,
+      responseExcerpt: '{"ok":true}',
+      error: null,
+    };
+  }
+}
 
 describe('/api/v1/webhooks', () => {
   const app = createApp();
   const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const email = `public-webhooks-${testRunId}@ship.local`;
   const clientId = `ship_app_webhooks_${testRunId}`;
+  const targetUrl = 'https://hooks.example.test/webhook';
 
   let workspaceId: string;
   let userId: string;
   let appId: string;
   let token: string;
-  let server: http.Server;
-  let targetUrl: string;
-  const deliveries: Array<{
-    headers: http.IncomingHttpHeaders;
-    rawBody: string;
-  }> = [];
+  let restoreWebhookDependencies: (() => void) | null = null;
+  const deliveries: CapturedWebhookDelivery[] = [];
 
   beforeAll(async () => {
-    server = http.createServer((req, res) => {
-      const chunks: Buffer[] = [];
-      req.on('data', (chunk: Buffer) => chunks.push(chunk));
-      req.on('end', () => {
-        deliveries.push({
-          headers: req.headers,
-          rawBody: Buffer.concat(chunks).toString('utf8'),
-        });
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end('{"ok":true}');
-      });
+    restoreWebhookDependencies = configureWebhookServiceDependencies({
+      deliverer: new CapturingWebhookDeliverer(deliveries),
+      validateTargetUrl: async () => {},
     });
-    targetUrl = await listen(server);
 
     const workspaceResult = await pool.query<IdRow>(
       'INSERT INTO workspaces (name) VALUES ($1) RETURNING id',
@@ -97,7 +109,7 @@ describe('/api/v1/webhooks', () => {
   });
 
   afterAll(async () => {
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+    restoreWebhookDependencies?.();
     await pool.query('DELETE FROM webhook_deliveries WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM webhook_events WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM webhook_subscriptions WHERE workspace_id = $1', [workspaceId]);
@@ -157,17 +169,34 @@ describe('/api/v1/webhooks', () => {
     const subscription = expectJsonBody(subscriptionResponse, 201, PublicWebhookSubscriptionCreatedSchema);
 
     const deliveryStart = deliveries.length;
-    const createResponse = await request(app)
-      .post('/api/v1/documents')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ title: 'webhook hello' });
-    const document = expectJsonBody(createResponse, 201, PublicDocumentSchema);
-    const idempotencyKey = `document.created:${document.id}`;
+    const documentId = crypto.randomUUID();
+    const idempotencyKey = `document.created:${documentId}`;
+    const enqueued = await enqueueWebhookEvent({
+      type: 'document.created',
+      workspace_id: workspaceId,
+      idempotency_key: idempotencyKey,
+      payload: {
+        document: {
+          id: documentId,
+          title: 'webhook hello',
+          document_type: 'wiki',
+          api_url: `/api/v1/documents/${documentId}`,
+          ui_url: `/documents/${documentId}`,
+        },
+        actor: { id: userId },
+      },
+    });
+    expect(enqueued.deliveryIds.length).toBeGreaterThan(0);
+    await dispatchWebhookDeliveries(enqueued.deliveryIds);
 
-    const firstDelivery = await waitForVerifiedDelivery(subscription.signing_secret, idempotencyKey, deliveryStart);
-    expect(firstDelivery.headers['ship-event-type']).toBe('document.created');
-    expect(firstDelivery.headers['idempotency-key']).toBe(idempotencyKey);
-    expect(verifySignature(firstDelivery.headers['ship-signature'], firstDelivery.rawBody, subscription.signing_secret)).toBe(true);
+    const firstDelivery = findVerifiedDelivery(subscription.signing_secret, idempotencyKey, deliveryStart);
+    expect(headerValue(firstDelivery.headers, 'Ship-Event-Type')).toBe('document.created');
+    expect(headerValue(firstDelivery.headers, 'Idempotency-Key')).toBe(idempotencyKey);
+    expect(verifySignature(
+      headerValue(firstDelivery.headers, 'Ship-Signature'),
+      firstDelivery.rawBody,
+      subscription.signing_secret
+    )).toBe(true);
 
     const listResponse = await request(app)
       .get('/api/v1/webhooks/deliveries')
@@ -185,9 +214,13 @@ describe('/api/v1/webhooks', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(replayResponse.status).toBe(202);
 
-    const replayDelivery = await waitForVerifiedDelivery(subscription.signing_secret, idempotencyKey, replayStart);
-    expect(replayDelivery.headers['idempotency-key']).toBe(idempotencyKey);
-    expect(verifySignature(replayDelivery.headers['ship-signature'], replayDelivery.rawBody, subscription.signing_secret)).toBe(true);
+    const replayDelivery = findVerifiedDelivery(subscription.signing_secret, idempotencyKey, replayStart);
+    expect(headerValue(replayDelivery.headers, 'Idempotency-Key')).toBe(idempotencyKey);
+    expect(verifySignature(
+      headerValue(replayDelivery.headers, 'Ship-Signature'),
+      replayDelivery.rawBody,
+      subscription.signing_secret
+    )).toBe(true);
   });
 
   it('does not create duplicate delivery attempts for duplicate event publication', async () => {
@@ -229,39 +262,26 @@ describe('/api/v1/webhooks', () => {
     expect(Number(count.rows[0]?.count)).toBe(first.deliveryIds.length);
   });
 
-  async function waitForVerifiedDelivery(
+  function findVerifiedDelivery(
     secret: string,
     idempotencyKey: string,
     startIndex: number
-  ): Promise<{
-    headers: http.IncomingHttpHeaders;
+  ): {
+    headers: Record<string, string>;
     rawBody: string;
-  }> {
-    for (let attempt = 0; attempt < 100; attempt += 1) {
-      const delivery = deliveries.slice(startIndex).find(candidate => (
-        candidate.headers['ship-event-type'] === 'document.created' &&
-        candidate.headers['idempotency-key'] === idempotencyKey &&
-        verifySignature(candidate.headers['ship-signature'], candidate.rawBody, secret)
-      ));
-      if (delivery) return delivery;
-      await new Promise(resolve => setTimeout(resolve, 20));
-    }
+  } {
+    const delivery = deliveries.slice(startIndex).find(candidate => (
+      headerValue(candidate.headers, 'Ship-Event-Type') === 'document.created' &&
+      headerValue(candidate.headers, 'Idempotency-Key') === idempotencyKey &&
+      verifySignature(headerValue(candidate.headers, 'Ship-Signature'), candidate.rawBody, secret)
+    ));
+    if (delivery) return delivery;
     throw new Error(`Timed out waiting for verified webhook delivery ${idempotencyKey}`);
   }
 });
 
-function listen(server: http.Server): Promise<string> {
-  return new Promise((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      if (!address || typeof address === 'string') {
-        reject(new Error('Webhook test server did not bind to a TCP port'));
-        return;
-      }
-      resolve(`http://127.0.0.1:${address.port}/webhook`);
-    });
-  });
+function headerValue(headers: Record<string, string>, name: string): string | undefined {
+  return Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1];
 }
 
 function verifySignature(

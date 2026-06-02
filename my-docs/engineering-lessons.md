@@ -162,3 +162,19 @@ The transferable rules:
 - Treat "works with workspace symlink" as local convenience, not release proof.
 
 ShipShape example (2026-06): `ship webhooks tail` worked from the workspace, but `pnpm drill ttfe` failed because packed `@ship/cli` depended on `@ship/sdk` as `workspace:*` and fresh install tried npm. Moving `@ship/sdk` to a CLI peer dependency made the packed SDK+CLI drill real.
+
+## 14. Retry Logic Needs Injectable Time And Transport
+
+Backoff, timeout, retry, and dead-letter behavior cannot be tested well through real sleeps and real network calls. Those tests prove the wall clock moved, not that the retry state machine is correct. Put time, timers, transport, and persistence boundaries behind injectable seams; production uses real dependencies, tests advance fake time and return exact transport outcomes.
+
+The transferable rules:
+
+- Assert every retry class directly: success, retryable status, retryable transport error, terminal failure, and max-attempt DLQ.
+- Keep delay constants visible and test them without sleeping.
+- Capture outbound request metadata in tests so replay/idempotency behavior is observable.
+- Do not let UI or route tests duplicate retry logic; they should drive the same service path.
+- Atomically claim due work before side effects; "select then update" is enough to green tests and still double-send under two workers.
+- Persist retry state and next work item in one transaction, then recover stale in-flight rows by age; otherwise crashes land between green-state transitions.
+- Update bootstrap schema snapshots when retry/ops migrations must work in fresh isolated databases.
+
+ShipShape example (2026-06): webhook tests originally waited for deliveries with `setTimeout` polling. Refactoring delivery around an injected clock and deliverer made 2xx, 429/5xx, timeout, 4xx DLQ, six-failure DLQ, and replay `Idempotency-Key` behavior deterministic in milliseconds.

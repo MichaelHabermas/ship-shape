@@ -14,6 +14,10 @@ import type { PublicCursorPayload } from '../api/v1/pagination.js';
 import { isProduction } from '../../config/runtime.js';
 import { pool } from '../../db/client.js';
 import { logHotError } from '../../utils/hot-log.js';
+import {
+  FetchWebhookDeliverer,
+  type IWebhookDeliverer,
+} from './deliverer.js';
 import { webhookEventBus } from './event-bus.js';
 import { parseWebhookEvent } from './events.js';
 import { WEBHOOK_IDEMPOTENCY_KEY_HEADER } from './headers.js';
@@ -29,8 +33,52 @@ import {
 
 const RESPONSE_EXCERPT_MAX_LENGTH = 1_000;
 const WEBHOOK_DELIVERY_TIMEOUT_MS = 5_000;
+const MIN_STALE_SENDING_MS = 30_000;
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
+
+export type WebhookClock = {
+  now(): Date;
+  nowMs(): number;
+};
+
+export type WebhookServiceDependencies = {
+  clock: WebhookClock;
+  db: QueryRunner;
+  deliverer: IWebhookDeliverer;
+  deliveryTimeoutMs: number;
+  validateTargetUrl: (targetUrl: string) => Promise<void>;
+};
+
+const systemClock: WebhookClock = {
+  now: () => new Date(),
+  nowMs: () => Date.now(),
+};
+
+let webhookServiceDependencies: WebhookServiceDependencies = {
+  clock: systemClock,
+  db: pool,
+  deliverer: new FetchWebhookDeliverer(),
+  deliveryTimeoutMs: WEBHOOK_DELIVERY_TIMEOUT_MS,
+  validateTargetUrl: validateWebhookTargetUrl,
+};
+
+export function configureWebhookServiceDependencies(
+  overrides: Partial<WebhookServiceDependencies>
+): () => void {
+  const previous = webhookServiceDependencies;
+  webhookServiceDependencies = {
+    ...webhookServiceDependencies,
+    ...overrides,
+  };
+  return () => {
+    webhookServiceDependencies = previous;
+  };
+}
+
+function webhookDb(): QueryRunner {
+  return webhookServiceDependencies.db;
+}
 
 export class WebhookTargetUrlError extends Error {
   constructor(message: string) {
@@ -95,10 +143,10 @@ export async function createWebhookSubscription(input: {
   event: WebhookEventType;
   targetUrl: string;
 }): Promise<PublicWebhookSubscriptionCreated> {
-  await validateWebhookTargetUrl(input.targetUrl);
+  await webhookServiceDependencies.validateTargetUrl(input.targetUrl);
   const signingSecret = generateWebhookSigningSecret();
   const encrypted = encryptWebhookSigningSecret(signingSecret);
-  const result = await pool.query<WebhookSubscriptionRow>(
+  const result = await webhookDb().query<WebhookSubscriptionRow>(
     `INSERT INTO webhook_subscriptions (
        app_id,
        workspace_id,
@@ -148,7 +196,7 @@ export async function listWebhookSubscriptions(input: {
   values.push(input.limit);
   const limitParam = values.length;
 
-  const result = await pool.query<WebhookSubscriptionRow>(
+  const result = await webhookDb().query<WebhookSubscriptionRow>(
     `SELECT id, app_id, workspace_id, event_type, target_url,
             signing_secret_ciphertext, signing_secret_iv, signing_secret_tag,
             active, created_at, updated_at
@@ -180,7 +228,7 @@ export async function listWebhookDeliveries(input: {
   values.push(input.limit);
   const limitParam = values.length;
 
-  const result = await pool.query<WebhookDeliveryRow>(
+  const result = await webhookDb().query<WebhookDeliveryRow>(
     `SELECT d.id, d.subscription_id, d.event_id, d.workspace_id, d.attempt_number,
             d.status, d.idempotency_key, d.response_status, d.response_excerpt,
             d.latency_ms, d.next_attempt_at, d.replay_of_delivery_id,
@@ -204,7 +252,7 @@ export async function persistAndDispatchWebhookEvent(event: WebhookEvent): Promi
 
 export async function enqueueWebhookEvent(
   event: WebhookEvent,
-  db: QueryRunner = pool
+  db: QueryRunner = webhookDb()
 ): Promise<{ eventId: string; deliveryIds: string[] }> {
   const parsed = parseWebhookEvent(event);
   const eventResult = await db.query<WebhookEventRow>(
@@ -272,7 +320,7 @@ export async function replayWebhookDelivery(input: {
   appId: string;
   workspaceId: string;
 }): Promise<PublicWebhookDelivery> {
-  const originalResult = await pool.query<WebhookDeliveryRow>(
+  const originalResult = await webhookDb().query<WebhookDeliveryRow>(
     `SELECT d.id, d.subscription_id, d.event_id, d.workspace_id, d.attempt_number,
             d.status, d.idempotency_key, d.response_status, d.response_excerpt,
             d.latency_ms, d.next_attempt_at, d.replay_of_delivery_id,
@@ -295,35 +343,29 @@ export async function replayWebhookDelivery(input: {
   return publicDeliveryFromRow(updated);
 }
 
-export async function processDueWebhookDeliveries(now = new Date()): Promise<number> {
-  const due = await pool.query<{ id: string }>(
+export async function processDueWebhookDeliveries(now = webhookServiceDependencies.clock.now()): Promise<number> {
+  const staleSendingBefore = new Date(now.getTime() - staleSendingMs());
+  const due = await webhookDb().query<{ id: string }>(
     `SELECT id
        FROM webhook_deliveries
       WHERE (
         status = 'pending'
         AND (next_attempt_at IS NULL OR next_attempt_at <= $1)
       ) OR (
-        status = 'retrying'
-        AND next_attempt_at IS NOT NULL
-        AND next_attempt_at <= $1
+        status = 'sending'
+        AND updated_at <= $2
       )
-      ORDER BY next_attempt_at ASC, created_at ASC
+      ORDER BY next_attempt_at ASC NULLS FIRST, created_at ASC
       LIMIT 50`,
-    [now]
+    [now, staleSendingBefore]
   );
-  await Promise.all(due.rows.map(row => deliverWebhookDelivery(row.id)));
-  return due.rows.length;
+  const delivered = await Promise.all(due.rows.map(row => deliverWebhookDelivery(row.id)));
+  return delivered.filter(Boolean).length;
 }
 
-async function deliverWebhookDelivery(deliveryId: string): Promise<void> {
-  const delivery = await findDeliveryContext(deliveryId);
-  await pool.query(
-    `UPDATE webhook_deliveries
-     SET status = 'sending',
-         updated_at = NOW()
-     WHERE id = $1`,
-    [delivery.id]
-  );
+async function deliverWebhookDelivery(deliveryId: string): Promise<boolean> {
+  const delivery = await claimDeliveryContext(deliveryId);
+  if (!delivery) return false;
 
   const rawBody = JSON.stringify({
     id: delivery.event_id,
@@ -336,42 +378,38 @@ async function deliverWebhookDelivery(deliveryId: string): Promise<void> {
     iv: delivery.signing_secret_iv,
     tag: delivery.signing_secret_tag,
   });
-  const startedAt = Date.now();
+  const startedAt = webhookServiceDependencies.clock.nowMs();
 
   try {
-    await validateWebhookTargetUrl(delivery.target_url);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), WEBHOOK_DELIVERY_TIMEOUT_MS);
-    const response = await fetch(delivery.target_url, {
-      method: 'POST',
+    await webhookServiceDependencies.validateTargetUrl(delivery.target_url);
+    const result = await webhookServiceDependencies.deliverer.deliver({
+      targetUrl: delivery.target_url,
       headers: {
         'Content-Type': 'application/json',
         [SHIP_SIGNATURE_HEADER]: signWebhookPayload({ rawBody, secret }),
         [WEBHOOK_IDEMPOTENCY_KEY_HEADER]: delivery.idempotency_key,
         'Ship-Event-Type': delivery.event_type,
       },
-      body: rawBody,
-      signal: controller.signal,
-      redirect: 'manual',
+      rawBody,
+      timeoutMs: webhookServiceDependencies.deliveryTimeoutMs,
     });
-    clearTimeout(timeout);
-    const responseExcerpt = await response.text();
     await recordDeliveryResult({
       delivery,
-      responseStatus: response.status,
-      responseExcerpt: responseExcerpt.slice(0, RESPONSE_EXCERPT_MAX_LENGTH),
-      latencyMs: Date.now() - startedAt,
-      error: null,
+      responseStatus: result.responseStatus,
+      responseExcerpt: result.responseExcerpt?.slice(0, RESPONSE_EXCERPT_MAX_LENGTH) ?? null,
+      latencyMs: webhookServiceDependencies.clock.nowMs() - startedAt,
+      error: result.error,
     });
   } catch (error) {
     await recordDeliveryResult({
       delivery,
       responseStatus: null,
       responseExcerpt: null,
-      latencyMs: Date.now() - startedAt,
+      latencyMs: webhookServiceDependencies.clock.nowMs() - startedAt,
       error: error instanceof Error ? error.message : 'Webhook delivery failed',
     });
   }
+  return true;
 }
 
 export function isWebhookTargetUrlError(error: unknown): error is WebhookTargetUrlError {
@@ -393,7 +431,11 @@ export async function validateWebhookTargetUrl(rawTargetUrl: string): Promise<vo
     throw new WebhookTargetUrlError('Webhook target URL cannot target private or metadata hosts');
   }
 
-  const addresses = await dns.lookup(targetUrl.hostname, { all: true, verbatim: true });
+  const addresses = await withTimeout(
+    dns.lookup(targetUrl.hostname, { all: true, verbatim: true }),
+    webhookServiceDependencies.deliveryTimeoutMs,
+    () => new WebhookTargetUrlError('Webhook target URL DNS lookup timed out')
+  );
   if (addresses.some(address => isUnsafeIpAddress(address.address))) {
     throw new WebhookTargetUrlError('Webhook target URL resolved to a private or metadata address');
   }
@@ -473,7 +515,7 @@ async function recordDeliveryResult(input: {
   const nextStatus = classifyDeliveryStatus(input.responseStatus, input.error);
   if (nextStatus === 'succeeded') {
     await updateDelivery(input.delivery.id, 'succeeded', input, {
-      deliveredAt: new Date(),
+      deliveredAt: webhookServiceDependencies.clock.now(),
       nextAttemptAt: null,
     });
     return;
@@ -482,24 +524,26 @@ async function recordDeliveryResult(input: {
   const shouldRetry = nextStatus === 'retrying' && input.delivery.attempt_number < WEBHOOK_MAX_FAILED_ATTEMPTS;
   if (!shouldRetry) {
     await updateDelivery(input.delivery.id, 'dlq', input, {
-      failedAt: new Date(),
+      failedAt: webhookServiceDependencies.clock.now(),
       nextAttemptAt: null,
     });
     return;
   }
 
   const delay = WEBHOOK_RETRY_DELAYS_MS[input.delivery.attempt_number - 1] ?? WEBHOOK_RETRY_DELAYS_MS[0];
-  const nextAttemptAt = new Date(Date.now() + delay);
-  await updateDelivery(input.delivery.id, 'retrying', input, { nextAttemptAt: null });
-  await createDeliveryAttempt({
-    subscriptionId: input.delivery.subscription_id,
-    eventId: input.delivery.event_id,
-    workspaceId: input.delivery.workspace_id,
-    attemptNumber: input.delivery.attempt_number + 1,
-    idempotencyKey: input.delivery.idempotency_key,
-    status: 'pending',
-    nextAttemptAt,
-    replayOfDeliveryId: input.delivery.replay_of_delivery_id,
+  const nextAttemptAt = new Date(webhookServiceDependencies.clock.nowMs() + delay);
+  await withWebhookTransaction(async (db) => {
+    await updateDelivery(input.delivery.id, 'retrying', input, { nextAttemptAt }, db);
+    await createDeliveryAttempt({
+      subscriptionId: input.delivery.subscription_id,
+      eventId: input.delivery.event_id,
+      workspaceId: input.delivery.workspace_id,
+      attemptNumber: input.delivery.attempt_number + 1,
+      idempotencyKey: input.delivery.idempotency_key,
+      status: 'pending',
+      nextAttemptAt,
+      replayOfDeliveryId: input.delivery.replay_of_delivery_id,
+    }, db);
   });
 }
 
@@ -527,9 +571,10 @@ async function updateDelivery(
     deliveredAt?: Date;
     failedAt?: Date;
     nextAttemptAt: Date | null;
-  }
+  },
+  db: QueryRunner = webhookDb()
 ): Promise<void> {
-  await pool.query(
+  await db.query(
     `UPDATE webhook_deliveries
      SET status = $2,
          response_status = $3,
@@ -539,7 +584,7 @@ async function updateDelivery(
          delivered_at = $7,
          failed_at = $8,
          last_error = $9,
-         updated_at = NOW()
+         updated_at = $10
      WHERE id = $1`,
     [
       deliveryId,
@@ -551,6 +596,7 @@ async function updateDelivery(
       timing.deliveredAt ?? null,
       timing.failedAt ?? null,
       result.error,
+      webhookServiceDependencies.clock.now(),
     ]
   );
 }
@@ -564,7 +610,7 @@ async function createDeliveryAttempt(input: {
   status: WebhookDeliveryStatus;
   nextAttemptAt: Date | null;
   replayOfDeliveryId: string | null;
-}, db: QueryRunner = pool): Promise<WebhookDeliveryRow | null> {
+}, db: QueryRunner = webhookDb()): Promise<WebhookDeliveryRow | null> {
   const result = await db.query<WebhookDeliveryRow>(
     `INSERT INTO webhook_deliveries (
        subscription_id,
@@ -616,8 +662,40 @@ async function createReplayDeliveryAttempt(original: WebhookDeliveryRow): Promis
   throw new Error('Webhook replay delivery conflict did not settle');
 }
 
+async function claimDeliveryContext(deliveryId: string): Promise<DeliveryContextRow | null> {
+  const now = webhookServiceDependencies.clock.now();
+  const staleSendingBefore = new Date(now.getTime() - staleSendingMs());
+  const result = await webhookDb().query<DeliveryContextRow>(
+    `UPDATE webhook_deliveries d
+        SET status = 'sending',
+            updated_at = $2
+       FROM webhook_events e,
+            webhook_subscriptions s
+      WHERE d.id = $1
+        AND e.id = d.event_id
+        AND s.id = d.subscription_id
+        AND (
+          (
+            d.status = 'pending'
+            AND (d.next_attempt_at IS NULL OR d.next_attempt_at <= $2)
+          ) OR (
+            d.status = 'sending'
+            AND d.updated_at <= $3
+          )
+        )
+      RETURNING d.id, d.subscription_id, d.event_id, d.workspace_id, d.attempt_number,
+                d.status, d.idempotency_key, d.response_status, d.response_excerpt,
+                d.latency_ms, d.next_attempt_at, d.replay_of_delivery_id,
+                d.created_at, d.updated_at,
+                e.event_type, e.payload AS event_payload, e.created_at AS event_created_at,
+                s.target_url, s.signing_secret_ciphertext, s.signing_secret_iv, s.signing_secret_tag`,
+    [deliveryId, now, staleSendingBefore]
+  );
+  return result.rows[0] ?? null;
+}
+
 async function findDelivery(deliveryId: string): Promise<WebhookDeliveryRow> {
-  const result = await pool.query<WebhookDeliveryRow>(
+  const result = await webhookDb().query<WebhookDeliveryRow>(
     `SELECT id, subscription_id, event_id, workspace_id, attempt_number,
             status, idempotency_key, response_status, response_excerpt,
             latency_ms, next_attempt_at, replay_of_delivery_id,
@@ -629,25 +707,8 @@ async function findDelivery(deliveryId: string): Promise<WebhookDeliveryRow> {
   return requireRow(result.rows[0], 'Webhook delivery not found');
 }
 
-async function findDeliveryContext(deliveryId: string): Promise<DeliveryContextRow> {
-  const result = await pool.query<DeliveryContextRow>(
-    `SELECT d.id, d.subscription_id, d.event_id, d.workspace_id, d.attempt_number,
-            d.status, d.idempotency_key, d.response_status, d.response_excerpt,
-            d.latency_ms, d.next_attempt_at, d.replay_of_delivery_id,
-            d.created_at, d.updated_at,
-            e.event_type, e.payload AS event_payload, e.created_at AS event_created_at,
-            s.target_url, s.signing_secret_ciphertext, s.signing_secret_iv, s.signing_secret_tag
-       FROM webhook_deliveries d
-       JOIN webhook_events e ON e.id = d.event_id
-       JOIN webhook_subscriptions s ON s.id = d.subscription_id
-      WHERE d.id = $1`,
-    [deliveryId]
-  );
-  return requireRow(result.rows[0], 'Webhook delivery context not found');
-}
-
 async function nextDeliveryAttemptNumber(eventId: string, subscriptionId: string): Promise<number> {
-  const result = await pool.query<{ next_attempt: number }>(
+  const result = await webhookDb().query<{ next_attempt: number }>(
     `SELECT COALESCE(MAX(attempt_number), 0) + 1 AS next_attempt
        FROM webhook_deliveries
       WHERE event_id = $1
@@ -655,6 +716,58 @@ async function nextDeliveryAttemptNumber(eventId: string, subscriptionId: string
     [eventId, subscriptionId]
   );
   return result.rows[0]?.next_attempt ?? 1;
+}
+
+async function withWebhookTransaction<T>(run: (db: QueryRunner) => Promise<T>): Promise<T> {
+  const db = webhookDb();
+  if (canConnect(db)) {
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await run(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  await db.query('BEGIN');
+  try {
+    const result = await run(db);
+    await db.query('COMMIT');
+    return result;
+  } catch (error) {
+    await db.query('ROLLBACK');
+    throw error;
+  }
+}
+
+function canConnect(db: QueryRunner): db is Pool {
+  return typeof (db as { connect?: unknown }).connect === 'function';
+}
+
+function staleSendingMs(): number {
+  return Math.max(MIN_STALE_SENDING_MS, webhookServiceDependencies.deliveryTimeoutMs * 3);
+}
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutError: () => Error
+): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timeout = setTimeout(() => reject(timeoutError()), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 function publicSubscriptionFromRow(row: WebhookSubscriptionRow): PublicWebhookSubscription {

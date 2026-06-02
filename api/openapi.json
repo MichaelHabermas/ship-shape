@@ -207,6 +207,9 @@
           },
           "message": {
             "type": "string"
+          },
+          "details": {
+            "nullable": true
           }
         },
         "required": [
@@ -9081,6 +9084,30 @@
           "webhooks:manage"
         ]
       },
+      "PlatformWebhookEventType": {
+        "type": "string",
+        "enum": [
+          "document.created",
+          "document.updated",
+          "document.deleted",
+          "issue.created",
+          "issue.assigned",
+          "issue.status_changed",
+          "sprint.started",
+          "sprint.completed"
+        ]
+      },
+      "PlatformWebhookDeliveryStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "sending",
+          "succeeded",
+          "retrying",
+          "failed",
+          "dlq"
+        ]
+      },
       "CreateOAuthAppRequest": {
         "type": "object",
         "properties": {
@@ -9093,7 +9120,8 @@
             "type": "array",
             "items": {
               "type": "string",
-              "format": "uri"
+              "format": "uri",
+              "pattern": "^https:\\/\\/[^#]+$|^http:\\/\\/(?:localhost|127\\.0\\.0\\.1|\\[::1\\])(?::\\d+)?(?:[/?][^#]*)?$"
             },
             "minItems": 1
           },
@@ -9126,6 +9154,12 @@
           "client_id": {
             "type": "string"
           },
+          "client_secret_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
           "client_secret": {
             "type": "string",
             "description": "Raw client secret. Returned only once during app creation."
@@ -9143,7 +9177,16 @@
               "$ref": "#/components/schemas/PublicApiScope"
             }
           },
+          "is_active": {
+            "type": "boolean"
+          },
           "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "updated_at": {
             "type": "string",
             "format": "date-time",
             "description": "ISO 8601 datetime string",
@@ -9157,11 +9200,122 @@
           "id",
           "name",
           "client_id",
+          "client_secret_id",
           "client_secret",
           "redirect_uris",
           "requested_scopes",
+          "is_active",
           "created_at",
+          "updated_at",
           "warning"
+        ]
+      },
+      "OAuthAppSecret": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "grace",
+              "revoked"
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "revoked_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "expires_at",
+          "revoked_at",
+          "created_at"
+        ]
+      },
+      "OAuthAppSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "requested_scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicApiScope"
+            }
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "secrets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OAuthAppSecret"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "client_id",
+          "redirect_uris",
+          "requested_scopes",
+          "is_active",
+          "created_at",
+          "updated_at",
+          "secrets"
         ]
       },
       "OAuthAppCreatedResponse": {
@@ -9175,6 +9329,468 @@
           },
           "data": {
             "$ref": "#/components/schemas/OAuthAppCreated"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "OAuthAppsListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "apps": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/OAuthAppSummary"
+                }
+              }
+            },
+            "required": [
+              "apps"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "RotateOAuthAppSecretRequest": {
+        "type": "object",
+        "properties": {
+          "revoke_previous_immediately": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OAuthSecretRotation": {
+        "type": "object",
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "client_secret_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "previous_secret_expires_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "warning": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "app_id",
+          "client_secret_id",
+          "client_secret",
+          "previous_secret_expires_at",
+          "warning"
+        ]
+      },
+      "OAuthSecretRotationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/OAuthSecretRotation"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "OAuthSecretSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/OAuthAppSecret"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlatformWebhookCreateRequest": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/PlatformWebhookEventType"
+          },
+          "target_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?:\\/\\/(?![^/?#]*@)[^#]+$"
+          }
+        },
+        "required": [
+          "event",
+          "target_url"
+        ]
+      },
+      "PlatformWebhookSubscription": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "event": {
+            "$ref": "#/components/schemas/PlatformWebhookEventType"
+          },
+          "target_url": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "event",
+          "target_url",
+          "active",
+          "created_at"
+        ]
+      },
+      "PlatformWebhookSubscriptionCreated": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PlatformWebhookSubscription"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "signing_secret": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "signing_secret"
+            ]
+          }
+        ]
+      },
+      "PlatformWebhookDelivery": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "subscription_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "attempt_number": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PlatformWebhookDeliveryStatus"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "response_status": {
+            "type": "integer",
+            "nullable": true
+          },
+          "response_excerpt": {
+            "type": "string",
+            "nullable": true
+          },
+          "latency_ms": {
+            "type": "integer",
+            "nullable": true
+          },
+          "next_attempt_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "replay_of_delivery_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "subscription_id",
+          "event_id",
+          "attempt_number",
+          "status",
+          "idempotency_key",
+          "response_status",
+          "response_excerpt",
+          "latency_ms",
+          "next_attempt_at",
+          "replay_of_delivery_id",
+          "created_at"
+        ]
+      },
+      "PlatformPublicApiAuditRow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "user_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "method": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "scope_used": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer"
+          },
+          "latency_ms": {
+            "type": "integer"
+          },
+          "error_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "rate_limited": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "request_id",
+          "client_id",
+          "user_id",
+          "method",
+          "route",
+          "scope_used",
+          "status",
+          "latency_ms",
+          "error_code",
+          "rate_limited",
+          "created_at"
+        ]
+      },
+      "PlatformWebhookSubscriptionsPageResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlatformWebhookSubscription"
+                }
+              },
+              "next_cursor": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "data",
+              "next_cursor"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlatformWebhookDeliveriesPageResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlatformWebhookDelivery"
+                }
+              },
+              "next_cursor": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "data",
+              "next_cursor"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlatformPublicApiAuditPageResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlatformPublicApiAuditRow"
+                }
+              },
+              "next_cursor": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "data",
+              "next_cursor"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlatformWebhookCreatedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/PlatformWebhookSubscriptionCreated"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlatformWebhookReplayResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/PlatformWebhookDelivery"
           }
         },
         "required": [
@@ -24210,6 +24826,79 @@
       }
     },
     "/platform/apps": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List OAuth apps",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth apps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAppsListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "Platform"
@@ -24242,13 +24931,762 @@
             }
           },
           "400": {
-            "description": "Validation error"
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Workspace admin session required"
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/secrets/rotate": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Rotate OAuth app secret",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RotateOAuthAppSecretRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth app secret rotated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthSecretRotationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/secrets/{secretId}/revoke": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Revoke OAuth app secret",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "secretId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth app secret revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthSecretSummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/webhooks": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List app webhook subscriptions",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook subscriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWebhookSubscriptionsPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Create app webhook subscription",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformWebhookCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Webhook subscription created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWebhookCreatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/webhooks/deliveries": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List app webhook deliveries",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook deliveries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWebhookDeliveriesPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/webhooks/deliveries/{deliveryId}/replay": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Replay app webhook delivery",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "deliveryId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Webhook delivery replayed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWebhookReplayResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/audit": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List public API audit rows for app",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public API audit rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformPublicApiAuditPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }

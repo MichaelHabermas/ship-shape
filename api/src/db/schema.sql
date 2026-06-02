@@ -110,6 +110,27 @@ CREATE TABLE IF NOT EXISTS oauth_apps (
   CONSTRAINT oauth_apps_id_workspace_unique UNIQUE (id, workspace_id)
 );
 
+CREATE TABLE IF NOT EXISTS oauth_app_secrets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  app_id UUID NOT NULL,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  secret_hash TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('active', 'grace', 'revoked')),
+  expires_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT oauth_app_secrets_app_workspace_fk
+    FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE,
+  CONSTRAINT oauth_app_secrets_status_timestamps_check
+    CHECK (
+      (status = 'active' AND expires_at IS NULL AND revoked_at IS NULL)
+      OR (status = 'grace' AND expires_at IS NOT NULL AND revoked_at IS NULL)
+      OR (status = 'revoked' AND revoked_at IS NOT NULL)
+    )
+);
+
 CREATE TABLE IF NOT EXISTS oauth_grants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   app_id UUID NOT NULL,
@@ -634,6 +655,7 @@ CREATE TABLE IF NOT EXISTS api_tokens (
   name TEXT NOT NULL,         -- User-provided name (e.g., "Claude Code")
   token_hash TEXT NOT NULL,   -- SHA-256 hash (never store plain token)
   token_prefix TEXT NOT NULL, -- First 8 chars for identification
+  scopes TEXT[] NOT NULL DEFAULT ARRAY['legacy:full']::text[],
   last_used_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,     -- NULL = never expires
   revoked_at TIMESTAMPTZ,     -- NULL = active, timestamp = revoked
@@ -1241,6 +1263,14 @@ CREATE INDEX IF NOT EXISTS idx_sessions_workspace_id ON sessions(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_oauth_state_expires_at ON oauth_state(expires_at);
 CREATE INDEX IF NOT EXISTS idx_oauth_apps_workspace_owner
   ON oauth_apps(workspace_id, owner_user_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_app_secrets_one_active
+  ON oauth_app_secrets(app_id)
+  WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_oauth_app_secrets_app_created
+  ON oauth_app_secrets(app_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_oauth_app_secrets_grace_expiry
+  ON oauth_app_secrets(expires_at)
+  WHERE status = 'grace';
 CREATE INDEX IF NOT EXISTS idx_oauth_grants_app_user
   ON oauth_grants(app_id, user_id, workspace_id)
   WHERE revoked_at IS NULL;

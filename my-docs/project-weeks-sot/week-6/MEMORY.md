@@ -21,6 +21,8 @@ Current placed anchors:
 - `api/src/platform/webhooks/event-bus.ts` with in-process public webhook publication.
 - `api/src/platform/webhooks/deliverer.ts` with inert `IWebhookDeliverer`.
 - `api/src/platform/webhooks/delivery-log.ts` with canon-named delivery attempt fields only.
+- `api/src/platform/apps/routes.ts` and `service.ts` with the session-auth developer ops control plane: app list/create, secret rotate/revoke, app webhooks, delivery log, replay, and public audit rows.
+- `api/src/db/migrations/056_oauth_app_secrets.sql` with per-secret IDs, `active | grace | revoked` status, 24h grace rotation, immediate revoke, and shown-once raw secret behavior.
 - `api/src/platform/api/v1/router.ts` mounted at `/api/v1` with public rate-limit/audit middleware, unauthenticated public OpenAPI, `/me`, documents, and webhooks.
 - `api/src/platform/api/v1/paths.ts` with canon-named public paths only.
 - `api/src/platform/api/v1/pagination.ts` with public cursor/list envelope types.
@@ -39,6 +41,8 @@ Current placed anchors:
 - `docs/architecture.md` is now an honest current-state PlugForge architecture artifact: implemented spine, pre-1.0 gaps, and failure modes are labeled instead of left as placeholders.
 - `integrations/README.md` with the external integration import boundary.
 - `integrations/cli` workspace package `@ship/cli` with bin `ship`; it imports only `@ship/sdk`, keeps SDK as a peer dependency for packed installs, and implements login/docs/webhooks tail.
+- `web/src/pages/DeveloperSettingsTab.tsx` under workspace settings with the minimum ops UI: app selector, shown-once secret panel, rotation/revoke, subscriptions, delivery log with DLQ filter/replay, and public audit table.
+- `e2e/developer-ops.spec.ts` is the targeted Playwright drill for portal create -> webhook DLQ -> replay with preserved `Idempotency-Key`.
 
 ## Product And System Invariants
 
@@ -54,9 +58,21 @@ Public `/api/v1` routes must be registered in `publicApiV1RouteRegistry` before 
 
 Public OpenAPI is separate from internal OpenAPI. `api/openapi.json` is the internal `/api` spec; `docs/openapi.json` is generated from `api/src/platform/api/v1/openapi.ts`. `pnpm openapi:check:strict` compares both specs separately.
 
+Platform OpenAPI schemas must mirror runtime validation closely enough for generated clients. If a route rejects URL shape, credential, fragment, scope, or validation-error `details` fields, the internal spec must advertise that behavior before regenerating client types.
+
 Public document creates may honor explicit titles only for OAuth/public principals. Existing internal create flows must keep defaulting new document titles to exactly `"Untitled"`.
 
 Webhook `document.created` is enqueued inside the `createDocumentMutation` transaction and dispatched after commit. Payloads include IDs/title/type/API+UI URLs and actor ID, not full document content. Replays preserve the original `Idempotency-Key`.
+
+Webhook retry semantics are deterministic-testable: delivery uses injected clock, deliverer, timeout, validation, and DB runner dependencies. Do not reintroduce real sleeps in webhook tests; prove retry/DLQ by advancing fake time over the canon schedule.
+
+Webhook delivery attempts must be atomically claimed before outbound POST. Due processing delivers pending rows plus stale `sending` rows; retry transitions update the failed attempt and insert the next pending attempt inside one transaction so crashes do not strand deliveries or double-send.
+
+OAuth app secrets are rows, not mutable columns. Rotation inserts a new active secret, moves the previous active secret to 24h grace unless immediate revoke is requested, and never returns raw secrets from list/audit/log read models.
+
+OAuth app secret rows carry status/timestamp invariants at the DB boundary: active has no expiry/revocation timestamp, grace has a non-null expiry and no revocation timestamp, and revoked has a revocation timestamp.
+
+Developer portal routes are session-auth workspace-admin routes under `/api/platform/apps`; public `/api/v1/webhooks` remains the external contract. Portal delivery/replay must call the same webhook services, not duplicate delivery logic.
 
 Mounted PlugForge HTTP routes must be visible to OpenAPI route parity checks even while public OpenAPI product work is deferred. `scripts/check-openapi-routes.mjs` scans both `api/src/routes` and `api/src/platform`; do not let platform routes bypass the contract gate.
 
@@ -82,6 +98,8 @@ After anchor placement on 2026-06-02, targeted verification passed with `pnpm --
 
 After the OAuth front door slice on 2026-06-02, targeted PlugForge tests should run through `scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts src/platform/api/v1/me.test.ts src/platform/api/v1/middleware.test.ts src/platform/oauth/tokens.test.ts src/platform/oauth/provider.test.ts`. Direct Vitest defaults to `ship_dev` unless `DATABASE_URL` is set and should refuse to truncate it. If `ship_test_audit` is stale, run `DATABASE_URL="$(./scripts/resolve-database-url.sh ship_test_audit)" pnpm db:migrate` before blaming OAuth tests.
 
+After the developer ops slice on 2026-06-02, targeted reliability/control-plane proof is `scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts src/platform/webhooks/service.test.ts src/platform/api/v1/webhooks.test.ts src/platform/oauth/provider.test.ts src/platform/api/v1/middleware.test.ts`, plus `pnpm --filter @ship/web exec vitest run src/pages/DeveloperSettingsTab.test.tsx` and `PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/developer-ops.spec.ts`.
+
 ## Leverage Points
 
 The TTFE developer spine is now real enough to compose: Device Grant login -> OAuth token -> public documents -> generated public OpenAPI -> SDK/CLI -> signed `document.created` webhook -> `pnpm drill ttfe`. Next leverage is hardening delivery operations/portal read models, not adding Slack/GitLab/plugin runtime.
@@ -93,6 +111,8 @@ Do not add `docs/openapi.json` by hand; canon requires generated OpenAPI. Do not
 `client_secret` hashes use Argon2id via `argon2`; OAuth access tokens are high-entropy random bearer tokens stored by SHA-256 hash for lookup. Keep that split unless a later threat model changes it deliberately.
 
 Seeded OAuth access-token tests are not sufficient proof of a platform front door. Keep at least one proof that obtains a code through browser consent, exchanges it with PKCE, then uses the minted access token against `/api/v1/me`.
+
+Fresh E2E databases bootstrap from `api/src/db/schema.sql` and mark migrations applied. Any migration that adds PlugForge tables needed by E2E must update the schema snapshot too, or Playwright will fail inside a missing-table/column trap instead of the feature under test.
 
 ## User And Team Preferences
 

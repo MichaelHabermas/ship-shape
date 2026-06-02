@@ -8585,7 +8585,72 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List OAuth apps */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OAuth apps */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OAuthAppsListResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Workspace admin session required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
         put?: never;
         /**
          * Create OAuth app
@@ -8618,24 +8683,632 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
                 /** @description Workspace admin session required */
                 403: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
                 /** @description Internal server error */
                 500: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/apps/{appId}/secrets/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate OAuth app secret */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    appId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RotateOAuthAppSecretRequest"];
+                };
+            };
+            responses: {
+                /** @description OAuth app secret rotated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OAuthSecretRotationResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Workspace admin session required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/apps/{appId}/secrets/{secretId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke OAuth app secret */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    appId: string;
+                    secretId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OAuth app secret revoked */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OAuthSecretSummaryResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Workspace admin session required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/apps/{appId}/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List app webhook subscriptions */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    appId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Webhook subscriptions */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlatformWebhookSubscriptionsPageResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Workspace admin session required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create app webhook subscription */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    appId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PlatformWebhookCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Webhook subscription created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlatformWebhookCreatedResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Workspace admin session required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/apps/{appId}/webhooks/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List app webhook deliveries */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    appId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Webhook deliveries */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlatformWebhookDeliveriesPageResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Workspace admin session required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/apps/{appId}/webhooks/deliveries/{deliveryId}/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replay app webhook delivery */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    appId: string;
+                    deliveryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Webhook delivery replayed */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlatformWebhookReplayResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Workspace admin session required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/apps/{appId}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public API audit rows for app */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    appId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Public API audit rows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlatformPublicApiAuditPageResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Workspace admin session required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -10379,6 +11052,7 @@ export interface components {
         ApiErrorBody: {
             code: string;
             message: string;
+            details?: unknown;
         };
         ApiErrorResponse: {
             /** @enum {boolean} */
@@ -14044,6 +14718,10 @@ export interface components {
         };
         /** @enum {string} */
         PublicApiScope: "documents:read" | "documents:write" | "issues:read" | "issues:write" | "sprints:read" | "sprints:write" | "webhooks:manage";
+        /** @enum {string} */
+        PlatformWebhookEventType: "document.created" | "document.updated" | "document.deleted" | "issue.created" | "issue.assigned" | "issue.status_changed" | "sprint.started" | "sprint.completed";
+        /** @enum {string} */
+        PlatformWebhookDeliveryStatus: "pending" | "sending" | "succeeded" | "retrying" | "failed" | "dlq";
         CreateOAuthAppRequest: {
             name: string;
             redirect_uris: string[];
@@ -14058,22 +14736,263 @@ export interface components {
             id: string;
             name: string;
             client_id: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            client_secret_id: string;
             /** @description Raw client secret. Returned only once during app creation. */
             client_secret: string;
             redirect_uris: string[];
             requested_scopes: components["schemas"]["PublicApiScope"][];
+            is_active: boolean;
             /**
              * Format: date-time
              * @description ISO 8601 datetime string
              * @example 2025-01-30T14:30:00.000Z
              */
             created_at: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            updated_at: string;
             warning: string;
+        };
+        OAuthAppSecret: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            /** @enum {string} */
+            status: "active" | "grace" | "revoked";
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            expires_at: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            revoked_at: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            created_at: string;
+        };
+        OAuthAppSummary: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            name: string;
+            client_id: string;
+            redirect_uris: string[];
+            requested_scopes: components["schemas"]["PublicApiScope"][];
+            is_active: boolean;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            updated_at: string;
+            secrets: components["schemas"]["OAuthAppSecret"][];
         };
         OAuthAppCreatedResponse: {
             /** @enum {boolean} */
             success: true;
             data: components["schemas"]["OAuthAppCreated"];
+        };
+        OAuthAppsListResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                apps: components["schemas"]["OAuthAppSummary"][];
+            };
+        };
+        RotateOAuthAppSecretRequest: {
+            revoke_previous_immediately?: boolean;
+        };
+        OAuthSecretRotation: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            app_id: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            client_secret_id: string;
+            client_secret: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            previous_secret_expires_at: string | null;
+            warning: string;
+        };
+        OAuthSecretRotationResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["OAuthSecretRotation"];
+        };
+        OAuthSecretSummaryResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["OAuthAppSecret"];
+        };
+        PlatformWebhookCreateRequest: {
+            event: components["schemas"]["PlatformWebhookEventType"];
+            /** Format: uri */
+            target_url: string;
+        };
+        PlatformWebhookSubscription: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            event: components["schemas"]["PlatformWebhookEventType"];
+            target_url: string;
+            active: boolean;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            created_at: string;
+        };
+        PlatformWebhookSubscriptionCreated: components["schemas"]["PlatformWebhookSubscription"] & {
+            signing_secret: string;
+        };
+        PlatformWebhookDelivery: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            subscription_id: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            event_id: string;
+            attempt_number: number;
+            status: components["schemas"]["PlatformWebhookDeliveryStatus"];
+            idempotency_key: string;
+            response_status: number | null;
+            response_excerpt: string | null;
+            latency_ms: number | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            next_attempt_at: string | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            replay_of_delivery_id: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            created_at: string;
+        };
+        PlatformPublicApiAuditRow: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            request_id: string;
+            client_id: string | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            user_id: string | null;
+            method: string;
+            route: string;
+            scope_used: string | null;
+            status: number;
+            latency_ms: number;
+            error_code: string | null;
+            rate_limited: boolean;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            created_at: string;
+        };
+        PlatformWebhookSubscriptionsPageResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                data: components["schemas"]["PlatformWebhookSubscription"][];
+                next_cursor: string | null;
+            };
+        };
+        PlatformWebhookDeliveriesPageResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                data: components["schemas"]["PlatformWebhookDelivery"][];
+                next_cursor: string | null;
+            };
+        };
+        PlatformPublicApiAuditPageResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                data: components["schemas"]["PlatformPublicApiAuditRow"][];
+                next_cursor: string | null;
+            };
+        };
+        PlatformWebhookCreatedResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["PlatformWebhookSubscriptionCreated"];
+        };
+        PlatformWebhookReplayResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["PlatformWebhookDelivery"];
         };
         FleetGraphFindingsListResponse: {
             findings: {
