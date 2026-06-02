@@ -161,11 +161,36 @@ function listRouteModuleFiles(dir) {
   return files;
 }
 
+function publicApiRegistryRoutes() {
+  const metadataPath = join(root, 'api/src/platform/api/v1/route-metadata.ts');
+  if (!existsSync(metadataPath)) return [];
+
+  const source = read(metadataPath);
+  const routes = [];
+  const metadataBlockRegex =
+    /export const \w+RouteMetadata = \{([\s\S]*?)\} satisfies PublicRouteMetadata/g;
+
+  for (const [, block] of source.matchAll(metadataBlockRegex)) {
+    const methodMatch = block.match(/method:\s*['"](\w+)['"]/);
+    const mountPathMatch = block.match(/handlerMountPath:\s*['"]([^'"]+)['"]/);
+    if (!methodMatch || !mountPathMatch) continue;
+    routes.push(
+      `${methodMatch[1].toUpperCase()} ${normalizeRuntimePath(`/api/v1${mountPathMatch[1]}`)}`
+    );
+  }
+
+  return routes;
+}
+
 function runtimeRoutes() {
   const appSource = read(appPath);
   const mounts = extractMounts(appSource);
   const routeBindings = extractRouteBindings(appSource);
   const routes = new Set();
+
+  for (const route of publicApiRegistryRoutes()) {
+    routes.add(route);
+  }
 
   for (const method of methods) {
     const appRouteRegex = new RegExp(`app\\.${method}\\(\\s*['"\`]([^'"\`]+)['"\`]`, 'g');
