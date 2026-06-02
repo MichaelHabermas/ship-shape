@@ -9,6 +9,7 @@
 - `AI Cost Analysis` means the section titled `AI Cost Analysis` inside `Plugforge-specs.txt`, not a separate markdown file. Source: User decision; Plugforge-specs.txt lines 388-432, AI Cost Analysis.
 - Lines derived from Pre-Search Checklist questions are open decisions, not requirements. Source: User decision; Plugforge-specs.txt lines 654-818, Appendix: Pre-Search Checklist.
 - Existing-code inventory and reuse mapping are outside this PRD rewrite and are deferred until after this literal requirements ledger is accepted. Source: User decision.
+- Additive implementation notes in this document do not change, replace, weaken, or complete any canonical requirement. They are non-normative research annotations that connect requirements to existing Ship code, identify reusable substrate, and name likely reuse paths. Use them as recommended starting points unless implementation discovers a cleaner or safer path; if diverging, note why. Reuse levels are exactly: `Existing complete`, `Strong substrate`, `Partial substrate`, or `New build`. Source: User decision.
 
 Requirement classes used below:
 
@@ -52,6 +53,32 @@ Requirement classes used below:
 - OAuth app model, Authorization Code + PKCE, Device Authorization Grant, Scope Registry, Token Middleware, and Refresh Tokens are specified in the OAuth + Public API Contract Layer. Source: Plugforge-specs.txt lines 73-115, Core Technical Requirements > OAuth + Public API Contract Layer.
 - OAuth flow tests are specified in Testing Scenarios. Source: Plugforge-specs.txt lines 191-198, Testing Scenarios.
 - OAuth implementation stack guidance is specified in Technical Stack. Source: Plugforge-specs.txt lines 448-450, Technical Stack > OAuth Implementation.
+
+### Additive Implementation Notes
+
+> Additive implementation note: OAuth app model, credential display, bearer auth, and scopes.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: API-token creation already accepts scoped credential requests in `api/src/routes/api-tokens.ts:44`, creates shown-once bearer tokens in `api/src/routes/api-tokens.ts:100`, stores only token hashes in `api/src/routes/api-tokens.ts:104`, and writes token audit events in `api/src/routes/api-tokens.ts:111`. Token persistence exists in `api/src/db/migrations/014_api_tokens.sql:4`; scoped token storage exists in `api/src/db/migrations/041_security_capabilities.sql:1`; bearer-token validation exists in `api/src/middleware/auth.ts:53`; token validation populates principal state in `api/src/security/tokens.ts:47`; scope/principal types live in `api/src/security/principal.ts:4`; scope-to-capability checks live in `api/src/security/capabilities.ts:120` and `api/src/security/capabilities.ts:159`.
+> Recommended reuse path: model the OAuth app creation and shown-once secret flow after the API-token create/list/revoke pattern, then adapt bearer middleware to validate OAuth access tokens and populate app, user, and granted scopes. Reuse capability authorization as the downstream domain permission layer.
+> Gap/new work: build `oauth_apps` or equivalent, OAuth client-secret hashing with Argon2id, secret rotation records, authorization grants, authorization codes, access tokens, refresh-token families, device codes, consent records, `require(scope)` middleware, and a scopes-as-data registry.
+> Do not overclaim: existing API tokens are not OAuth apps, existing token hashes are SHA-256 rather than Argon2id client-secret hashes, and existing scoped API-token auth does not implement Authorization Code + PKCE, Device Authorization Grant, refresh rotation, app ownership, consent, or OAuth error semantics.
+
+> Additive implementation note: Authorization Code + PKCE security mechanics.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: Ship already consumes an external OAuth/OIDC provider through CAIA. PKCE verifier/challenge, state, and nonce generation are in `api/src/services/caia.ts:274`; the authorize URL carries `code_challenge` and `code_challenge_method` in `api/src/services/caia.ts:285`; callback exchange with expected state/nonce lives in `api/src/services/caia.ts:303`; database-backed state storage is used by `api/src/routes/caia-auth.ts:67`; one-time state storage/consume functions live in `api/src/services/oauth-state.ts:58` and `api/src/services/oauth-state.ts:86`; the table is created by `api/src/db/migrations/010_oauth_state.sql:8`.
+> Recommended reuse path: copy the security posture and one-time-state pattern for Plugforge OAuth provider flows, but invert the role: Ship must become the authorization server for external clients.
+> Gap/new work: implement `/oauth/authorize`, `/oauth/token`, consent UI, PKCE challenge persistence, verifier validation, auth-code issuance, token exchange, OAuth provider errors, and public-client handling.
+> Do not overclaim: CAIA proves Ship has OAuth client experience; it is not a reusable OAuth provider implementation.
+
+> Additive implementation note: session CSRF and portal/consent POST protection.
+> Canonical requirement unchanged.
+> Reuse level: `Strong substrate`.
+> Existing substrate: API-token bearer requests bypass CSRF because bearer tokens are not browser auto-attached in `api/src/app.ts:56`; Origin/Referer and CSRF token checks for cookie-auth mutating requests live in `api/src/app.ts:77`; CSRF token endpoint exists at `api/src/app.ts:271`; the web client includes CSRF behavior in `web/src/api/client.ts:102`.
+> Recommended reuse path: use existing session CSRF protection for OAuth consent POSTs and developer-portal credential bootstrap endpoints.
+> Gap/new work: add OAuth-specific consent routes and ensure they set `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`.
+> Do not overclaim: existing CSRF protection does not create the OAuth consent flow; it is only the browser-session safety layer to reuse.
 
 ### Required Contract
 
@@ -119,6 +146,40 @@ Requirement classes used below:
 - Public API boundary, error shape, cursor pagination, and OpenAPI are specified in Core Technical Requirements. Source: Plugforge-specs.txt lines 103-115, Core Technical Requirements > OAuth + Public API Contract Layer.
 - Documents resource requirements are listed in MVP Requirements. Source: Plugforge-specs.txt lines 53-54, MVP Requirements.
 - Exact `ApiError` interface is specified in Interface Definitions. Source: Plugforge-specs.txt lines 268-277, Signature Challenge > Interface Definitions.
+
+### Additive Implementation Notes
+
+> Additive implementation note: generated OpenAPI and route metadata.
+> Canonical requirement unchanged.
+> Reuse level: `Strong substrate`.
+> Existing substrate: route-adjacent OpenAPI registration exists in `api/src/openapi/define-route.ts:142`; route config includes method/path/tags/security/request/response metadata in `api/src/openapi/define-route.ts:38`; the shared registry is in `api/src/openapi/registry.ts:20`; the generator currently runs from `api/src/openapi/registry.ts:43`; the generated document is served at `/api/openapi.json` in `api/src/swagger.ts:42`; generated files are written by `api/src/swagger.ts:112`; root generation also emits web client types in `package.json:31`; OpenAPI route/spec parity checking starts from `scripts/check-openapi-routes.mjs:10`; OpenAPI response assertions exist in `api/src/test/openapi-response.ts:30`; project guidance documents the workflow in `docs/openapi-contract.md:8`.
+> Recommended reuse path: create the `/api/v1` public route layer using route-adjacent Zod schemas and metadata, and extend or parallel the existing generator/parity checker for public OpenAPI 3.1 and scope declarations.
+> Gap/new work: current OpenAPI is `3.0.0` in `api/src/openapi/registry.ts:46`, current live spec is `/api/openapi.json`, public `/api/v1/openapi.json` does not exist, and route-scope fitness checks do not exist.
+> Do not overclaim: the existing OpenAPI system is internal `/api` contract tooling, not the required public `/api/v1` OpenAPI 3.1 surface.
+
+> Additive implementation note: public resource routes should reuse domain services, not internal handlers.
+> Canonical requirement unchanged.
+> Reuse level: `Strong substrate`.
+> Existing substrate: document list/get/create/update/delete handlers exist under `api/src/routes/documents/`; create/update schemas live in `api/src/routes/documents/shared.ts:158`; document reads use `loadDocumentForRead` in `api/src/routes/documents/shared.ts:122`; document creation delegates to `createDocumentMutation` in `api/src/services/document-mutations/create.ts:25`; document OpenAPI schemas exist in `api/src/openapi/schemas/documents.ts:11`; issue mutation services exist in `api/src/services/issue-mutations/create.ts:24` and `api/src/services/issue-mutations/update.ts:30`; sprint/week data is document-backed in `api/src/routes/weeks/sprints/collection.ts:24`; the unified document model is documented in `docs/unified-document-model.md:3` and `docs/unified-document-model.md:84`.
+> Recommended reuse path: make `/api/v1` resource handlers call shared domain/query/mutation services or introduce shared public-safe service functions. Do not import internal Express handlers.
+> Gap/new work: public response DTOs, public request schemas, cursor envelopes, public `ApiError`, public scopes, and `/api/v1/me` must be implemented.
+> Do not overclaim: existing internal `/api/documents`, `/api/issues`, and `/api/weeks` routes return internal shapes and sometimes arrays or legacy error bodies; they do not satisfy Plugforge public route, error, scope, or pagination contracts.
+
+> Additive implementation note: public error shape and request id.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: internal API response typing exists in `shared/src/types/api.ts:1`; generated OpenAPI already includes an internal `ApiErrorResponse` type in `web/src/api/generated/ship-openapi.d.ts:10124`; the web client has status-error handling in `web/src/api/client.ts:127`.
+> Recommended reuse path: reuse naming and typed-error discipline, but implement a separate public error middleware for top-level `{ code, message, details?, request_id }`.
+> Gap/new work: add public request-id middleware, attach `request_id` to every `/api/v1` failure, map internal domain errors into Plugforge's exact public error-code union, and fitness-test all public failure paths.
+> Do not overclaim: existing internal errors are mixed `{ success: false, error: ... }`, `{ error: string }`, and route-specific bodies; they are not the required public `ApiError`.
+
+> Additive implementation note: cursor pagination.
+> Canonical requirement unchanged.
+> Reuse level: `New build`.
+> Existing substrate: internal list routes exist, for example documents in `api/src/routes/documents/list.ts:12` and issues in `api/src/routes/issues/index.ts:56`.
+> Recommended reuse path: reuse the underlying list queries where safe, but wrap all public list responses in `{ data, next_cursor }`.
+> Gap/new work: opaque base64 cursor encode/decode over `{ id, timestamp }`, stable ordering, list endpoint fitness tests, and SDK iterator behavior.
+> Do not overclaim: existing internal list routes return arrays and do not provide opaque public cursors.
 
 ### Required Contract
 
@@ -193,6 +254,32 @@ interface ApiError {
 - Webhook signing, retry, DLQ, delivery log, and replay requirements are specified in Core Technical Requirements. Source: Plugforge-specs.txt lines 118-153, Core Technical Requirements > Webhooks: Signing, Retries, Replay.
 - Webhook tests are specified in Testing Scenarios. Source: Plugforge-specs.txt lines 204-212, Testing Scenarios.
 - Exact signature helper contract is specified in Interface Definitions. Source: Plugforge-specs.txt lines 292-299, Signature Challenge > Interface Definitions.
+
+### Additive Implementation Notes
+
+> Additive implementation note: event publication and durable retry pattern.
+> Canonical requirement unchanged.
+> Reuse level: `Strong substrate`.
+> Existing substrate: FleetGraph already uses durable attention events. Its queue table is `api/src/db/migrations/045_fleetgraph_attention_events.sql:3`; attempts/status fields are in `api/src/db/migrations/045_fleetgraph_attention_events.sql:24`; active dedupe and claim indexes are in `api/src/db/migrations/045_fleetgraph_attention_events.sql:42` and `api/src/db/migrations/045_fleetgraph_attention_events.sql:51`; retry delay logic exists in `api/src/fleetgraph/persistence.ts:247`; enqueue is in `api/src/fleetgraph/persistence.ts:509`; claim uses `FOR UPDATE SKIP LOCKED` in `api/src/fleetgraph/persistence.ts:542`; retry/fail paths live in `api/src/fleetgraph/persistence.ts:606` and `api/src/fleetgraph/persistence.ts:627`.
+> Recommended reuse path: model webhook delivery persistence, claiming, backoff, terminal failure, and replay safety after the FleetGraph queue patterns, while keeping webhook event/delivery schemas separate from FleetGraph attention events.
+> Gap/new work: build event registry, `IEventBus`, subscription matcher, webhook subscriptions, signing secret storage, HMAC signer, in-memory deliverer, delivery log, DLQ, replay, idempotency headers, retry classification, and deterministic timing tests.
+> Do not overclaim: FleetGraph attention events are not webhooks; they do not store webhook subscriptions, target URLs, HMAC secrets, response excerpts, delivery logs, DLQ visibility, or replay endpoints.
+
+> Additive implementation note: domain layer writes already publish post-write side effects.
+> Canonical requirement unchanged.
+> Reuse level: `Strong substrate`.
+> Existing substrate: FleetGraph events are enqueued from domain/service code, not route-only glue. `enqueueFleetGraphIssueAttentionEvents` is in `api/src/fleetgraph/events.ts:41`; issue creation publishes attention events in `api/src/services/issue-mutations/create.ts:102`; issue updates publish attention events in `api/src/services/issue-mutations/update.ts:297`; realtime broadcast helpers exist in `api/src/collaboration/broadcast.ts:130`; current shared realtime event types live in `shared/src/types/realtime-events.ts:18`.
+> Recommended reuse path: publish webhook domain events from the same mutation/service layer where Ship source writes complete, then fan out through the new event bus.
+> Gap/new work: convert Plugforge event types into data with Zod payload schemas and wire document/issue/sprint writes to publish the exact required events.
+> Do not overclaim: realtime WebSocket broadcast and FleetGraph attention events are internal side effects, not the required third-party webhook pipeline.
+
+> Additive implementation note: existing generated OpenAPI confirms no webhook API surface exists yet.
+> Canonical requirement unchanged.
+> Reuse level: `New build`.
+> Existing substrate: generated web OpenAPI types currently expose `webhooks` as an empty type in `web/src/api/generated/ship-openapi.d.ts:10047`.
+> Recommended reuse path: use this as a negative check: adding `/api/v1/webhooks` should visibly create generated public webhook operations and SDK parity cases.
+> Gap/new work: every webhook management, delivery-log query, and replay operation must be added from scratch.
+> Do not overclaim: current repository has webhook mentions in docs/backlog, not a webhook product implementation.
 
 ### Required Contract
 
@@ -284,6 +371,24 @@ function verifyWebhook(
 - Exact `ShipClient` interface is specified in Interface Definitions. Source: Plugforge-specs.txt lines 279-290, Signature Challenge > Interface Definitions.
 - SDK parity testing is specified in Testing Scenarios. Source: Plugforge-specs.txt lines 202-203, Testing Scenarios.
 
+### Additive Implementation Notes
+
+> Additive implementation note: SDK package shape and generated type substrate.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: the workspace already supports packages in `pnpm-workspace.yaml:2`; generated OpenAPI-to-TypeScript is wired in `package.json:31`; the web app already uses `openapi-fetch` in `web/package.json:53`; the generated typed client is created in `web/src/api/client.ts:102`; `ApiPaths` is exported in `web/src/api/client.ts:143`; existing CLI/package structure can be copied from `packages/shipshape-security/package.json:1`, `packages/shipshape-security/bin/shipshape-security.mjs:1`, and `packages/shipshape-security/src/cli/router.mjs:1`.
+> Recommended reuse path: create a new `@ship/sdk` workspace package using the existing package/build/bin conventions, consume generated or OpenAPI-derived types internally, and hand-author the public `ShipClient` surface.
+> Gap/new work: add the package itself, public exports, resource clients, OAuth helpers, `ITokenStore`, refresh lock, async iterators, `ShipError`, webhook verifier, size check, and OpenAPI-to-SDK parity test.
+> Do not overclaim: the web app's generated OpenAPI client is SDK-adjacent infrastructure; it is not `@ship/sdk` and is not the required public developer surface.
+
+> Additive implementation note: API-as-agent-tool precedent.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: Ship's MCP server already auto-generates tools from the running OpenAPI spec in `api/src/mcp/server.ts:3`; it fetches `/api/openapi.json` in `api/src/mcp/server.ts:126`; tool generation starts in `api/src/mcp/server.ts:322`; API-token-based execution is configured through `SHIP_API_TOKEN` and `SHIP_URL` in `api/src/mcp/server.ts:9`; docs describe the same OpenAPI-to-tool loop in `docs/ship-claude-cli-integration.md:253`.
+> Recommended reuse path: use this as evidence that Ship already treats OpenAPI as an agent/tool contract. Keep SDK parity similarly generated-and-checked, but curated by a hand-authored TypeScript surface.
+> Gap/new work: public `/api/v1` operations, SDK methods, and OAuth-based auth must replace internal MCP assumptions for Plugforge.
+> Do not overclaim: MCP tool generation is not the SDK and does not satisfy npm package, TypeScript ergonomics, OAuth helper, async iterator, or webhook verifier requirements.
+
 ### Required Contract
 
 - `@ship/sdk` must exist as a pnpm workspace package skeleton. Source: Plugforge-specs.txt lines 61-62, MVP Requirements.
@@ -344,6 +449,16 @@ class ShipClient {
 
 - TTFE definition, five-line story, required capabilities, exact interface snippets, example drill loop, and evaluation criteria are specified in Signature Challenge. Source: Plugforge-specs.txt lines 238-354, Signature Challenge.
 - CLI flow is a must-ship integration. Source: Plugforge-specs.txt lines 357-358, Implement at Least 5 of the Following Integrations / Flows.
+
+### Additive Implementation Notes
+
+> Additive implementation note: CLI package and drill harness.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: existing workspace package/bin conventions live in `packages/shipshape-security/package.json:1`, `packages/shipshape-security/bin/shipshape-security.mjs:1`, and `packages/shipshape-security/src/cli/router.mjs:1`; workspace packages are listed in `pnpm-workspace.yaml:2`; API and E2E tests already have isolated environment support through `e2e/fixtures/isolated-env.ts:5`, worker-scoped fixtures in `e2e/fixtures/isolated-env.ts:91`, API server setup in `e2e/fixtures/isolated-env.ts:146`, web server setup in `e2e/fixtures/isolated-env.ts:206`, and dynamic baseURL support in `e2e/fixtures/isolated-env.ts:283`; Playwright isolation is documented in `playwright.config.ts:4`; shard runner infrastructure exists in `scripts/run-e2e-shards.sh:17`.
+> Recommended reuse path: create the `ship` CLI as a package/bin using the existing package style, then make the TTFE drill pack/install the SDK/CLI from a clean working directory and run against a controlled Ship instance.
+> Gap/new work: add `ship login`, `ship docs ls`, `ship docs get`, `ship docs create`, `ship webhooks tail`, device-login token storage, packed-artifact install, webhook listener/tail implementation, elapsed-stage timing, and CI threshold enforcement.
+> Do not overclaim: the security probe CLI is only a package/CLI pattern; it is not the Plugforge `ship` CLI and does not implement Device Authorization Grant or webhook tailing.
 
 ### Required Contract
 
@@ -425,6 +540,16 @@ ship webhooks tail
 - User selected 6 final integrations/flows and made the 7th stretch only. Source: User decision.
 - External integrations must import only `@ship/sdk`, never `api/src/*`. Source: Plugforge-specs.txt lines 518-520, Critical Guidance > External integrations import only @ship/sdk.
 
+### Additive Implementation Notes
+
+> Additive implementation note: selected integrations are mostly new, but resource/event substrate exists.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: there is no top-level `sdk/`, `cli/`, or `integrations/` directory in the current workspace package list at `pnpm-workspace.yaml:2`. Slack appears as backlog/seed data in `api/src/db/seed.ts:631`, not as integration code. Issue assignment state already exists in issue mutation logic at `api/src/services/issue-mutations/update.ts:146`; issue mutations already emit FleetGraph events at `api/src/services/issue-mutations/update.ts:297`; document creation already uses a domain mutation service in `api/src/services/document-mutations/create.ts:25`; browser SPA infrastructure exists in `web/package.json:2` and `web/src/main.tsx:1`.
+> Recommended reuse path: build integrations only through `@ship/sdk` and public webhooks. For Slack, consume signed `document.created` and `issue.assigned` payloads and post notification messages. For GitLab, use public issue data plus webhook/application wiring. For the browser demo, reuse the existing React/Vite app conventions but authenticate through Authorization Code + PKCE.
+> Gap/new work: Slack OAuth/app setup, Slack notification worker/app, GitLab app wiring, browser SDK demo app, integration import-boundary lint rule, refresh-token rotation drill, and idempotency replay drill.
+> Do not overclaim: Slack/GitLab/plugin runtime are not already implemented; existing docs/backlog mentions are not integration substrate.
+
 ### CLI Tool
 
 - CLI tool with device flow is final scope and must ship. Source: User decision; Plugforge-specs.txt lines 357-358, Implement at Least 5 of the Following Integrations / Flows.
@@ -489,6 +614,32 @@ ship webhooks tail
 - Rate limit enforcement, public audit trail, and developer portal requirements are specified in SDK, Rate Limiting, Developer Portal. Source: Plugforge-specs.txt lines 179-188, Core Technical Requirements > SDK, Rate Limiting, Developer Portal.
 - Portal replay and DLQ visibility are also required by Webhooks and Testing Scenarios. Source: Plugforge-specs.txt lines 142-144, Core Technical Requirements > Dead-Letter Queue; Plugforge-specs.txt lines 210-212, Testing Scenarios.
 
+### Additive Implementation Notes
+
+> Additive implementation note: developer portal credential and audit UI patterns.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: workspace settings already includes API-token UI state and rendering in `web/src/pages/WorkspaceSettings.tsx:523`; API-token calls are in `web/src/lib/api.ts:570`; admin audit-log state loads in `web/src/pages/AdminDashboard.tsx:33`; audit-log UI rendering starts in `web/src/pages/AdminDashboard.tsx:406`; workspace audit-log API calls exist in `web/src/lib/api.ts:455`; admin audit routes query audit rows in `api/src/routes/admin/audit-logs.ts:17`; workspace audit routes query audit rows in `api/src/routes/workspaces/audit-logs.ts:19`.
+> Recommended reuse path: reuse existing settings/admin UI patterns for OAuth app list/create, shown-once secret display, audit browsing, and basic table/filter interactions. Reuse public API/service paths for webhook subscriptions, delivery logs, replay, and public audit views.
+> Gap/new work: OAuth app portal pages, secret rotation UX, webhook subscription UI, delivery log UI, DLQ view, replay action, public audit filters, and portal routes backed by public/service paths.
+> Do not overclaim: API-token UI proves credential-management patterns, not OAuth app registration or webhook portal functionality.
+
+> Additive implementation note: rate limiting.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: Express rate limiting is already configured in `api/src/app.ts:193` for login and `api/src/app.ts:204` for general API traffic, then mounted for `/api/` in `api/src/app.ts:261`; AI analysis has a separate in-memory user limiter in `api/src/services/ai-analysis.ts:80`; collaboration has connection/message limiters in `api/src/collaboration/runtime-state.ts:83` and `api/src/collaboration/runtime-state.ts:98`.
+> Recommended reuse path: reuse only the middleware placement and in-memory limiter experience; implement a Plugforge-specific token-bucket limiter for `/api/v1` keyed per OAuth app and access token.
+> Gap/new work: token bucket data structure, app/token bucket keys, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`, public `rate_limited` `ApiError`, and 100% header fitness tests.
+> Do not overclaim: existing `express-rate-limit` is global/IP-style and configured with `legacyHeaders: false`; it is not the required per-app/per-token public API limiter.
+
+> Additive implementation note: public audit trail.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: audit insertion is centralized in `api/src/services/audit.ts:16` and writes to `audit_logs` in `api/src/services/audit.ts:33`; audit rows preserve actor-null cases via `api/src/db/migrations/009_audit_logs_nullable_actor.sql:1`; user deletion preserves audit rows via `api/src/db/migrations/036_fix_audit_and_comments_fks.sql:12`; API-token create/revoke already audit in `api/src/routes/api-tokens.ts:111` and `api/src/routes/api-tokens.ts:228`.
+> Recommended reuse path: either extend audit logging or add a public API audit table/service that records one row per `/api/v1` request, then expose it through the developer portal.
+> Gap/new work: request id, route template, method, app `client_id`, user id, token/grant id, required scope, status, latency, rate-limit result, and error code for every public API call.
+> Do not overclaim: existing audit logs record selected actions, not every public API call and not the Plugforge public audit schema.
+
 ### Required Contract
 
 - Public API rate limits must be token-bucket limits per app and per token. Source: Plugforge-specs.txt lines 179-181, Core Technical Requirements > Rate Limit Enforcement.
@@ -526,6 +677,24 @@ ship webhooks tail
 - Agent rewire appears in Background. Source: Plugforge-specs.txt lines 20-25, Background.
 - `AI Cost Analysis` is a heading inside `Plugforge-specs.txt`, not a separate document. Source: User decision; Plugforge-specs.txt lines 388-432, AI Cost Analysis.
 - Critical guidance states the platform must not invoke the LLM. Source: Plugforge-specs.txt lines 516-517, Critical Guidance > One LLM call per agent turn.
+
+### Additive Implementation Notes
+
+> Additive implementation note: FleetGraph is the agent-as-citizen precedent.
+> Canonical requirement unchanged.
+> Reuse level: `Strong substrate`.
+> Existing substrate: FleetGraph's current responsibility boundary, human gate, and cost claims are documented in `FLEETGRAPH.md:7`; trigger model is documented in `FLEETGRAPH.md:91`; deterministic-first/cost-avoidance rationale is documented in `FLEETGRAPH.md:143`; cost lanes and runtime model accounting are documented in `FLEETGRAPH.md:176`; model-call guardrails are documented in `FLEETGRAPH.md:204`; no-candidate worker ticks spending zero model tokens are documented in `FLEETGRAPH.md:284`; FleetGraph system principal type exists in `api/src/security/principal.ts:32`; capability handling for `fleetgraph_system` is in `api/src/security/capabilities.ts:269`; worker execution already uses that principal in `api/src/fleetgraph/execution/worker.ts:237`; proof scripts are wired in `package.json:68`.
+> Recommended reuse path: keep FleetGraph's current behavioral boundary, but rewire the agent's Ship reads/writes through first-party OAuth app credentials, `@ship/sdk`, `/api/v1`, scopes, rate limits, and public audit logging.
+> Gap/new work: first-party OAuth app seeding, selected agent scopes, SDK-based FleetGraph client path, feature flag if needed, public API audit assertions, and proof rows showing OAuth app authentication.
+> Do not overclaim: FleetGraph is currently a privileged internal/system principal path; it does not already authenticate as an OAuth app or consume Ship through the public SDK/API.
+
+> Additive implementation note: AI cost analysis instrumentation.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: FleetGraph model invocation captures token metadata and cost metadata in `api/src/fleetgraph/model.ts:53` and `api/src/fleetgraph/model.ts:95`; zero-model metadata helpers exist in `api/src/fleetgraph/model.ts:138`; proof rendering reports graph invocation count, model calls, tokens, deterministic runs, and model cost in `scripts/fleetgraph-proof/render-markdown.mjs:56`; FleetGraph proof check is wired in `package.json:69`.
+> Recommended reuse path: use FleetGraph's runtime cost accounting as the baseline for the agent-rewire cost comparison and explicitly separate platform API/webhook/portal traffic from user-initiated agent LLM turns.
+> Gap/new work: before/after measurement around the public-API rewire and production projections for API calls, webhook deliveries, agent LLM calls, delivery-log retention, and audit-log retention.
+> Do not overclaim: FleetGraph proof records agent runtime/model costs; it does not automatically account for all Plugforge platform traffic or CI/developer costs.
 
 ### Required Contract
 
@@ -568,6 +737,32 @@ ship webhooks tail
 - Architecture document requirements are specified in Required Documentation. Source: Plugforge-specs.txt lines 525-566, Required Documentation.
 - Submission deliverables are specified in Submission Requirements. Source: Plugforge-specs.txt lines 570-611, Submission Requirements.
 - User decision resolves the deadline conflict in favor of Sunday noon Austin/Texas time. Source: User decision; Plugforge-specs.txt lines 27-39, Project Overview; Plugforge-specs.txt lines 570-572, Submission Requirements.
+
+### Additive Implementation Notes
+
+> Additive implementation note: deployment and evidence substrate.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: active deployment path is Render in `DEPLOYMENT.md:3`; current Render health URLs are documented in `DEPLOYMENT.md:41`; Render services are declared in `render.yaml:1`; API service build/migrate command is in `render.yaml:6`; web static service starts at `render.yaml:69`; Render Postgres is declared in `render.yaml:96`; FleetGraph/trace env wiring exists in `render.yaml:30` through `render.yaml:65`.
+> Recommended reuse path: use the existing Render API/web/Postgres pattern for the deployed Plugforge demo unless a blocker appears, then add public `/api/v1/openapi.json`, seeded grader workspace data, and seeded grader OAuth apps.
+> Gap/new work: deployed public OpenAPI route, committed `docs/openapi.json`, grader OAuth app seeding, README credentials, developer portal reachability, TTFE against deployed target, and demo evidence.
+> Do not overclaim: current Render deployment proves hosting substrate, not Plugforge public API/OAuth/webhook readiness.
+
+> Additive implementation note: test and CI substrate.
+> Canonical requirement unchanged.
+> Reuse level: `Partial substrate`.
+> Existing substrate: full local verification orchestration exists in `scripts/run-all-tests.sh:35`; API test runner exists in `scripts/run-api-tests.sh:29`; E2E sharding exists in `scripts/run-e2e-shards.sh:17`; OpenAPI strict check is in `.husky/pre-commit:13`; GitHub workflow inventory currently contains `security-probe.yml` only, with PR/push triggers in `.github/workflows/security-probe.yml:4` and Postgres service in `.github/workflows/security-probe.yml:19`.
+> Recommended reuse path: wire Plugforge fitness tests into existing local scripts and add CI coverage where submission requires every-PR proof.
+> Gap/new work: TTFE drill CI lane, OAuth Playwright CI lane, `/api/v1` OpenAPI/schema/scope/error/pagination fitness tests, SDK parity test, SDK size check, webhook timing tests, and integration import-boundary lint.
+> Do not overclaim: existing scripts support full local verification, but the current GitHub workflow set does not yet run the full Plugforge acceptance matrix on every PR.
+
+> Additive implementation note: architecture documentation paths.
+> Canonical requirement unchanged.
+> Reuse level: `Strong substrate`.
+> Existing substrate: existing OpenAPI contract workflow is documented in `docs/openapi-contract.md:8`; route-adjacent schema guidance is in `docs/openapi-contract.md:28`; unified document model source of truth is in `docs/unified-document-model.md:3`; document associations are documented in `docs/unified-document-model.md:84`; agent/FleetGraph proof and cost docs live in `FLEETGRAPH.md:7`; browser storage conventions for portal UI preferences are in `docs/conventions/browser-storage.md:1`.
+> Recommended reuse path: write `docs/architecture.md` by referencing these existing documents and then adding the Plugforge-specific module tree, composition root, sequence diagrams, public/internal boundary, OAuth flows, webhook pipeline, SDK surface, and agent-before/after.
+> Gap/new work: `docs/architecture.md` and `docs/openapi.json` must still be authored/generated for Plugforge.
+> Do not overclaim: existing docs explain Ship's current architecture; they do not satisfy the Plugforge required architecture document by themselves.
 
 ### Required Documentation
 
