@@ -21,7 +21,7 @@ describe('public API middleware', () => {
 
   beforeAll(async () => {
     app.use('/api/v1', publicApiAuditMiddleware);
-    app.get('/api/v1/needs-write', requirePublicApiBearer('documents:write'), (_req, res) => {
+    app.get('/api/v1/needs-write', requirePublicApiBearer(['documents:write']), (_req, res) => {
       res.json({ ok: true });
     });
 
@@ -101,7 +101,7 @@ describe('public API middleware', () => {
     expect(body).toEqual({
       code: 'forbidden',
       message: 'Missing required scope: documents:write',
-      details: { missing_scope: 'documents:write' },
+      details: { missing_scope: 'documents:write', required_scopes: ['documents:write'] },
       request_id: requestId,
     });
 

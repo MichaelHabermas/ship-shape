@@ -54,7 +54,7 @@ export const publicDocumentsRouter = Router();
 
 publicDocumentsRouter.get(
   publicDocumentsListRouteMetadata.handlerMountPath,
-  requirePublicApiBearer(publicDocumentsListRouteMetadata.requiredScope),
+  requirePublicApiBearer(publicDocumentsListRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicDocumentsListRouteMetadata.path);
     const parsed = PublicDocumentListQuerySchema.safeParse(req.query);
@@ -134,7 +134,7 @@ publicDocumentsRouter.get(
 
 publicDocumentsRouter.get(
   publicDocumentsGetRouteMetadata.handlerMountPath,
-  requirePublicApiBearer(publicDocumentsGetRouteMetadata.requiredScope),
+  requirePublicApiBearer(publicDocumentsGetRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicDocumentsGetRouteMetadata.path);
     const parsed = PublicDocumentParamsSchema.safeParse(req.params);
@@ -183,7 +183,7 @@ publicDocumentsRouter.get(
 
 publicDocumentsRouter.post(
   publicDocumentsCreateRouteMetadata.handlerMountPath,
-  requirePublicApiBearer(publicDocumentsCreateRouteMetadata.requiredScope),
+  requirePublicApiBearer(publicDocumentsCreateRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicDocumentsCreateRouteMetadata.path);
     const parsed = PublicDocumentCreateSchema.safeParse(req.body);

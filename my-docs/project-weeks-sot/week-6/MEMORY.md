@@ -23,11 +23,13 @@ Current placed anchors:
 - `api/src/platform/webhooks/delivery-log.ts` with canon-named delivery attempt fields only.
 - `api/src/platform/apps/routes.ts` and `service.ts` with the session-auth developer ops control plane: app list/create, secret rotate/revoke, app webhooks, delivery log, replay, and public audit rows.
 - `api/src/db/migrations/056_oauth_app_secrets.sql` with per-secret IDs, `active | grace | revoked` status, 24h grace rotation, immediate revoke, and shown-once raw secret behavior.
-- `api/src/platform/api/v1/router.ts` mounted at `/api/v1` with public rate-limit/audit middleware, unauthenticated public OpenAPI, `/me`, documents, and webhooks.
+- `api/src/platform/api/v1/router.ts` mounted at `/api/v1` with public rate-limit/audit middleware, unauthenticated public OpenAPI, `/me`, documents, issues, sprints, and webhooks.
 - `api/src/platform/api/v1/paths.ts` with canon-named public paths only.
 - `api/src/platform/api/v1/pagination.ts` with public cursor/list envelope types.
 - `api/src/platform/api/v1/errors.ts` with exact public `ApiError` contract.
-- `api/src/platform/api/v1/route-metadata.ts` with the typed public route registry for public OpenAPI, `/me`, documents, and webhooks; `GET | POST` is an edge-piece set, not the whole future HTTP contract.
+- `api/src/platform/api/v1/route-metadata.ts` with the typed public route registry for public OpenAPI, `/me`, documents, issues, sprints, and webhooks; `requiredScopes` is a list because `/api/v1/sprints/:id/issues` requires both `sprints:read` and `issues:read`; `GET | POST | PATCH` is an edge-piece set, not the whole future HTTP contract.
+- `api/src/platform/api/v1/issues.ts`, `sprints.ts`, and `issue-read-model.ts` with the public document-backed work API: issue list/get/create/narrow patch, sprint list/get, and nested sprint issues.
+- `api/src/services/issue-mutations/webhook-events.ts` with issue webhook payload/idempotency helpers called from issue mutation services.
 - `api/src/platform/oauth/routes.ts` with exact OAuth route paths.
 - `api/src/platform/oauth/errors.ts` with exact `invalid_grant` anchor.
 - `api/src/platform/oauth/provider.ts` with real Authorization Code + PKCE, consent grants, one-time codes, access token issuance, refresh rotation, and refresh-family reuse invalidation.
@@ -35,13 +37,14 @@ Current placed anchors:
 - `web/src/pages/OAuthConsent.tsx` and React route `/oauth/consent` as the authenticated consent UI; Vite proxies only protocol/helper routes so the consent page stays client-side.
 - `api/src/db/migrations/052_oauth_authorization_code_pkce.sql` and `api/src/db/schema.sql` include pending auth requests, grants, one-time auth codes, refresh-token families/tokens, and nullable access-token links.
 - `api/src/platform/ratelimit/headers.ts` with exact rate-limit header names.
-- `sdk/` workspace package `@ship/sdk` with fetch-based `ShipClient`, token stores, documents/webhooks clients, `deviceLogin()`, refresh locking, typed `ShipError`, and `verifyWebhook(...)`.
+- `sdk/` workspace package `@ship/sdk` with fetch-based `ShipClient`, token stores, documents/issues/sprints/webhooks clients, `deviceLogin()`, `authorizationCodeFlow()`, refresh locking, typed `ShipError`, async iterators, and `verifyWebhook(...)`.
 - `sdk/src/index.ts` is dependency-light but exports Node `FileTokenStore`; browser builds may warn about optional `node:*` dynamic imports if they import the root SDK bundle.
 - `sdk/src/errors.ts` with typed SDK error class/kinds.
 - `docs/architecture.md` is now an honest current-state PlugForge architecture artifact: implemented spine, pre-1.0 gaps, and failure modes are labeled instead of left as placeholders.
 - `integrations/README.md` with the external integration import boundary.
 - `integrations/cli` workspace package `@ship/cli` with bin `ship`; it imports only `@ship/sdk`, keeps SDK as a peer dependency for packed installs, and implements login/docs/webhooks tail.
 - `web/src/pages/DeveloperSettingsTab.tsx` under workspace settings with the minimum ops UI: app selector, shown-once secret panel, rotation/revoke, subscriptions, delivery log with DLQ filter/replay, and public audit table.
+- `web/src/pages/SdkDemo.tsx` at `/sdk-demo` with browser Authorization Code + PKCE through `ShipClient.authorizationCodeFlow()`, `BrowserTokenStore`, document+issue lists, and explicit `documents:write` for the demo create button.
 - `e2e/developer-ops.spec.ts` is the targeted Playwright drill for portal create -> webhook DLQ -> replay with preserved `Idempotency-Key`.
 
 ## Product And System Invariants
@@ -50,11 +53,11 @@ OAuth platform access is separate from legacy `api_tokens`. `/api/v1/*` validate
 
 OAuth app registration lives at session-authenticated `POST /api/platform/apps`. It is an internal/session app-management route, not a public `/api/v1` route and not an OAuth protocol endpoint.
 
-`/api/v1/me` is auth-only route metadata with `requiredScope: null`. Do not invent `me:read`; the canonical scope list remains exact until a real public resource needs another scope.
+`/api/v1/me` is auth-only route metadata with `requiredScopes: []`. Do not invent `me:read`; the canonical scope list remains exact until a real public resource needs another scope.
 
 Device Grant is the CLI login path. `/oauth/device/code` issues hashed device/user codes, `/oauth/device` is the authenticated browser verification page, `/oauth/device/verify` approves with session+CSRF, and `/oauth/token` polls `urn:ietf:params:oauth:grant-type:device_code` with `authorization_pending` and `slow_down`.
 
-Public `/api/v1` routes must be registered in `publicApiV1RouteRegistry` before they count as real platform contract. The registry owns method, public path, operation id, auth mode, required scope, handler mount path, list/pagination status, and SDK metadata for future OpenAPI/SDK/docs parity.
+Public `/api/v1` routes must be registered in `publicApiV1RouteRegistry` before they count as real platform contract. The registry owns method, public path, operation id, auth mode, required scopes, handler mount path, list/pagination status, and SDK metadata for future OpenAPI/SDK/docs parity.
 
 Public OpenAPI is separate from internal OpenAPI. `api/openapi.json` is the internal `/api` spec; `docs/openapi.json` is generated from `api/src/platform/api/v1/openapi.ts`. `pnpm openapi:check:strict` compares both specs separately.
 
@@ -62,7 +65,19 @@ Platform OpenAPI schemas must mirror runtime validation closely enough for gener
 
 Public document creates may honor explicit titles only for OAuth/public principals. Existing internal create flows must keep defaulting new document titles to exactly `"Untitled"`.
 
+Public issues and sprints are document-backed resources, not new tables. `issues:*` and `sprints:*` scopes map through capability authorization for expected document types `issue` and `sprint`; do not grant broad `documents:*` just to support work APIs.
+
+`GET /api/v1/sprints/:id/issues` exposes issue data and therefore requires both `sprints:read` and `issues:read`. Keep that dual-scope requirement if nested sprint issue reads move or get refactored. Its public query schema intentionally omits `sprint_id`; the path parameter is the only source of sprint filtering.
+
+Public issue/sprint read models must apply visibility checks to related documents, not just the primary row. Associated programs, weekly plans, retros, and accountability targets need same-workspace, non-archived/non-deleted, visibility, and accountability predicates before they appear in public payloads or relationship filters.
+
+Public issue patch is intentionally narrow: `state`, `assignee_id`, and `confirm_orphan_children`. Do not expose title, priority, associations, estimate, metadata, or broad internal issue fields without a new canonical workflow.
+
 Webhook `document.created` is enqueued inside the `createDocumentMutation` transaction and dispatched after commit. Payloads include IDs/title/type/API+UI URLs and actor ID, not full document content. Replays preserve the original `Idempotency-Key`.
+
+Webhook `issue.created`, `issue.assigned`, and `issue.status_changed` are enqueued inside issue mutation services, not public route handlers. Future Slack/GitLab integrations should consume these domain events or public SDK/API methods, not duplicate issue mutation logic.
+
+Private issue rows do not fan out public issue webhooks until subscriptions store a subject/scope snapshot. Workspace-visible issue events still use the webhook system, but private titles/IDs must not leave through workspace-level subscription matching.
 
 Webhook retry semantics are deterministic-testable: delivery uses injected clock, deliverer, timeout, validation, and DB runner dependencies. Do not reintroduce real sleeps in webhook tests; prove retry/DLQ by advancing fake time over the canon schedule.
 
@@ -100,9 +115,13 @@ After the OAuth front door slice on 2026-06-02, targeted PlugForge tests should 
 
 After the developer ops slice on 2026-06-02, targeted reliability/control-plane proof is `scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts src/platform/webhooks/service.test.ts src/platform/api/v1/webhooks.test.ts src/platform/oauth/provider.test.ts src/platform/api/v1/middleware.test.ts`, plus `pnpm --filter @ship/web exec vitest run src/pages/DeveloperSettingsTab.test.tsx` and `PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/developer-ops.spec.ts`.
 
+After the public work API + browser SDK demo slice on 2026-06-02, targeted proof is `scripts/run-api-tests.sh -- src/platform/api/v1/route-metadata.test.ts src/platform/api/v1/issues.test.ts src/platform/api/v1/sprints.test.ts src/services/issue-mutations/webhook-events.test.ts src/platform/webhooks/service.test.ts src/platform/api/v1/webhooks.test.ts`, `pnpm --filter @ship/sdk test`, `pnpm --filter @ship/web exec vitest run src/pages/SdkDemo.test.tsx`, `pnpm openapi:check:strict`, and then full local gates.
+
+The final correctness pass for that slice also proved visibility-aware related-document reads, private issue webhook suppression, dual-scope route metadata, SDK/OpenAPI parity, `pnpm type-check`, `pnpm lint`, and `pnpm build`.
+
 ## Leverage Points
 
-The TTFE developer spine is now real enough to compose: Device Grant login -> OAuth token -> public documents -> generated public OpenAPI -> SDK/CLI -> signed `document.created` webhook -> `pnpm drill ttfe`. Next leverage is hardening delivery operations/portal read models, not adding Slack/GitLab/plugin runtime.
+The TTFE developer spine is now real enough to compose: Device Grant login -> OAuth token -> public documents -> generated public OpenAPI -> SDK/CLI -> signed `document.created` webhook -> `pnpm drill ttfe`. Public work APIs add issues/sprints and issue webhooks, so the next leverage is Slack/GitLab/Agent-as-Citizen through the public API and SDK, not new internal integration shortcuts.
 
 ## Sharp Edges
 

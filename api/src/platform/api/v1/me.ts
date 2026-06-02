@@ -20,7 +20,7 @@ export const publicMeRouter = Router();
 
 publicMeRouter.get(
   publicMeRouteMetadata.handlerMountPath,
-  requirePublicApiBearer(publicMeRouteMetadata.requiredScope),
+  requirePublicApiBearer(publicMeRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicMeRouteMetadata.path);
     if (!req.publicApi) {

@@ -103,6 +103,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': resolve(__dirname, './src'),
+        '@ship/sdk': resolve(__dirname, '../sdk/src/index.ts'),
       },
     },
     server: {

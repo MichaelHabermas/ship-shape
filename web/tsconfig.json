@@ -14,7 +14,8 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@ship/sdk": ["../sdk/src/index.ts"]
     }
   },
   "include": ["src"],

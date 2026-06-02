@@ -2,6 +2,9 @@
 import { z } from 'zod';
 import {
   DocumentCreatedWebhookPayloadSchema,
+  IssueAssignedWebhookPayloadSchema,
+  IssueCreatedWebhookPayloadSchema,
+  IssueStatusChangedWebhookPayloadSchema,
   type WebhookEvent,
   type WebhookEventType,
 } from '@ship/shared';
@@ -12,9 +15,9 @@ export const WEBHOOK_EVENT_SCHEMAS = {
   'document.created': DocumentCreatedWebhookPayloadSchema,
   'document.updated': genericWebhookPayloadSchema,
   'document.deleted': genericWebhookPayloadSchema,
-  'issue.created': genericWebhookPayloadSchema,
-  'issue.assigned': genericWebhookPayloadSchema,
-  'issue.status_changed': genericWebhookPayloadSchema,
+  'issue.created': IssueCreatedWebhookPayloadSchema,
+  'issue.assigned': IssueAssignedWebhookPayloadSchema,
+  'issue.status_changed': IssueStatusChangedWebhookPayloadSchema,
   'sprint.started': genericWebhookPayloadSchema,
   'sprint.completed': genericWebhookPayloadSchema,
 } satisfies Record<WebhookEventType, z.ZodTypeAny>;

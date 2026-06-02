@@ -39,7 +39,7 @@ export const publicWebhooksRouter = Router();
 
 publicWebhooksRouter.get(
   publicWebhooksListRouteMetadata.handlerMountPath,
-  requirePublicApiBearer(publicWebhooksListRouteMetadata.requiredScope),
+  requirePublicApiBearer(publicWebhooksListRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicWebhooksListRouteMetadata.path);
     const parsed = PublicWebhookListQuerySchema.safeParse(req.query);
@@ -65,7 +65,7 @@ publicWebhooksRouter.get(
 
 publicWebhooksRouter.post(
   publicWebhooksCreateRouteMetadata.handlerMountPath,
-  requirePublicApiBearer(publicWebhooksCreateRouteMetadata.requiredScope),
+  requirePublicApiBearer(publicWebhooksCreateRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicWebhooksCreateRouteMetadata.path);
     const parsed = PublicWebhookCreateSchema.safeParse(req.body);
@@ -95,7 +95,7 @@ publicWebhooksRouter.post(
 
 publicWebhooksRouter.get(
   publicWebhookDeliveriesListRouteMetadata.handlerMountPath,
-  requirePublicApiBearer(publicWebhookDeliveriesListRouteMetadata.requiredScope),
+  requirePublicApiBearer(publicWebhookDeliveriesListRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicWebhookDeliveriesListRouteMetadata.path);
     const parsed = PublicWebhookListQuerySchema.safeParse(req.query);
@@ -121,7 +121,7 @@ publicWebhooksRouter.get(
 
 publicWebhooksRouter.post(
   publicWebhookDeliveryReplayRouteMetadata.handlerMountPath,
-  requirePublicApiBearer(publicWebhookDeliveryReplayRouteMetadata.requiredScope),
+  requirePublicApiBearer(publicWebhookDeliveryReplayRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicWebhookDeliveryReplayRouteMetadata.path);
     const parsed = deliveryParamsSchema.safeParse(req.params);

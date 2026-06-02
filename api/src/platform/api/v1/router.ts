@@ -1,8 +1,10 @@
 // Public API v1 router mounts public contract and OAuth-authenticated resource routes.
 import { Router, type Request, type Response } from 'express';
 import { publicDocumentsRouter } from './documents.js';
+import { publicIssuesRouter } from './issues.js';
 import { publicApiAuditMiddleware, publicApiRateLimitMiddleware } from './middleware.js';
 import { publicMeRouter } from './me.js';
+import { publicSprintsRouter } from './sprints.js';
 import { publicWebhooksRouter } from './webhooks.js';
 import { sendPublicApiError } from './errors.js';
 import { generatePublicOpenApiDocument } from './openapi.js';
@@ -14,8 +16,8 @@ publicApiV1Router.use(publicApiRateLimitMiddleware);
 publicApiV1Router.use(publicApiAuditMiddleware);
 publicApiV1Router.get(publicOpenApiRouteMetadata.handlerMountPath, (req: Request, res: Response): void => {
   try {
-  res.setHeader('Content-Type', 'application/json');
-  res.json(generatePublicOpenApiDocument());
+    res.setHeader('Content-Type', 'application/json');
+    res.json(generatePublicOpenApiDocument());
   } catch {
     req.publicApiErrorCode = 'server_error';
     sendPublicApiError(res, 500, {
@@ -26,7 +28,9 @@ publicApiV1Router.get(publicOpenApiRouteMetadata.handlerMountPath, (req: Request
   }
 });
 publicApiV1Router.use(publicDocumentsRouter);
+publicApiV1Router.use(publicIssuesRouter);
 publicApiV1Router.use(publicMeRouter);
+publicApiV1Router.use(publicSprintsRouter);
 publicApiV1Router.use(publicWebhooksRouter);
 publicApiV1Router.use((req: Request, res: Response): void => {
   req.publicApiErrorCode = 'not_found';

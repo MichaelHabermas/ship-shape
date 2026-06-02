@@ -1,4 +1,6 @@
 // Public route registry tests keep /api/v1 contract metadata from drifting.
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import request, { type Test } from 'supertest';
 import { PUBLIC_API_SCOPES, PublicApiErrorSchema } from '@ship/shared';
@@ -8,6 +10,7 @@ import { expectJsonBody } from '../../../test/expect-json-body.js';
 import {
   publicApiV1RouteRegistry,
   type PublicRouteMetadata,
+  type PublicRouteSdkMetadata,
 } from './route-metadata.js';
 
 describe('public API v1 route registry', () => {
@@ -26,8 +29,11 @@ describe('public API v1 route registry', () => {
 
     const allowedScopes = new Set<string>(PUBLIC_API_SCOPES);
     for (const route of publicApiV1RouteRegistry) {
-      expect(Object.hasOwn(route, 'requiredScope')).toBe(true);
-      expect(route.requiredScope === null || allowedScopes.has(route.requiredScope)).toBe(true);
+      expect(Object.hasOwn(route, 'requiredScopes')).toBe(true);
+      expect(Array.isArray(route.requiredScopes)).toBe(true);
+      for (const scope of route.requiredScopes) {
+        expect(allowedScopes.has(scope)).toBe(true);
+      }
       if (route.auth === 'oauth') {
         expect(route.sdk).toBeDefined();
       }
@@ -49,6 +55,28 @@ describe('public API v1 route registry', () => {
     }
   });
 
+  it('keeps route SDK metadata backed by real SDK methods', () => {
+    const sdkSource = sdkSources();
+    const routes: readonly PublicRouteMetadata[] = publicApiV1RouteRegistry;
+    for (const route of routes) {
+      if (!hasSdkMetadata(route)) continue;
+      const { sdk } = route;
+      const className = sdk.client === 'root'
+        ? 'ShipClient'
+        : `${sdk.client[0]?.toUpperCase()}${sdk.client.slice(1)}Client`;
+      const classStart = sdkSource.indexOf(`class ${className}`);
+      expect(classStart, `${route.operationId} SDK client ${className}`).toBeGreaterThanOrEqual(0);
+      const nextClassStart = sdkSource.indexOf('\nexport class ', classStart + 1);
+      const classSource = sdkSource.slice(
+        classStart,
+        nextClassStart === -1 ? undefined : nextClassStart
+      );
+      expect(classSource, `${route.operationId} SDK method ${sdk.method}`).toMatch(
+        new RegExp(`\\b${sdk.method}\\s*\\(`)
+      );
+    }
+  });
+
   it('returns the public ApiError contract on registered OAuth auth failures', async () => {
     for (const route of publicApiV1RouteRegistry) {
       if (route.auth !== 'oauth') continue;
@@ -67,6 +95,28 @@ describe('public API v1 route registry', () => {
         return request(app).get(route.path);
       case 'POST':
         return request(app).post(route.path);
+      case 'PATCH':
+        return request(app).patch(route.path);
     }
+  }
+
+  function sdkSources(): string {
+    const candidates = [
+      resolve(process.cwd(), '../sdk/src/index.ts'),
+      resolve(process.cwd(), 'sdk/src/index.ts'),
+      resolve(process.cwd(), '../sdk/src/resources.ts'),
+      resolve(process.cwd(), 'sdk/src/resources.ts'),
+    ];
+    const sources = candidates
+      .filter(candidate => existsSync(candidate))
+      .map(candidate => readFileSync(candidate, 'utf8'));
+    if (sources.length === 0) throw new Error('SDK source not found');
+    return sources.join('\n');
+  }
+
+  function hasSdkMetadata(
+    route: PublicRouteMetadata
+  ): route is PublicRouteMetadata & { sdk: PublicRouteSdkMetadata } {
+    return route.sdk !== undefined;
   }
 });

@@ -18,7 +18,7 @@ import { sendPublicApiError } from './errors.js';
 export type PublicApiRequestContext = OAuthAccessTokenContext & {
   requestId: string;
   routePath?: string;
-  requiredScope: PublicApiScope | null;
+  requiredScopes: readonly PublicApiScope[];
 };
 
 const MAX_PUBLIC_API_REQUEST_ID_LENGTH = 128;
@@ -81,7 +81,7 @@ export function publicApiAuditMiddleware(req: Request, res: Response, next: Next
         context?.workspaceId ?? null,
         req.method,
         route,
-        context?.requiredScope ?? null,
+        auditScopeUsed(context?.requiredScopes),
         res.statusCode,
         latencyMs,
         req.publicApiErrorCode ?? null,
@@ -147,7 +147,7 @@ export function consumePublicApiPreAuthRateLimit(
   return { requestId, result };
 }
 
-export function requirePublicApiBearer(requiredScope: PublicApiScope | null) {
+export function requirePublicApiBearer(requiredScopes: readonly PublicApiScope[]) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const requestId = publicApiRequestIdFromRequest(req);
     req.publicApiRequestId = requestId;
@@ -174,7 +174,7 @@ export function requirePublicApiBearer(requiredScope: PublicApiScope | null) {
       req.publicApi = {
         ...validation.context,
         requestId,
-        requiredScope,
+        requiredScopes,
       };
 
       const tokenLimit = consumePublicApiBucket(`token:${validation.context.tokenId}`, PUBLIC_API_TOKEN_LIMIT);
@@ -205,12 +205,13 @@ export function requirePublicApiBearer(requiredScope: PublicApiScope | null) {
         return;
       }
 
-      if (requiredScope && !validation.context.grantedScopes.includes(requiredScope)) {
+      const missingScope = requiredScopes.find((scope) => !validation.context.grantedScopes.includes(scope));
+      if (missingScope) {
         req.publicApiErrorCode = 'forbidden';
         sendPublicApiError(res, 403, {
           code: 'forbidden',
-          message: `Missing required scope: ${requiredScope}`,
-          details: { missing_scope: requiredScope },
+          message: `Missing required scope: ${missingScope}`,
+          details: { missing_scope: missingScope, required_scopes: requiredScopes },
           request_id: requestId,
         });
         return;
@@ -227,6 +228,10 @@ export function requirePublicApiBearer(requiredScope: PublicApiScope | null) {
       });
     }
   };
+}
+
+function auditScopeUsed(requiredScopes: readonly PublicApiScope[] | undefined): string | null {
+  return requiredScopes && requiredScopes.length > 0 ? requiredScopes.join(' ') : null;
 }
 
 export function markPublicApiRoute(req: Request, routePath: string): void {

@@ -12,7 +12,18 @@ import {
   PublicDocumentParamsSchema as publicDocumentParamsSchema,
   PublicDocumentSchema as publicDocumentResponseSchema,
   PublicDocumentsListResponseSchema as publicDocumentsListResponseSchema,
+  PublicIssueCreateSchema as publicIssueCreateSchema,
+  PublicIssueListQuerySchema as publicIssueListQuerySchema,
+  PublicIssueParamsSchema as publicIssueParamsSchema,
+  PublicIssueSchema as publicIssueResponseSchema,
+  PublicIssuesListResponseSchema as publicIssuesListResponseSchema,
+  PublicIssueUpdateSchema as publicIssueUpdateSchema,
   PublicMeResponseSchema as publicMeResponseSchema,
+  PublicSprintListQuerySchema as publicSprintListQuerySchema,
+  PublicSprintIssueListQuerySchema as publicSprintIssueListQuerySchema,
+  PublicSprintParamsSchema as publicSprintParamsSchema,
+  PublicSprintSchema as publicSprintResponseSchema,
+  PublicSprintsListResponseSchema as publicSprintsListResponseSchema,
   PublicWebhookCreateSchema as publicWebhookCreateSchema,
   PublicWebhookDeliveriesListResponseSchema as publicWebhookDeliveriesListResponseSchema,
   PublicWebhookDeliverySchema as publicWebhookDeliverySchema,
@@ -65,7 +76,7 @@ function registerRoute(registry: OpenAPIRegistry, route: PublicRouteMetadata): v
     .replace(PUBLIC_API_V1_BASE_PATH, '')
     .replace(/:([A-Za-z0-9_]+)/g, '{$1}');
   registry.registerPath({
-    method: route.method.toLowerCase() as 'get' | 'post',
+    method: route.method.toLowerCase() as 'get' | 'post' | 'patch',
     path,
     tags: ['Public API'],
     summary: route.operationId,
@@ -80,16 +91,46 @@ function requestForRoute(route: PublicRouteMetadata) {
   switch (route.operationId) {
     case 'documents.list':
       return { query: publicDocumentsListQuerySchema };
+    case 'issues.list':
+      return { query: publicIssueListQuerySchema };
+    case 'sprints.list':
+      return { query: publicSprintListQuerySchema };
+    case 'sprints.issues.list':
+      return {
+        params: publicSprintParamsSchema,
+        query: publicSprintIssueListQuerySchema,
+      };
     case 'webhooks.list':
     case 'webhooks.deliveries.list':
       return { query: publicWebhookListQuerySchema };
     case 'documents.get':
       return { params: publicDocumentParamsSchema };
+    case 'issues.get':
+      return { params: publicIssueParamsSchema };
+    case 'sprints.get':
+      return { params: publicSprintParamsSchema };
     case 'documents.create':
       return {
         body: {
           content: {
             'application/json': { schema: publicDocumentCreateSchema },
+          },
+        },
+      };
+    case 'issues.create':
+      return {
+        body: {
+          content: {
+            'application/json': { schema: publicIssueCreateSchema },
+          },
+        },
+      };
+    case 'issues.update':
+      return {
+        params: publicIssueParamsSchema,
+        body: {
+          content: {
+            'application/json': { schema: publicIssueUpdateSchema },
           },
         },
       };
@@ -143,6 +184,42 @@ function responsesForRoute(route: PublicRouteMetadata): PublicOpenApiResponses {
     case 'documents.create':
       return {
         '201': jsonResponse(publicDocumentResponseSchema, 'Document created'),
+        ...errors,
+      };
+    case 'issues.list':
+      return {
+        '200': jsonResponse(publicIssuesListResponseSchema, 'Issue page'),
+        ...errors,
+      };
+    case 'issues.get':
+      return {
+        '200': jsonResponse(publicIssueResponseSchema, 'Issue'),
+        ...errors,
+      };
+    case 'issues.create':
+      return {
+        '201': jsonResponse(publicIssueResponseSchema, 'Issue created'),
+        ...errors,
+      };
+    case 'issues.update':
+      return {
+        '200': jsonResponse(publicIssueResponseSchema, 'Issue updated'),
+        '409': jsonResponse(publicApiErrorSchema, 'Issue update conflict'),
+        ...errors,
+      };
+    case 'sprints.list':
+      return {
+        '200': jsonResponse(publicSprintsListResponseSchema, 'Sprint page'),
+        ...errors,
+      };
+    case 'sprints.get':
+      return {
+        '200': jsonResponse(publicSprintResponseSchema, 'Sprint'),
+        ...errors,
+      };
+    case 'sprints.issues.list':
+      return {
+        '200': jsonResponse(publicIssuesListResponseSchema, 'Sprint issue page'),
         ...errors,
       };
     case 'webhooks.list':

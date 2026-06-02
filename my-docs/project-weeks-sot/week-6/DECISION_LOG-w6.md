@@ -39,3 +39,19 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Portal routes live under session-auth `/api/platform/apps`; public `/api/v1/webhooks` remains the external client contract. Portal subscription, delivery, and replay paths call the same webhook services instead of duplicating transport/replay logic.
 - The Developer settings tab is intentionally dense ops UI, not a marketing developer portal: app selector/create, one-time secret panel, secret rotation/revoke, subscriptions, delivery log with DLQ filter/replay, and public audit rows.
 - Fresh E2E databases use `api/src/db/schema.sql` and then mark migrations applied, so migration 056 also updates the schema snapshot.
+
+## 2026-06-02 — Public Work API + Browser SDK Demo Foundation
+
+- Public work APIs ship before Slack/GitLab/plugin runtime. `/api/v1/issues` and `/api/v1/sprints` now expose the document-backed issue/sprint model that later integrations must use instead of reaching around the platform.
+- Public issue write scope is narrow: create is supported, and patch accepts only `state`, `assignee_id`, and `confirm_orphan_children`. No new issue data model or broad internal rewrite was introduced.
+- Public sprint writes remain deferred. The shipped surface is sprint list/get plus `/api/v1/sprints/:id/issues`, which requires both `sprints:read` and `issues:read`.
+- Public route metadata now stores `requiredScopes` as a list. `/me` and unauthenticated public OpenAPI use `[]`; `/api/v1/sprints/:id/issues` is the first route requiring multiple scopes.
+- Nested sprint issues use a dedicated public query schema that omits `sprint_id`; the sprint comes only from the path parameter so OpenAPI, runtime validation, and SDK params cannot disagree.
+- OAuth `issues:*` and `sprints:*` authorize document-backed `issue` and `sprint` resources through capability mapping, while existing broad `documents:*` behavior remains valid for legacy document-backed paths.
+- Public issue and sprint read models must filter associated documents through the same workspace, archive/delete, visibility, and accountability predicates as primary public document reads. Private programs, weekly plans, retros, and accountability targets must not leak through relationship metadata or filters.
+- Issue webhook events are emitted from `createIssueMutation` and `updateIssueMutation`, not from `/api/v1` handlers. This makes `issue.created`, `issue.assigned`, and `issue.status_changed` real domain events for future Slack/GitLab consumers.
+- Issue webhook payloads stay intentionally small: IDs, title/display ID, state, assignee/actor IDs, and API/UI URLs. They do not include document body/content.
+- Private issue rows do not currently fan out public issue webhooks. The durable fix is subscription subject/scope snapshots; until then, suppressing private issue events avoids exporting private titles through workspace-level webhook subscriptions.
+- `@ship/sdk` now has real `issues` and `sprints` clients with list/get/create/update/listIssues/iterate methods, backed by shared public types rather than generated runtime code.
+- Web `/sdk-demo` stays the canonical browser demo route. It uses `ShipClient.authorizationCodeFlow()` plus `BrowserTokenStore`, lists documents and issues, and keeps document create only with explicit `documents:write` in the requested scope.
+- `docs/architecture.md` is now an actual current-state architecture artifact, not placeholder scaffolding.

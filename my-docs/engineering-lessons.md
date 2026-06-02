@@ -178,3 +178,29 @@ The transferable rules:
 - Update bootstrap schema snapshots when retry/ops migrations must work in fresh isolated databases.
 
 ShipShape example (2026-06): webhook tests originally waited for deliveries with `setTimeout` polling. Refactoring delivery around an injected clock and deliverer made 2xx, 429/5xx, timeout, 4xx DLQ, six-failure DLQ, and replay `Idempotency-Key` behavior deterministic in milliseconds.
+
+## 15. Monorepos Should Not Type-Check Against Ignored Build Artifacts
+
+If one workspace package exports `dist/` and another package imports it during development, the consumer can silently type-check against stale or missing generated files. That makes local success depend on whether someone happened to build the producer package first.
+
+The transferable rules:
+
+- Resolve workspace-to-workspace imports to source in dev, test, and type-check tooling.
+- Keep published package exports pointed at build artifacts, but add monorepo aliases or references for sibling consumers.
+- Treat ignored `dist/` as disposable output, not as a source of truth for local verification.
+- Add a focused test or type-check after changing a public package surface so stale artifacts are caught immediately.
+
+ShipShape example (2026-06): web `/sdk-demo` initially failed type-check after the SDK gained issue/sprint clients because `@ship/sdk` resolved to ignored `sdk/dist` from a previous build. Adding source aliases in web TypeScript/Vite/Vitest made the app consume the current SDK source during development while keeping package exports stable for packed installs.
+
+## 16. Authorization Must Cover Related Data, Not Just The Primary Row
+
+Public read models often assemble one authorized resource plus labels, counts, owners, parents, or rollups from neighboring records. If those joins do not repeat the same visibility and ownership predicates, a safe primary-resource endpoint becomes a metadata leak or relationship oracle.
+
+The transferable rules:
+
+- Treat every joined label, count, filter, and webhook payload field as data that needs its own read authorization.
+- Apply same-tenant, non-deleted, visibility, and subject-specific predicates to related rows before they influence output or filters.
+- Avoid unsafe casts from user-editable JSON/properties fields; validate first and join on safe representations.
+- Do not fan out private resource webhooks through workspace-level subscriptions unless the subscription stores the read subject and scopes it was authorized with.
+
+ShipShape example (2026-06): public issue/sprint routes correctly authorized the primary document-backed resource, but related programs, weekly plans, retros, and accountability targets needed the same visibility predicates. The fix filtered those joins and suppressed private issue webhook fanout until webhook subscriptions can carry an explicit read-context snapshot.

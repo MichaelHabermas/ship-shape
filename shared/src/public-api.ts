@@ -1,9 +1,12 @@
 // Public developer API contracts shared by OAuth, SDK, OpenAPI, web, and tests.
 import { z } from 'zod';
 import {
+  BELONGS_TO_TYPE_VALUES,
   DOCUMENT_TYPE_VALUES,
   DOCUMENT_VISIBILITY_VALUES,
-  type DocumentType,
+  ISSUE_PRIORITY_VALUES,
+  ISSUE_SOURCE_VALUES,
+  ISSUE_STATE_VALUES,
   type DocumentVisibility,
 } from './enums/document-enums.js';
 
@@ -115,6 +118,145 @@ export const PublicDocumentSchema = z.object({
 
 export const PublicDocumentsListResponseSchema = z.object({
   data: z.array(PublicDocumentSchema),
+  next_cursor: z.string().nullable(),
+});
+
+export const PublicBelongsToSchema = z.object({
+  id: z.string().uuid(),
+  type: z.enum(BELONGS_TO_TYPE_VALUES),
+  title: z.string().optional(),
+  color: z.string().optional(),
+});
+
+export const PublicIssueCreateSchema = z.object({
+  title: z.string().min(1).max(500),
+  state: z.enum(ISSUE_STATE_VALUES).optional().default('backlog'),
+  priority: z.enum(ISSUE_PRIORITY_VALUES).optional().default('medium'),
+  assignee_id: z.string().uuid().optional().nullable(),
+  belongs_to: z.array(z.object({
+    id: z.string().uuid(),
+    type: z.enum(BELONGS_TO_TYPE_VALUES),
+  })).optional().default([]),
+  source: z.enum(ISSUE_SOURCE_VALUES).optional().default('external'),
+  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+});
+
+const PublicIssueUpdateBaseSchema = z.object({
+  confirm_orphan_children: z.boolean().optional(),
+});
+
+export const PublicIssueUpdateSchema = z.union([
+  PublicIssueUpdateBaseSchema.extend({
+    state: z.enum(ISSUE_STATE_VALUES),
+    assignee_id: z.string().uuid().optional().nullable(),
+  }),
+  PublicIssueUpdateBaseSchema.extend({
+    state: z.enum(ISSUE_STATE_VALUES).optional(),
+    assignee_id: z.string().uuid().nullable(),
+  }),
+]);
+
+export const PublicIssueListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  cursor: z.string().optional(),
+  state: z.string().optional(),
+  priority: z.enum(ISSUE_PRIORITY_VALUES).optional(),
+  assignee_id: z.string().optional(),
+  program_id: z.string().uuid().optional(),
+  project_id: z.string().uuid().optional(),
+  sprint_id: z.string().uuid().optional(),
+  source: z.enum(ISSUE_SOURCE_VALUES).optional(),
+  parent_filter: z.enum(['top_level', 'has_children', 'is_sub_issue']).optional(),
+});
+
+export const PublicIssueParamsSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export const PublicIssueSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  display_id: z.string(),
+  ticket_number: z.number().int().nullable(),
+  state: z.enum(ISSUE_STATE_VALUES),
+  priority: z.enum(ISSUE_PRIORITY_VALUES),
+  assignee_id: z.string().uuid().nullable(),
+  assignee_name: z.string().nullable().optional(),
+  assignee_archived: z.boolean().optional(),
+  estimate: z.number().positive().nullable().optional(),
+  source: z.enum(ISSUE_SOURCE_VALUES),
+  due_date: z.string().nullable().optional(),
+  is_system_generated: z.boolean().optional(),
+  accountability_target_id: z.string().uuid().nullable().optional(),
+  accountability_type: z.string().nullable().optional(),
+  rejection_reason: z.string().nullable().optional(),
+  content: z.unknown().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  created_by: z.string().uuid(),
+  started_at: z.string().nullable().optional(),
+  completed_at: z.string().nullable().optional(),
+  cancelled_at: z.string().nullable().optional(),
+  reopened_at: z.string().nullable().optional(),
+  converted_from_id: z.string().uuid().nullable().optional(),
+  belongs_to: z.array(PublicBelongsToSchema),
+});
+
+export const PublicIssuesListResponseSchema = z.object({
+  data: z.array(PublicIssueSchema.omit({ content: true })),
+  next_cursor: z.string().nullable(),
+});
+
+export const PublicSprintListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  cursor: z.string().optional(),
+});
+
+export const PublicSprintIssueListQuerySchema = PublicIssueListQuerySchema.omit({
+  sprint_id: true,
+});
+
+export const PublicSprintParamsSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export const PublicSprintSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  sprint_number: z.number().int().positive(),
+  status: z.enum(['planning', 'active', 'completed']),
+  owner: z.object({
+    id: z.string().uuid(),
+    name: z.string().nullable().optional(),
+    email: z.string().email().nullable().optional(),
+  }).nullable(),
+  program_id: z.string().uuid().nullable().optional(),
+  program_name: z.string().nullable().optional(),
+  program_prefix: z.string().nullable().optional(),
+  program_accountable_id: z.string().uuid().nullable().optional(),
+  workspace_sprint_start_date: z.string().nullable(),
+  issue_count: z.number().int(),
+  completed_count: z.number().int(),
+  started_count: z.number().int(),
+  has_plan: z.boolean(),
+  has_retro: z.boolean(),
+  retro_outcome: z.string().nullable(),
+  retro_id: z.string().uuid().nullable(),
+  plan: z.string().nullable(),
+  success_criteria: z.array(z.string()).nullable(),
+  confidence: z.number().int().min(0).max(100).nullable(),
+  plan_history: z.unknown().nullable(),
+  is_complete: z.boolean().nullable(),
+  missing_fields: z.array(z.string()),
+  planned_issue_ids: z.array(z.string().uuid()).nullable(),
+  snapshot_taken_at: z.string().nullable(),
+  plan_approval: z.unknown().nullable(),
+  review_approval: z.unknown().nullable(),
+  accountable_id: z.string().uuid().nullable(),
+});
+
+export const PublicSprintsListResponseSchema = z.object({
+  data: z.array(PublicSprintSchema),
   next_cursor: z.string().nullable(),
 });
 
@@ -240,27 +382,57 @@ export const DocumentCreatedWebhookPayloadSchema = z.object({
   actor: WebhookActorSchema.optional(),
 });
 
+export const IssueWebhookResourceSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  display_id: z.string(),
+  ticket_number: z.number().int().nullable(),
+  state: z.enum(ISSUE_STATE_VALUES),
+  assignee_id: z.string().uuid().nullable(),
+  api_url: z.string(),
+  ui_url: z.string(),
+});
+
+export const IssueCreatedWebhookPayloadSchema = z.object({
+  issue: IssueWebhookResourceSchema,
+  actor: WebhookActorSchema.optional(),
+});
+
+export const IssueAssignedWebhookPayloadSchema = z.object({
+  issue: IssueWebhookResourceSchema,
+  assignee: WebhookActorSchema.nullable(),
+  actor: WebhookActorSchema.optional(),
+});
+
+export const IssueStatusChangedWebhookPayloadSchema = z.object({
+  issue: IssueWebhookResourceSchema,
+  previous_status: z.enum(ISSUE_STATE_VALUES).nullable(),
+  status: z.enum(ISSUE_STATE_VALUES),
+  actor: WebhookActorSchema.optional(),
+});
+
 export type PublicApiScope = z.infer<typeof PublicApiScopeSchema>;
 export type PublicApiErrorCode = (typeof PUBLIC_API_ERROR_CODES)[number];
 export type PublicApiError = z.infer<typeof PublicApiErrorSchema>;
 export type PublicMe = z.infer<typeof PublicMeResponseSchema>;
 export type PublicDocument = z.infer<typeof PublicDocumentSchema>;
 export type PublicDocumentCreateInput = z.input<typeof PublicDocumentCreateSchema>;
-export type PublicDocumentListParams = {
-  limit?: number;
-  cursor?: string;
-  type?: DocumentType;
-};
+export type PublicDocumentListParams = z.infer<typeof PublicDocumentListQuerySchema>;
 export type PublicDocumentVisibility = DocumentVisibility;
+export type PublicBelongsTo = z.infer<typeof PublicBelongsToSchema>;
+export type PublicIssue = z.infer<typeof PublicIssueSchema>;
+export type PublicIssueCreateInput = z.input<typeof PublicIssueCreateSchema>;
+export type PublicIssueUpdateInput = z.input<typeof PublicIssueUpdateSchema>;
+export type PublicIssueListParams = z.infer<typeof PublicIssueListQuerySchema>;
+export type PublicSprint = z.infer<typeof PublicSprintSchema>;
+export type PublicSprintListParams = z.infer<typeof PublicSprintListQuerySchema>;
+export type PublicSprintIssueListParams = z.infer<typeof PublicSprintIssueListQuerySchema>;
 export type CursorPage<T> = {
   data: T[];
   next_cursor: string | null;
 };
 export type PublicWebhookCreateInput = z.input<typeof PublicWebhookCreateSchema>;
-export type PublicWebhookListParams = {
-  limit?: number;
-  cursor?: string;
-};
+export type PublicWebhookListParams = z.infer<typeof PublicWebhookListQuerySchema>;
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];
 export type WebhookDeliveryStatus = (typeof WEBHOOK_DELIVERY_STATUS_VALUES)[number];
 export type PublicWebhookSubscription = z.infer<typeof PublicWebhookSubscriptionSchema>;
@@ -276,6 +448,9 @@ export type OAuthConsentApprovalResponse = z.infer<typeof OAuthConsentApprovalRe
 export type OAuthDeviceVerificationRequest = z.infer<typeof OAuthDeviceVerificationRequestSchema>;
 export type OAuthDeviceApprovalResponse = z.infer<typeof OAuthDeviceApprovalResponseSchema>;
 export type DocumentCreatedWebhookPayload = z.infer<typeof DocumentCreatedWebhookPayloadSchema>;
+export type IssueCreatedWebhookPayload = z.infer<typeof IssueCreatedWebhookPayloadSchema>;
+export type IssueAssignedWebhookPayload = z.infer<typeof IssueAssignedWebhookPayloadSchema>;
+export type IssueStatusChangedWebhookPayload = z.infer<typeof IssueStatusChangedWebhookPayloadSchema>;
 export type WebhookEvent = {
   type: WebhookEventType;
   workspace_id: string;

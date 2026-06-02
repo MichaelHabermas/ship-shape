@@ -1,20 +1,24 @@
-// Browser SDK demo uses Auth Code PKCE to call /api/v1 documents through @ship/sdk.
+// Browser SDK demo uses Auth Code PKCE to call public documents and issues through @ship/sdk.
 import { useEffect, useMemo, useState } from 'react';
-import { BrowserTokenStore, ShipClient, type PublicDocument } from '@ship/sdk';
-import type { OAuthTokenResponse } from '@ship/shared';
+import { BrowserTokenStore, ShipClient, type PublicDocument, type PublicIssue } from '@ship/sdk';
 import { cn } from '@/lib/cn';
 
 const apiUrl = envString(import.meta.env.VITE_API_URL).replace(/\/+$/, '');
 const defaultClientId = envString(import.meta.env.VITE_SHIP_DEMO_CLIENT_ID);
 const tokenStore = new BrowserTokenStore('ship.sdkDemo.tokens');
+const demoScope = 'documents:read documents:write issues:read sprints:read';
 
 export function SdkDemoPage() {
   const [clientId, setClientId] = useState<string>(defaultClientId);
   const [documents, setDocuments] = useState<PublicDocument[]>([]);
+  const [issues, setIssues] = useState<PublicIssue[]>([]);
   const [title, setTitle] = useState<string>('hello');
   const [status, setStatus] = useState<string>('');
   const [isBusy, setIsBusy] = useState<boolean>(false);
-  const client = useMemo(() => new ShipClient({ baseUrl: apiUrl, clientId, tokenStore }), [clientId]);
+  const client = useMemo(
+    () => new ShipClient({ baseUrl: resolveApiBaseUrl(), clientId, tokenStore }),
+    [clientId]
+  );
 
   useEffect(() => {
     void finishCallback();
@@ -23,31 +27,25 @@ export function SdkDemoPage() {
   async function finishCallback() {
     const url = new URL(window.location.href);
     const code = url.searchParams.get('code');
-    if (!code) {
-      await loadDocuments();
-      return;
-    }
-
-    const verifier = window.sessionStorage.getItem('ship.sdkDemo.pkceVerifier');
-    const expectedState = window.sessionStorage.getItem('ship.sdkDemo.state');
-    if (!verifier || expectedState !== url.searchParams.get('state')) {
-      setStatus('OAuth state could not be verified.');
+    const error = url.searchParams.get('error');
+    if (!code && !error) {
+      await loadResources();
       return;
     }
 
     setIsBusy(true);
     try {
-      const token = await exchangeCode(code, verifier);
-      tokenStore.set({
-        accessToken: token.access_token,
-        refreshToken: token.refresh_token,
-        tokenType: token.token_type,
-        expiresAt: token.expires_in ? Date.now() + token.expires_in * 1000 : undefined,
-        scope: token.scope,
+      const authorizedClient = await ShipClient.authorizationCodeFlow({
+        baseUrl: resolveApiBaseUrl(),
+        clientId: clientId.trim(),
+        redirectUri: `${window.location.origin}/sdk-demo`,
+        scope: demoScope,
+        tokenStore,
+        currentUrl: window.location.href,
       });
       window.history.replaceState(null, '', '/sdk-demo');
       setStatus('Connected.');
-      await loadDocuments();
+      await loadResources(authorizedClient);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'OAuth exchange failed.');
     } finally {
@@ -60,30 +58,38 @@ export function SdkDemoPage() {
       setStatus('Client ID is required.');
       return;
     }
-    const verifier = randomBase64Url(64);
-    const challenge = await sha256Base64Url(verifier);
-    const state = randomBase64Url(24);
-    window.sessionStorage.setItem('ship.sdkDemo.pkceVerifier', verifier);
-    window.sessionStorage.setItem('ship.sdkDemo.state', state);
-    const authorizeUrl = new URL(`${apiUrl}/oauth/authorize`, window.location.origin);
-    authorizeUrl.searchParams.set('client_id', clientId.trim());
-    authorizeUrl.searchParams.set('redirect_uri', `${window.location.origin}/sdk-demo`);
-    authorizeUrl.searchParams.set('response_type', 'code');
-    authorizeUrl.searchParams.set('scope', 'documents:read documents:write');
-    authorizeUrl.searchParams.set('state', state);
-    authorizeUrl.searchParams.set('code_challenge', challenge);
-    authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-    window.location.href = authorizeUrl.toString();
-  }
-
-  async function loadDocuments() {
     setIsBusy(true);
     try {
-      const page = await client.documents.list({ limit: 20 });
-      setDocuments(page.data);
-      setStatus(page.data.length ? 'Loaded.' : 'Loaded empty list.');
+      await ShipClient.authorizationCodeFlow({
+        baseUrl: resolveApiBaseUrl(),
+        clientId: clientId.trim(),
+        redirectUri: `${window.location.origin}/sdk-demo`,
+        scope: demoScope,
+        tokenStore,
+      });
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'OAuth start failed.');
+      setIsBusy(false);
+    }
+  }
+
+  async function loadResources(nextClient = client) {
+    if (!tokenStore.get()) {
+      setStatus('Connect to load public API resources.');
+      return;
+    }
+    setIsBusy(true);
+    try {
+      const [documentPage, issuePage] = await Promise.all([
+        nextClient.documents.list({ limit: 20 }),
+        nextClient.issues.list({ limit: 20 }),
+      ]);
+      setDocuments(documentPage.data);
+      setIssues(issuePage.data);
+      setStatus(documentPage.data.length || issuePage.data.length ? 'Loaded.' : 'Loaded empty lists.');
     } catch (error) {
       setDocuments([]);
+      setIssues([]);
       setStatus(error instanceof Error ? error.message : 'Load failed.');
     } finally {
       setIsBusy(false);
@@ -101,28 +107,6 @@ export function SdkDemoPage() {
     } finally {
       setIsBusy(false);
     }
-  }
-
-  async function exchangeCode(code: string, verifier: string): Promise<OAuthTokenResponse> {
-    const response = await fetch(`${apiUrl}/oauth/token`, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        grant_type: 'authorization_code',
-        client_id: clientId.trim(),
-        redirect_uri: `${window.location.origin}/sdk-demo`,
-        code,
-        code_verifier: verifier,
-      }),
-    });
-    const body: unknown = await response.json();
-    if (!response.ok) {
-      throw new Error(oauthErrorDescription(body) ?? 'OAuth exchange failed.');
-    }
-    return parseOAuthTokenResponse(body);
   }
 
   return (
@@ -149,7 +133,7 @@ export function SdkDemoPage() {
           </button>
           <button
             type="button"
-            onClick={() => void loadDocuments()}
+            onClick={() => void loadResources()}
             disabled={isBusy}
             className={secondaryButtonClass}
           >
@@ -180,14 +164,27 @@ export function SdkDemoPage() {
           </div>
         )}
 
-        <div className="grid gap-3">
-          {documents.map((document) => (
-            <article key={document.id} className="rounded-md border border-border p-4">
-              <h2 className="text-base font-semibold">{document.title}</h2>
-              <p className="mt-1 break-all font-mono text-xs text-muted">{document.id}</p>
-              <p className="mt-2 text-xs text-muted">{document.document_type} · {document.updated_at}</p>
-            </article>
-          ))}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <section className="grid content-start gap-3">
+            <h2 className="text-base font-semibold">Documents</h2>
+            {documents.map((document) => (
+              <article key={document.id} className="rounded-md border border-border p-4">
+                <h3 className="text-base font-semibold">{document.title}</h3>
+                <p className="mt-1 break-all font-mono text-xs text-muted">{document.id}</p>
+                <p className="mt-2 text-xs text-muted">{document.document_type} · {document.updated_at}</p>
+              </article>
+            ))}
+          </section>
+          <section className="grid content-start gap-3">
+            <h2 className="text-base font-semibold">Issues</h2>
+            {issues.map((issue) => (
+              <article key={issue.id} className="rounded-md border border-border p-4">
+                <h3 className="text-base font-semibold">{issue.display_id} {issue.title}</h3>
+                <p className="mt-1 break-all font-mono text-xs text-muted">{issue.id}</p>
+                <p className="mt-2 text-xs text-muted">{issue.state} · {issue.priority} · {issue.updated_at}</p>
+              </article>
+            ))}
+          </section>
         </div>
       </section>
     </main>
@@ -204,52 +201,10 @@ const secondaryButtonClass = cn(
   'hover:bg-muted/50 disabled:opacity-50'
 );
 
-function randomBase64Url(byteCount: number): string {
-  const bytes = new Uint8Array(byteCount);
-  crypto.getRandomValues(bytes);
-  return base64Url(bytes);
-}
-
-async function sha256Base64Url(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return base64Url(new Uint8Array(digest));
-}
-
-function base64Url(bytes: Uint8Array): string {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
 function envString(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
 
-function oauthErrorDescription(value: unknown): string | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const description = (value as Record<string, unknown>).error_description;
-  return typeof description === 'string' ? description : null;
-}
-
-function parseOAuthTokenResponse(value: unknown): OAuthTokenResponse {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('OAuth token response was malformed.');
-  }
-  const record = value as Record<string, unknown>;
-  if (
-    typeof record.access_token !== 'string' ||
-    record.token_type !== 'Bearer' ||
-    typeof record.expires_in !== 'number' ||
-    typeof record.refresh_token !== 'string' ||
-    typeof record.scope !== 'string'
-  ) {
-    throw new Error('OAuth token response was malformed.');
-  }
-  return {
-    access_token: record.access_token,
-    refresh_token: record.refresh_token,
-    token_type: record.token_type,
-    expires_in: record.expires_in,
-    scope: record.scope,
-  };
+function resolveApiBaseUrl(): string {
+  return apiUrl || window.location.origin;
 }

@@ -1,3 +1,4 @@
+// Issue creation mutation owns document-backed issue inserts, associations, and side effects.
 import { pool } from '../../db/client.js';
 import { extractIssueFromRow, type IssueDocumentRow } from '../../db/documents-repository.js';
 import { guardIssueCreate } from '../issue-mutation-guards.js';
@@ -12,6 +13,7 @@ import {
 } from '../document-access.js';
 import { requireFirstRow } from '../../utils/query-rows.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../../fleetgraph/events.js';
+import { dispatchWebhookDeliveries } from '../../platform/webhooks/service.js';
 import {
   type CreateIssueInput,
   type CountRow,
@@ -20,6 +22,7 @@ import {
   toCount,
   workspaceAdvisoryLock,
 } from './types.js';
+import { enqueueIssueCreatedWebhook } from './webhook-events.js';
 
 export async function createIssueMutation(
   input: CreateIssueInput
@@ -71,7 +74,8 @@ export async function createIssueMutation(
     [workspaceId, title, JSON.stringify(properties), ticketNumber, userId]
   );
 
-  const newIssueId = requireFirstRow(result.rows).id;
+  const row = requireFirstRow(result.rows);
+  const newIssueId = row.id;
 
   for (const assoc of belongs_to) {
     try {
@@ -96,8 +100,16 @@ export async function createIssueMutation(
     client
   );
 
+  const webhookDeliveryIds = await enqueueIssueCreatedWebhook({
+    client,
+    workspaceId,
+    actorUserId: userId,
+    row,
+  });
+
   const sprintAssociations = belongs_to.filter((bt) => bt.type === 'sprint');
   await client.query('COMMIT');
+  void dispatchWebhookDeliveries(webhookDeliveryIds);
 
   await enqueueFleetGraphIssueAttentionEvents({
     workspaceId,
@@ -119,7 +131,6 @@ export async function createIssueMutation(
   }
 
   const belongsToResult = await getBelongsToAssociations(newIssueId);
-  const row = requireFirstRow(result.rows);
   const issue = extractIssueFromRow(row);
   return {
     ok: true,

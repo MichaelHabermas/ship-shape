@@ -13,8 +13,9 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
     "clean": "rm -rf dist",
+    "test": "vitest run src",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

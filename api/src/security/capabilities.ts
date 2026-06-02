@@ -145,6 +145,20 @@ function scopeAllows(scopes: ApiTokenScope[] | PublicApiScope[], capability: Cap
   }
 
   if (capability.resource === 'document') {
+    if (capability.expectedType === 'issue') {
+      return capability.action === 'read' || capability.action === 'collaborate'
+        ? scopeValues.includes('issues:read') || scopeValues.includes('documents:read')
+        : scopeValues.includes('issues:write') ||
+            scopeValues.includes('documents:write') ||
+            scopeValues.includes('documents:content');
+    }
+    if (capability.expectedType === 'sprint') {
+      return capability.action === 'read' || capability.action === 'collaborate'
+        ? scopeValues.includes('sprints:read') || scopeValues.includes('documents:read')
+        : scopeValues.includes('sprints:write') ||
+            scopeValues.includes('documents:write') ||
+            scopeValues.includes('documents:content');
+    }
     if (capability.action === 'read' || capability.action === 'collaborate') {
       return scopeValues.includes('documents:read');
     }
@@ -304,8 +318,8 @@ export async function authorize(
     }
     const readDecision = await readableDocumentDecision(db, principal, actor, capability.documentId, {
       expectedType: capability.expectedType,
-    includeArchived: capability.includeArchived,
-    includeDeleted: capability.includeDeleted,
+      includeArchived: capability.includeArchived,
+      includeDeleted: capability.includeDeleted,
     });
     if (!readDecision.allowed || !readDecision.document) {
       return readDecision;
