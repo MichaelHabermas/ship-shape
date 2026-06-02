@@ -360,7 +360,7 @@ Implement at Least 5 of the Following Integrations / Flows
 ☐ Slack integration — receives signed webhooks, posts document.created and issue.assigned to channels
 via Slack OAuth (should-ship).
 ☐ Browser SDK demo — Authorization Code + PKCE in a single-page app that lists the user's documents.
-☐ GitHub integration — links Ship issues to GitHub PRs via webhook + GitHub App.
+☐ GitLab integration — links Ship issues to GitLab PRs via webhook + GitLab App.
 ☐ Refresh-token rotation drill — proves a stolen refresh token, when reused, invalidates the entire family.
 ☐ Idempotency-Key end-to-end — replay drill that confirms subscribers correctly dedupe on replayed
 deliveries.
@@ -462,7 +462,7 @@ Include Assumptions
 Layer Technology
 
 Reference CLI in Node + commander or oclif; Slack integration in Express + @slack/bolt;
-Integrations GitHub integration via @octokit/auth-app (stretch).
+Integrations GitLab integration via @octokit/auth-app (stretch).
 
 Patterns SOLID via TS interfaces and a single composition root; public/internal API
         boundary enforced by workspace lint rules; in-memory test doubles for every
