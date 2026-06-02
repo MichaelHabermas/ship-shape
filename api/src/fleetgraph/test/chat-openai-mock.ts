@@ -12,24 +12,8 @@ export function synthesizeTestChatCompletion(messages: Array<[string, string]>):
   if (/^(hi|hello|hey|yo|sup)[!.?\s]*$/i.test(normalized)) {
     return 'Hi — what would you like to talk about?';
   }
-  if (normalized.includes('what day is today')) {
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-    return `Today is ${today}.`;
-  }
-  if (normalized.includes('favorite color')) {
-    return 'My favorite color is a deep blue.';
-  }
-  if (normalized.includes('linked list') && normalized.includes('python')) {
-    return [
-      'class Node:',
-      '  def __init__(self, value, next=None):',
-      '    self.value = value',
-      '    self.next = next',
-      '',
-      'current = head',
-      'while current:',
-      '  current = current.next',
-    ].join('\n');
+  if (/^(thanks|thank you|ty)[!.?\s]*$/i.test(normalized)) {
+    return "You're welcome.";
   }
   if (/\beven simpler\b/.test(normalized)) {
     if (contextIncludes(context, 'sample integration approval')) {

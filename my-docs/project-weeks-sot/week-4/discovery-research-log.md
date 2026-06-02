@@ -113,7 +113,7 @@ Decision: reduce the docs surface to source truth plus regenerable outputs. Gene
 | Finding | Disposition |
 |---------|-------------|
 | Generated reviewer evidence bundle duplicated source docs and dashboard output | **Classified as generated output** — regenerate with `pnpm submission:render-bundle`; do not hand-edit bundled copies |
-| `my-docs/evidence-runs/` contained overlapping final/foundation/integration/closeout snapshots | **Pruned stale archives** — ledger-referenced Category 2 artifact retained; canonical claims remain ledger-first |
+| `my-docs/evidence-runs/` contained overlapping final/foundation/integration/closeout snapshots | **Pruned stale archives** — durable Category 2 values retained in the ledger and reports; canonical claims remain ledger-first |
 | Manual evidence cleanup could accidentally break reviewer links | **Fixed** — `pnpm evidence:prune` dry-runs by default and protects ledger/dashboard references |
 | Standalone orchestration plans outlived their execution window | **Removed** — durable lessons live in MEMORY, DECISION_LOG, discovery log, and improvement report |
 | `docs/claude-reference/anti-patterns.md` contained old absolute paths | **Fixed** — paths are repo-relative |
@@ -173,7 +173,7 @@ Parallel agents (API security, probe/CI, SOT alignment, code quality, `security:
 | CI fail-on=new blocked by skip completeness | **Fixed** — skips allowed under `fail-on=new` |
 | Ledger vs registry drift | **Documented** — humans close SS-FIND rows; registry tracks probes |
 
-Evidence: `runs/security-probe-ci-20260523-190801/`; D063 in `DECISION_LOG.md`.
+Evidence: latest security report and D063 in `DECISION_LOG.md`.
 
 ---
 
@@ -1385,7 +1385,7 @@ Evidence: `pnpm type-safety:counts` moved `as` from 575 total / 461 production t
 
 Closed the non-Cat-8 admissibility gaps that had evidence but not proof packaging:
 
-- Category 2 now has retained bundle evidence under `my-docs/evidence-runs/cat2-easy-wins-20260523/`; claim remains scoped to initial-entry/code-splitting reduction, not total JS/CSS.
+- Category 2 now has durable bundle values in the submission ledger and improvement report; claim remains scoped to initial-entry/code-splitting reduction, not total JS/CSS.
 - Category 4 now has explicit before/after bootstrap EXPLAIN evidence in `test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json`; claim remains flow-level query-count/request-count consolidation.
 - Category 7 closeout now scans `/projects` in addition to `/docs`, a real `/documents/:id`, and supporting `/my-week`; all four have 0 critical/serious axe violations in `test-results/a11y-closeout/axe-summary.json`.
 - Category 6 now has a third explicit fix record: AI/Bedrock unavailable degraded mode, with screenshot `test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png`. The evidence collector was corrected to use existing data or `CAT6_DOCUMENT_PATH` rather than creating a weekly plan.
@@ -1473,8 +1473,8 @@ Rejected initial candidates:
 
 Verified fixes:
 
-- File upload validation and serving headers. Before reports `runs/before-file-size/report.json` and `runs/before-file-headers/report.json` found local upload size mismatch acceptance and inline uploaded HTML serving. `api/src/routes/files.ts` now rejects body length mismatches and serves uploads as attachments with sanitized filenames while retaining `X-Content-Type-Options: nosniff`. After reports `runs/after-file-size/report.json` and `runs/after-file-headers-2/report.json` pass. Route regression tests now cover mismatch rejection, attachment/nosniff serving, and malformed JSON response hygiene.
-- WebSocket malformed/oversized frame resilience. Before report `runs/before-ws-malformed/report.json` found unsafe malformed-frame handling; the first full probe attempt also surfaced an unhandled `WS_ERR_UNSUPPORTED_MESSAGE_LENGTH` crash from an oversized frame. `api/src/collaboration/index.ts` now catches decode failures, closes unsupported/invalid collaboration and events messages with `1003`, and handles oversized frames with `1009` without crashing. After reports `runs/after-ws-malformed/report.json`, `runs/after-ws-oversized/report.json`, and final `latest.json` deterministic close-code checks pass.
+- File upload validation and serving headers. Before probe summaries found local upload size mismatch acceptance and inline uploaded HTML serving. `api/src/routes/files.ts` now rejects body length mismatches and serves uploads as attachments with sanitized filenames while retaining `X-Content-Type-Options: nosniff`. Final security evidence records the after state in `my-docs/evidence/security-audit/latest.json`. Route regression tests now cover mismatch rejection, attachment/nosniff serving, and malformed JSON response hygiene.
+- WebSocket malformed/oversized frame resilience. Before probe summaries found unsafe malformed-frame handling; the first full probe attempt also surfaced an unhandled `WS_ERR_UNSUPPORTED_MESSAGE_LENGTH` crash from an oversized frame. `api/src/collaboration/index.ts` now catches decode failures, closes unsupported/invalid collaboration and events messages with `1003`, and handles oversized frames with `1009` without crashing. Final `latest.json` deterministic close-code checks pass.
 
 Additional hardening: malformed JSON now returns generic 400 JSON from `api/src/app.ts` instead of Express default verbose error output. Probe `manual-verbose-errors` passes in the final full run.
 
@@ -1510,7 +1510,7 @@ Ledger: Category 5 warning gate was replaced with `cat5-full-e2e-baseline-green`
 Parallel harvest across Categories 1–4, 6–7 (Cat 5 skipped; Lighthouse deferred):
 
 - **Cat 1:** Web/API typing batch — inferred-any params 47→30; production `any` still 1. Hooks migrated to `apiClient.GET` + `assertApiData`; route row types on auth/associations.
-- **Cat 2:** Lazy lowlight via `lowlight-setup.ts` — largest chunk 837.24→642.48 KB; total JS/CSS 2396.29→2369.69 KB. Evidence: `my-docs/evidence-runs/cat2-easy-wins-20260523/`.
+- **Cat 2:** Lazy lowlight via `lowlight-setup.ts` — largest chunk 837.24→642.48 KB; total JS/CSS 2396.29→2369.69 KB. Evidence is preserved in the submission ledger and improvement report.
 - **Cat 4:** Search content scorecard filled — 3 SQL queries per `/api/search/content` request (`test-results/perf/query-count-api-easy-wins-20260523.json`); documented 0→3 tradeoff, not a reduction claim.
 - **Cat 6:** Fresh `error-handling.spec.ts` 9/9 (`test-results/category-6-runtime-easy-wins/`); AI screenshot refreshed; collector reads `bootstrap.data.documents` and skips `/docs` when `CAT6_DOCUMENT_PATH` is set. Follow-up hardening added API process fatal handlers, bounded/awaited collaboration shutdown, and named frontend boundary islands; this remains operational hardening, not a fourth counted fix.
 - **Cat 7:** Axe closeout expanded to `/login` + `/issues` (0 critical/serious on six pages); Action Items modal `Dialog.Close` + Vitest regression.
@@ -1654,7 +1654,7 @@ Findings closed by CLI: `SS-FIND-006`, `009`, `011`, `015`, `022`, `024`, `027`,
 
 Residual risk: `SS-FIND-027` is count-bounded per process, not byte-bounded memory governance. That is a materially safer and test-proven closure of unbounded cache growth, but not a full memory-pressure controller.
 
-Verification addendum: Parallel reviewer agents found four missed graph leak paths after the first wave: bootstrap project `program_id`, team project `programId`, explicit team assignment project metadata, and inferred team assignment project metadata. They also found two accountability allocation leaks and one final WebSocket close-persist attribution bug. These were fixed before final proof. Evidence run `security-probe-ci-20260524-150803` passed 5/5 surfaces, 40 probes, 0 findings.
+Verification addendum: Parallel reviewer agents found four missed graph leak paths after the first wave: bootstrap project `program_id`, team project `programId`, explicit team assignment project metadata, and inferred team assignment project metadata. They also found two accountability allocation leaks and one final WebSocket close-persist attribution bug. These were fixed before final proof. Security probe CI passed 5/5 surfaces, 40 probes, 0 findings; durable results are in the security findings ledger.
 
 ---
 
@@ -1664,7 +1664,7 @@ Discovery: The remaining open rows were not one class of bug. They were deployme
 
 Implemented: `safeRelativeReturnTo` for CAIA callback paths; SSRF-safe CAIA issuer validation before discovery/save/test; exported production OpenAPI gating policy; AI OpenAPI schemas aligned to runtime string content and 10/hour rate-limit responses; risk-based `session-binding.ts` with UA mismatch denial and IP drift audit; shared session validation used by HTTP auth and WebSocket upgrade. Added a hand-written security policy matrix for the remaining finding/probe mapping rather than a generated compiler.
 
-Evidence: `pnpm type-check`; `pnpm openapi:check:strict`; `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed 54 files / 611 tests after rerun with local Postgres access; `pnpm --filter @ship/web test` passed 24 files / 179 tests; `pnpm security:probe:test` passed 33 tests; `pnpm security:probe:ci` passed with run `security-probe-ci-20260524-153908`, 5/5 surfaces, 40 probes, 0 findings.
+Evidence: `pnpm type-check`; `pnpm openapi:check:strict`; `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed 54 files / 611 tests after rerun with local Postgres access; `pnpm --filter @ship/web test` passed 24 files / 179 tests; `pnpm security:probe:test` passed 33 tests; `pnpm security:probe:ci` passed with 5/5 surfaces, 40 probes, 0 findings recorded in the security findings ledger.
 
 Findings closed by CLI after proof: `SS-FIND-017`, `019`, `020`, `023`, `031`, and `034`.
 

@@ -207,5 +207,5 @@ const deliverable = {
 
 writeFileSync(resolve(evidence, 'cat8-audit-deliverable.json'), `${JSON.stringify(deliverable, null, 2)}\n`);
 console.log('Wrote cat8-audit-deliverable.json');
-console.log(`Baseline live probe: ${baselineProbe ? 'yes' : 'NO — run pnpm security:baseline:probe'}`);
+console.log(`Baseline live probe: ${baselineProbe ? 'yes' : 'NO - baseline-before-probe report not present'}`);
 console.log(`Dependency packages mapped: ${dependencyList.length}`);

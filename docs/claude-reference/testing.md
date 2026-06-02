@@ -67,29 +67,23 @@ pnpm test:e2e:shards --shards 4 --workers 2
 
 Do not run the full suite when a smaller signal will answer the question.
 
-### E2E Fast Feedback Lanes
-
-The lane scripts are wrappers around `scripts/run-e2e.sh`; they keep the same Playwright config, worker isolation, reporter, and raw argument pass-through.
+### E2E Fast Feedback
 
 ```bash
 pnpm test:e2e:smoke      # auth, docs mode, issues happy paths
-pnpm test:e2e:docs       # docs/document/wiki workflows
-pnpm test:e2e:issues     # issue list, bulk selection, estimates, program/week issue flows
-pnpm test:e2e:editor     # TipTap/editor features
-pnpm test:e2e:a11y       # accessibility and ARIA checks
-pnpm test:e2e:api-flows  # temporary lane for API-shaped Playwright specs
-pnpm test:e2e:foundation # workspace, modes, context menus, icons, errors
-pnpm test:e2e:slow       # performance, race, visual, session, security-heavy flows
+./scripts/run-e2e.sh e2e/docs-mode.spec.ts e2e/documents.spec.ts
+./scripts/run-e2e.sh e2e/issues.spec.ts e2e/bulk-selection.spec.ts
+./scripts/run-e2e.sh e2e/mentions.spec.ts e2e/tables.spec.ts
 ```
 
-Lanes are fast triage signals, not landing proof. Use the smallest lane that matches the change first, then run the appropriate full command or skill before treating the suite as proven.
+Focused runs are fast triage signals, not landing proof. Use the smallest spec set that matches the change first, then run the appropriate full command or skill before treating the suite as proven.
 
 Use Playwright flags after `--`:
 
 ```bash
 pnpm test:e2e:smoke -- --list
 pnpm test:e2e:run -- --shard=1/4
-PLAYWRIGHT_WORKERS=2 pnpm test:e2e:issues
+PLAYWRIGHT_WORKERS=2 ./scripts/run-e2e.sh e2e/issues.spec.ts
 ```
 
 Set `E2E_RESULTS_DIR` when running multiple lanes or shards at the same time so progress files, error logs, Playwright artifacts, `.last-run.json`, and the background run log do not clobber each other. The runner stores Playwright artifacts under `${E2E_RESULTS_DIR:-test-results}/playwright`.
@@ -104,20 +98,20 @@ For a full-suite parallel run, use the shard orchestrator. Keep `--workers` low 
 ```bash
 pnpm test:e2e:shards
 pnpm test:e2e:shards --shards 4 --workers 2
-pnpm test:e2e:balance -- --shards 4
+node ./scripts/e2e-balance-shards.mjs --shards 4
 pnpm test:e2e:shards --balanced --shards 4 --workers 2
 pnpm test:e2e:shards --worktree-root ../ship-shape-e2e-shards
 ```
 
-Default sharding uses Playwright's test-level `--shard`. `--balanced` instead buckets whole spec files using static test counts and fixed-wait budgets; it is useful when default shards have an uneven long tail. Run `pnpm test:e2e:balance -- --shards 4` to inspect the bucket plan without executing tests.
+Default sharding uses Playwright's test-level `--shard`. `--balanced` instead buckets whole spec files using static test counts and fixed-wait budgets; it is useful when default shards have an uneven long tail. Run `node ./scripts/e2e-balance-shards.mjs --shards 4` to inspect the bucket plan without executing tests.
 
-Use `pnpm test:e2e:inventory` to inspect suite shape without executing tests. It reports approximate test declarations, fixed waits, login/setup signals, API request signals, large files, and duplicate umbrella coverage candidates.
+Use `node ./scripts/e2e-inventory.mjs` to inspect suite shape without executing tests. It reports approximate test declarations, fixed waits, login/setup signals, API request signals, large files, and duplicate umbrella coverage candidates.
 
 Use the artifact pruner to remove stale archived Playwright traces without touching current final-run folders. It is dry-run by default.
 
 ```bash
-pnpm test:e2e:prune-artifacts -- --older-than-days 7
-pnpm test:e2e:prune-artifacts -- --older-than-days 7 --apply
+node ./scripts/prune-e2e-artifacts.mjs --older-than-days 7
+node ./scripts/prune-e2e-artifacts.mjs --older-than-days 7 --apply
 ```
 
 ## Database Isolation

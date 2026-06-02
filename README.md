@@ -247,7 +247,7 @@ The ledger is the claim authority. The dashboard and Current Ledger Truth block 
 
 ## Week 5 FleetGraph Evidence
 
-Start with [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md). The final Week 5 deliverables are [`FLEETGRAPH.md`](./FLEETGRAPH.md) and [`PRESEARCH.md`](./PRESEARCH.md). The canonical public proof snapshot is [`web/public/fleetgraph-observability/proof/latest.html`](./web/public/fleetgraph-observability/proof/latest.html); the broader observability history dashboard is [`web/public/fleetgraph-observability/index.html`](./web/public/fleetgraph-observability/index.html).
+Start with [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md). The final Week 5 deliverables are [`FLEETGRAPH.md`](./FLEETGRAPH.md) and [`PRESEARCH.md`](./PRESEARCH.md). The canonical public proof snapshot is [`web/public/fleetgraph-observability/proof/latest.html`](./web/public/fleetgraph-observability/proof/latest.html); broader observability history dashboards are local scratch output from `pnpm fleetgraph:observe:dashboard`.
 
 ---
 

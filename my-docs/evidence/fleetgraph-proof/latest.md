@@ -102,7 +102,6 @@ No trace evidence was configured.
 - Static dashboard: my-docs/evidence/fleetgraph-proof/latest.html
 - Proof JSON: my-docs/evidence/fleetgraph-proof/latest.json
 - Proof Markdown: my-docs/evidence/fleetgraph-proof/latest.md
-- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-06-01T16-03-40-433Z/proof.html
 - Golden cases: api/src/fleetgraph/eval/golden-cases.ts
 - Executable golden-case tests: api/src/fleetgraph/eval/executable-golden-cases.test.ts
 - Product-surface eval: my-docs/evals/fleetgraph-product-surface/latest.html

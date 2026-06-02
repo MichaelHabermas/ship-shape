@@ -5,8 +5,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const archiveSegment = `${path.sep}archive${path.sep}submission-deterministic-chat${path.sep}`;
-
 const targets = [
   'FLEETGRAPH.md',
   'PRESEARCH.md',
@@ -14,7 +12,6 @@ const targets = [
   'AGENTS.md',
   'my-docs/MEMORY.md',
   'my-docs/AI_COST_ANALYSIS.md',
-  'my-docs/fleetgraph-conversational-chat.md',
   'my-docs/project-weeks-sot/week-5/DECISION_LOG-w5.md',
   'my-docs/project-weeks-sot/week-5/ARCHITECTURE.md',
   'my-docs/evals/fleetgraph-chat-behavior/README.md',
@@ -34,7 +31,6 @@ const denyPatterns = [
 function walkMdFiles(dir, out = []) {
   for (const entry of readdirSync(dir)) {
     const full = path.join(dir, entry);
-    if (full.includes(archiveSegment)) continue;
     const stat = statSync(full);
     if (stat.isDirectory()) {
       if (entry === 'node_modules' || entry === 'evidence' || entry === '.git') continue;
@@ -48,7 +44,6 @@ function walkMdFiles(dir, out = []) {
 
 const files = [...new Set([...targets.map((rel) => path.join(repoRoot, rel)), ...walkMdFiles(path.join(repoRoot, 'my-docs'))])];
 const allowRemovalMention = new Set([
-  'my-docs/fleetgraph-conversational-chat.md',
   'my-docs/project-weeks-sot/week-5/DECISION_LOG-w5.md',
   'my-docs/engineering-lessons.md',
 ]);

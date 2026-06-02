@@ -58,7 +58,7 @@ Phased approach for when fixes begin. **Do not implement until explicitly approv
 
 ### Probe extensions needed
 
-When fixing, add probes under `scripts/security-probe/probes/`. Phase 1–2 probes are implemented in **`probes/authorization.mjs`** (see `probe-finding-registry.json`). Extend registry + probes when additional SS-FIND rows are remediated.
+When fixing, add probes under `packages/shipshape-security/src/probes/`. Phase 1–2 probes are implemented in **`probes/authorization.mjs`** (see `probe-finding-registry.json`). Extend registry + probes when additional SS-FIND rows are remediated.
 
 1. `governance-properties-injection` — member PATCH sprint with `plan_approval`
 2. `governance-accountable-self-assign` — member sets own `accountable_id`

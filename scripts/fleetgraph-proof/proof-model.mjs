@@ -151,6 +151,10 @@ export const NON_CLAIMS = [
 export function buildProofPacket(input) {
   const executedCaseIds = input.executedCaseIds ?? new Set();
   const executedScenarioIds = input.executedScenarioIds ?? new Set();
+  const goldenCaseIds = input.goldenCaseIndex ? [...input.goldenCaseIndex.keys()] : [];
+  const definedOnlyGoldenCaseIds = goldenCaseIds
+    .filter((caseId) => !executedCaseIds.has(caseId))
+    .sort();
   const scenarios = REQUIRED_SCENARIOS.map((scenario) =>
     scenarioFromGoldenCase(scenario, input.goldenCaseIndex, executedCaseIds, executedScenarioIds)
   );
@@ -174,6 +178,10 @@ export function buildProofPacket(input) {
     summary: {
       requiredScenarioCount: REQUIRED_SCENARIOS.length,
       provenScenarioCount: scenarios.filter((scenario) => scenario.status === 'executed').length,
+      goldenCaseCatalogCount: goldenCaseIds.length,
+      executableGoldenCaseCount: executedCaseIds.size,
+      definedOnlyGoldenCaseCount: definedOnlyGoldenCaseIds.length,
+      definedOnlyGoldenCaseIds,
       currentSurfacePass: currentSurface?.summary?.passCount ?? null,
       currentSurfaceFail: currentSurface?.summary?.failCount ?? null,
       deployedConfigured: environments.some((environment) => environment.id === 'deployed' && environment.status !== 'blocked'),

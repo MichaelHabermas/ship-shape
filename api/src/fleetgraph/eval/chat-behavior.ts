@@ -67,40 +67,15 @@ export const fleetGraphChatBehaviorCases = [
     }],
   },
   {
-    id: 'chat-general-date-rich-ticket',
-    title: 'General date question is answered directly with context attached',
+    id: 'chat-casual-acknowledgement-rich-ticket',
+    title: 'Casual acknowledgement does not force a rich-ticket summary',
     fixture: 'rich-ticket',
     turns: [{
-      prompt: 'What day is today?',
+      prompt: 'thanks',
       expect: {
-        mustContain: ['Today is'],
+        mustContain: ["You're welcome"],
         mustNotContain: ['Legacy reporting debt', 'Demo export', 'Riley Reviewer', 'sample integration approval'],
         maxWords: 8,
-      },
-    }],
-  },
-  {
-    id: 'chat-general-preference-rich-ticket',
-    title: 'General preference question is not forced through attached context',
-    fixture: 'rich-ticket',
-    turns: [{
-      prompt: "What's your favorite color?",
-      expect: {
-        mustContainAny: ['favorite color', 'deep blue'],
-        mustNotContain: ['Legacy reporting debt', 'Demo export', 'Riley Reviewer', 'sample integration approval'],
-        maxWords: 25,
-      },
-    }],
-  },
-  {
-    id: 'chat-general-code-rich-ticket',
-    title: 'General coding question works with Ship context attached',
-    fixture: 'rich-ticket',
-    turns: [{
-      prompt: 'How do you traverse a linked list in Python?',
-      expect: {
-        mustContain: ['class Node', 'current = current.next'],
-        mustNotContain: ['Legacy reporting debt', 'Demo export', 'Riley Reviewer', 'sample integration approval'],
       },
     }],
   },

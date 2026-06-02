@@ -226,7 +226,48 @@ describe('FleetGraph route security', () => {
       .expect(403);
   });
 
-  it('answers attached document chat through the real FleetGraph route', async () => {
+  it('returns an honest unavailable chat answer when the model is not configured', async () => {
+    const previousOpenAiKey = process.env.OPENAI_API_KEY;
+    const previousFleetGraphModel = process.env.FLEETGRAPH_MODEL;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.FLEETGRAPH_MODEL;
+    try {
+      const res = await request(app)
+        .post('/api/fleetgraph/chat')
+        .set('Cookie', adminCookie)
+        .set('x-csrf-token', adminCsrf)
+        .send({
+          prompt: 'Summarize this issue',
+          context: {
+            kind: 'document',
+            documentId: issueId,
+            sourcePath: `/documents/${issueId}`,
+          },
+        })
+        .expect(200);
+
+      const body = JSON.parse(res.text) as FleetGraphChatBody;
+      expect(body.decision).toBe('explain');
+      expect(body.answer?.title).toBe('Chat unavailable');
+      expect(body.answer?.body).toMatch(/missing `OPENAI_API_KEY` or `FLEETGRAPH_MODEL`/);
+      expect(body.answer?.body).not.toMatch(/Private blocked issue|chat smoke summary|secret blocker/i);
+    } finally {
+      if (previousOpenAiKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = previousOpenAiKey;
+      }
+      if (previousFleetGraphModel === undefined) {
+        delete process.env.FLEETGRAPH_MODEL;
+      } else {
+        process.env.FLEETGRAPH_MODEL = previousFleetGraphModel;
+      }
+    }
+  });
+
+  const realModelChatIt = process.env.OPENAI_API_KEY?.trim() && process.env.FLEETGRAPH_MODEL?.trim() ? it : it.skip;
+
+  realModelChatIt('answers attached document chat through the real FleetGraph route', async () => {
     // Real model call when OPENAI_API_KEY is configured — allow slower CI/local runs.
     await saveBlockedImportantIssueFinding({
       workspaceId,

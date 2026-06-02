@@ -178,6 +178,10 @@ async function readReviewerChain() {
 }
 
 async function latestCompleteReviewerChainProof() {
+  const latestPacket = await readJsonIfExists(path.join(outputRoot, 'latest.json'));
+  const latestChain = completeReviewerChainFromPacket(latestPacket);
+  if (latestChain) return latestChain;
+
   const entries = await readdir(runsRoot, { withFileTypes: true }).catch(() => []);
   const packets = [];
   for (const entry of entries) {
@@ -185,9 +189,8 @@ async function latestCompleteReviewerChainProof() {
     const proofPath = path.join(runsRoot, entry.name, 'proof.json');
     try {
       const packet = JSON.parse(await readFile(proofPath, 'utf8'));
-      const chain = packet.reviewerChain;
-      if (chain?.status !== 'complete') continue;
-      if (Array.isArray(chain.missing) && chain.missing.length > 0) continue;
+      const chain = completeReviewerChainFromPacket(packet);
+      if (!chain) continue;
       packets.push({ generatedAt: stringValue(packet.generatedAt), chain });
     } catch {
       // Ignore old or partial proof run directories.
@@ -195,6 +198,13 @@ async function latestCompleteReviewerChainProof() {
   }
   packets.sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
   return packets[0]?.chain ?? null;
+}
+
+function completeReviewerChainFromPacket(packet) {
+  const chain = packet?.reviewerChain;
+  if (chain?.status !== 'complete') return null;
+  if (Array.isArray(chain.missing) && chain.missing.length > 0) return null;
+  return chain;
 }
 
 function publicReviewerChainProof(chain) {

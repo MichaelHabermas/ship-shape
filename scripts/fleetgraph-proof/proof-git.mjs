@@ -33,6 +33,10 @@ export async function readGoldenCaseIndex() {
 
 export async function readExecutableGoldenCaseIds() {
   const source = await readFile(path.join(repoRoot, 'api/src/fleetgraph/eval/executable-golden-cases.test.ts'), 'utf8');
+  const explicitBlock = /EXECUTABLE_GOLDEN_CASE_IDS\s*=\s*\[([\s\S]*?)\]\s*as const/.exec(source)?.[1];
+  if (explicitBlock) {
+    return new Set([...explicitBlock.matchAll(/'([^']+)'/g)].map((item) => item[1]));
+  }
   return new Set([...source.matchAll(/requireGoldenCase\('([^']+)'\)/g)].map((item) => item[1]));
 }
 

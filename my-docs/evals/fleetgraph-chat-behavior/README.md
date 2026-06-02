@@ -2,7 +2,7 @@
 
 This eval pack protects the user-visible chat contract for contextual FleetGraph chat.
 
-Source cases live in `api/src/fleetgraph/eval/chat-behavior.ts`. Add a case there when a real chat issue appears, then fix the behavior until the case passes. The goal is outside-in behavior, not exact prose: normal greetings, grounded summaries, meaningful simplification, no hallucination from sparse context, and follow-ups that use bounded recent history. Tests mock `@langchain/openai` on the real `generateContextChatText` path (`api/src/fleetgraph/test/setup-chat-openai-mock.ts`). Contract: `my-docs/fleetgraph-conversational-chat.md`.
+Source cases live in `api/src/fleetgraph/eval/chat-behavior.ts`. Add a case there when a real chat issue appears, then fix the behavior until the case passes. The goal is outside-in behavior, not exact prose: normal greetings, grounded summaries, meaningful simplification, no hallucination from sparse context, and follow-ups that use bounded recent history. Tests mock `@langchain/openai` on the real `generateContextChatText` path (`api/src/fleetgraph/test/setup-chat-openai-mock.ts`).
 
 Run the focused suite with:
 

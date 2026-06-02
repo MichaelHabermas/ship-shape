@@ -1,5 +1,4 @@
 // Executes FleetGraph chat behavior golden cases through generateContextChatText + mocked ChatOpenAI.
-import '../test/setup-chat-openai-mock.js';
 import { resetChatOpenAIMock } from '../test/setup-chat-openai-mock.js';
 import { FLEETGRAPH_CHAT_HISTORY_LIMIT, type FleetGraphChatHistoryEntry } from '@ship/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

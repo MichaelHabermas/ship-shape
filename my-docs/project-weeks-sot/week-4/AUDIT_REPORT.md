@@ -110,7 +110,7 @@ Add a lightweight ESLint type-safety guardrail, then clean up the highest-risk f
 - Total production bundle size was measured after `pnpm build:web` by summing raw JavaScript and CSS files in `web/dist`, excluding source maps. Full `web/dist` static output, including icons/images, was also measured for context.
 - Largest chunk was identified by sorting generated `web/dist/assets` JavaScript and CSS files by byte size.
 - Number of chunks was measured by counting generated JavaScript and CSS files in `web/dist/assets`, excluding source maps.
-- Largest dependencies were measured from Vite/Rollup production build metadata by grouping rendered `node_modules` module lengths by package. The generated report is in `my-docs/audit-evidence/category-2-bundle/bundle-treemap.html`.
+- Largest dependencies were measured from Vite/Rollup production build metadata by grouping rendered `node_modules` module lengths by package. The generated treemap was pruned; durable values are preserved in this report and `my-docs/evidence/submission-ledger.json`.
 - Unused dependencies were checked by comparing `web/package.json` dependencies against static imports in `web/src`, then spot-checking candidates with `rg` and the generated bundle report.
 - Package manifests were also spot-checked for dependencies that may belong in `devDependencies`; `@tanstack/react-query-devtools` and `@modelcontextprotocol/sdk` need follow-up classification before moving anything.
 

@@ -1,29 +1,14 @@
-// Verifies the FleetGraph issue mutation to event, notification, source, and gated chat loop.
+// Verifies the FleetGraph mutation loop through the local forced worker-test trigger.
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures/isolated-env';
 import { getCsrfToken, loginAsAdmin } from './fixtures/api-auth';
-
-type IssueResponse = {
-  id: string;
-  title: string;
-  state?: string;
-};
-
-type NotificationResponse = {
-  findingId: string;
-  title: string;
-  sourcePath: string;
-};
-
-type WorkerTickResponse = {
-  attentionEventIds: string[];
-};
-
-type ChatResponse = {
-  answer: {
-    humanGate?: Record<string, unknown>;
-  };
-};
+import { readJsonAs } from './fixtures/typed-json';
+import type {
+  FleetGraphChatResponse,
+  FleetGraphIssueResponse,
+  FleetGraphNotificationsResponse,
+  FleetGraphWorkerTickResponse,
+} from './fixtures/e2e-api-types';
 
 async function runWorkerUntilEventProcessed(input: {
   page: Page;
@@ -31,8 +16,8 @@ async function runWorkerUntilEventProcessed(input: {
   csrfToken: string;
   eventId: string;
   maxTicks?: number;
-}): Promise<WorkerTickResponse> {
-  let latestBody: WorkerTickResponse = { attentionEventIds: [] };
+}): Promise<FleetGraphWorkerTickResponse> {
+  let latestBody: FleetGraphWorkerTickResponse = { attentionEventIds: [] };
   for (let attempt = 0; attempt < (input.maxTicks ?? 5); attempt += 1) {
     const workerResponse = await input.page.request.post(`${input.apiUrl}/api/fleetgraph/test/worker-tick`, {
       headers: { 'x-csrf-token': input.csrfToken },
@@ -41,7 +26,7 @@ async function runWorkerUntilEventProcessed(input: {
     if (!workerResponse.ok()) {
       throw new Error(`test worker tick failed: ${workerResponse.status()} ${await workerResponse.text()}`);
     }
-    latestBody = await workerResponse.json() as WorkerTickResponse;
+    latestBody = await readJsonAs<FleetGraphWorkerTickResponse>(workerResponse);
     if (latestBody.attentionEventIds.includes(input.eventId)) return latestBody;
   }
   return latestBody;
@@ -94,7 +79,7 @@ async function firstWorkspaceContext(dbPool: import('pg').Pool): Promise<{
 }
 
 test.describe('FleetGraph attention loop', () => {
-  test('issue mutation becomes a notification, source, and gated chat answer', async ({ page, apiServer, dbPool }) => {
+  test('issue mutation becomes a notification, source, and gated chat answer through a forced test tick', async ({ page, apiServer, dbPool }) => {
     let { csrfToken } = await loginAsAdmin(page, apiServer.url);
     const { userId, sprintId } = await firstWorkspaceContext(dbPool);
     const issueTitle = `E2E blocked source proof ${Date.now()}`;
@@ -111,7 +96,7 @@ test.describe('FleetGraph attention loop', () => {
       },
     });
     expect(createdIssueResponse.ok(), 'issue creation should succeed').toBe(true);
-    const createdIssue = await createdIssueResponse.json() as IssueResponse;
+    const createdIssue = await readJsonAs<FleetGraphIssueResponse>(createdIssueResponse);
 
     const iterationResponse = await page.request.post(`${apiServer.url}/api/issues/${createdIssue.id}/iterations`, {
       headers: { 'x-csrf-token': csrfToken },
@@ -163,7 +148,7 @@ test.describe('FleetGraph attention loop', () => {
 
     const notificationsResponse = await page.request.get(`${apiServer.url}/api/fleetgraph/notifications?limit=25`);
     expect(notificationsResponse.ok()).toBe(true);
-    const notificationsBody = await notificationsResponse.json() as { notifications: NotificationResponse[] };
+    const notificationsBody = await readJsonAs<FleetGraphNotificationsResponse>(notificationsResponse);
     const notification = notificationsBody.notifications.find((item) => item.title.includes(issueTitle));
     expect(notification, 'notification API should include the blocked issue').toBeTruthy();
     expect(notification?.sourcePath).toBe(`/documents/${createdIssue.id}`);
@@ -205,14 +190,14 @@ test.describe('FleetGraph attention loop', () => {
     await page.getByRole('button', { name: 'Send message' }).click();
     const chatResponse = await chatResponsePromise;
     expect(chatResponse.ok()).toBe(true);
-    const chatBody = await chatResponse.json() as ChatResponse;
+    const chatBody = await readJsonAs<FleetGraphChatResponse>(chatResponse);
     expect(chatBody.answer.humanGate?.required).toBe(true);
     await expect(chat.getByText(/Approval required|Human approval/i).first()).toBeVisible();
     await expect(chat.getByText(/next|ask|owner|unblock/i).first()).toBeVisible();
 
     const issueAfterChat = await page.request.get(`${apiServer.url}/api/issues/${createdIssue.id}`);
     expect(issueAfterChat.ok()).toBe(true);
-    const issueBody = await issueAfterChat.json() as IssueResponse;
+    const issueBody = await readJsonAs<FleetGraphIssueResponse>(issueAfterChat);
     expect(issueBody.state).toBe('blocked');
 
     csrfToken = await getCsrfToken(page, apiServer.url);
@@ -227,7 +212,7 @@ test.describe('FleetGraph attention loop', () => {
       csrfToken,
     });
     const resolvedNotificationsResponse = await page.request.get(`${apiServer.url}/api/fleetgraph/notifications?limit=25`);
-    const resolvedNotifications = await resolvedNotificationsResponse.json() as { notifications: NotificationResponse[] };
+    const resolvedNotifications = await readJsonAs<FleetGraphNotificationsResponse>(resolvedNotificationsResponse);
     expect(resolvedNotifications.notifications.some((item) => item.title.includes(issueTitle))).toBe(false);
   });
 });
