@@ -36,6 +36,7 @@ export * from './caia-auth.js';
 export * from './admin.js';
 export * from './admin-credentials.js';
 export * from './dev.js';
+export * from './platform.js';
 
 // Re-export registry and generator for convenience
 export { registry, generateOpenAPIDocument } from '../registry.js';

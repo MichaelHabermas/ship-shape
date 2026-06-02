@@ -2,11 +2,12 @@
 // Checks runtime Express routes against the generated public OpenAPI route contract.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname;
 const appPath = join(root, 'api/src/app.ts');
 const routesDir = join(root, 'api/src/routes');
+const platformDir = join(root, 'api/src/platform');
 const openApiPath = join(root, 'api/openapi.json');
 const strict = process.argv.includes('--strict');
 
@@ -47,31 +48,43 @@ function extractRouteBindings(appSource) {
   const bindings = [];
   const seen = new Set();
 
-  function add(routerName, importPath) {
-    const key = `${routerName}\0${importPath}`;
+  function add(routerName, importRoot, importPath) {
+    const key = `${routerName}\0${importRoot}\0${importPath}`;
     if (seen.has(key)) return;
     seen.add(key);
-    bindings.push({ routerName, importPath });
+    bindings.push({ routerName, importRoot, importPath });
   }
 
-  const mixedRegex = /import\s+([A-Za-z0-9_]+)(?:\s*,\s*\{([^}]+)\})?\s+from\s+['"`]\.\/routes\/([^'"`]+)\.js['"`]/g;
-  for (const [, defaultImport, namedImports, importPath] of appSource.matchAll(mixedRegex)) {
-    add(defaultImport, importPath);
-    if (namedImports) {
+  for (const importRoot of ['routes', 'platform']) {
+    const mixedRegex = new RegExp(
+      `import\\s+([A-Za-z0-9_]+)(?:\\s*,\\s*\\{([^}]+)\\})?\\s+from\\s+['"\`]\\.\\/${importRoot}\\/([^'"\`]+)\\.js['"\`]`,
+      'g'
+    );
+    for (const [, defaultImport, namedImports, importPath] of appSource.matchAll(mixedRegex)) {
+      add(defaultImport, importRoot, importPath);
+      if (namedImports) {
+        for (const part of namedImports.split(',')) {
+          add(importName(part), importRoot, importPath);
+        }
+      }
+    }
+
+    const namedOnlyRegex = new RegExp(
+      `import\\s+\\{([^}]+)\\}\\s+from\\s+['"\`]\\.\\/${importRoot}\\/([^'"\`]+)\\.js['"\`]`,
+      'g'
+    );
+    for (const [, namedImports, importPath] of appSource.matchAll(namedOnlyRegex)) {
       for (const part of namedImports.split(',')) {
-        add(part.trim().split(/\s+as\s+/).pop().trim(), importPath);
+        add(importName(part), importRoot, importPath);
       }
     }
   }
 
-  const namedOnlyRegex = /import\s+\{([^}]+)\}\s+from\s+['"`]\.\/routes\/([^'"`]+)\.js['"`]/g;
-  for (const [, namedImports, importPath] of appSource.matchAll(namedOnlyRegex)) {
-    for (const part of namedImports.split(',')) {
-      add(part.trim().split(/\s+as\s+/).pop().trim(), importPath);
-    }
-  }
-
   return bindings;
+}
+
+function importName(part) {
+  return part.trim().replace(/^type\s+/, '').split(/\s+as\s+/).pop().trim();
 }
 
 function exportNamesForRouteFile(source, fileBase) {
@@ -106,6 +119,33 @@ function extractRouteMethods(source, routerName, mountPath) {
   return routes;
 }
 
+function localImports(source, sourceFile) {
+  const imports = new Map();
+  const importRegex = /import\s+(?:([A-Za-z0-9_]+)(?:\s*,\s*)?)?(?:\{([^}]+)\})?\s+from\s+['"`](\.{1,2}\/[^'"`]+)\.js['"`]/g;
+  for (const [, defaultImport, namedImports, importPath] of source.matchAll(importRegex)) {
+    const target = resolve(dirname(sourceFile), `${importPath}.ts`);
+    if (defaultImport) imports.set(defaultImport, target);
+    if (namedImports) {
+      for (const part of namedImports.split(',')) {
+        imports.set(importName(part), target);
+      }
+    }
+  }
+  return imports;
+}
+
+function extractRouterUses(source, routerName) {
+  const uses = [];
+  const useRegex = new RegExp(
+    `${escapeRegex(routerName)}\\.use\\(\\s*(?:['"\`]([^'"\`]*)['"\`]\\s*,\\s*)?([A-Za-z0-9_]+)\\s*\\)`,
+    'g'
+  );
+  for (const [, childPath = '', childRouterName] of source.matchAll(useRegex)) {
+    uses.push({ childPath, childRouterName });
+  }
+  return uses;
+}
+
 function listRouteModuleFiles(dir) {
   const files = [];
   if (!existsSync(dir)) return files;
@@ -134,7 +174,9 @@ function runtimeRoutes() {
     }
   }
 
-  function collectRoutesFromSource(source, fileBase, importedDefaultName) {
+  const visitedRouters = new Set();
+
+  function collectRoutesFromSource(source, sourceFile, fileBase, importedDefaultName) {
     const routerNames = exportNamesForRouteFile(source, fileBase);
     if (importedDefaultName) routerNames.add(importedDefaultName);
 
@@ -145,35 +187,52 @@ function runtimeRoutes() {
       if (importedDefaultName === routerName) sourceRouterNames.add('router');
       for (const sourceRouterName of sourceRouterNames) {
         for (const mountPath of mountPaths) {
-          for (const route of extractRouteMethods(source, sourceRouterName, mountPath)) {
-            routes.add(route);
-          }
+          collectRoutesForRouter(source, sourceFile, sourceRouterName, mountPath);
         }
       }
     }
   }
 
+  function collectRoutesForRouter(source, sourceFile, routerName, mountPath) {
+    const visitKey = `${sourceFile}\0${routerName}\0${mountPath}`;
+    if (visitedRouters.has(visitKey)) return;
+    visitedRouters.add(visitKey);
+
+    for (const route of extractRouteMethods(source, routerName, mountPath)) {
+      routes.add(route);
+    }
+
+    const imports = localImports(source, sourceFile);
+    for (const { childPath, childRouterName } of extractRouterUses(source, routerName)) {
+      const childFile = imports.get(childRouterName);
+      if (!childFile || !existsSync(childFile)) continue;
+      const childMountPath = normalizeRuntimePath(`${mountPath}/${childPath}`);
+      collectRoutesForRouter(read(childFile), childFile, childRouterName, childMountPath);
+    }
+  }
+
   const scannedFiles = new Set();
 
-  for (const { routerName, importPath } of routeBindings) {
+  for (const { routerName, importRoot, importPath } of routeBindings) {
+    const sourceDir = importRoot === 'platform' ? platformDir : routesDir;
     const fileBase = importPath.split('/')[0];
     let filesToScan = [];
 
     if (importPath.endsWith('/index')) {
-      filesToScan = listRouteModuleFiles(join(routesDir, importPath.replace(/\/index$/, '')));
+      filesToScan = listRouteModuleFiles(join(sourceDir, importPath.replace(/\/index$/, '')));
     } else if (importPath.includes('/')) {
-      const nestedFile = join(routesDir, `${importPath}.ts`);
+      const nestedFile = join(sourceDir, `${importPath}.ts`);
       filesToScan = existsSync(nestedFile)
         ? [nestedFile]
-        : listRouteModuleFiles(join(routesDir, importPath));
+        : listRouteModuleFiles(join(sourceDir, importPath));
     } else {
-      filesToScan = [join(routesDir, `${importPath}.ts`)];
+      filesToScan = [join(sourceDir, `${importPath}.ts`)];
     }
 
     for (const routePath of filesToScan) {
       if (!existsSync(routePath) || scannedFiles.has(routePath)) continue;
       scannedFiles.add(routePath);
-      collectRoutesFromSource(read(routePath), fileBase, routerName);
+      collectRoutesFromSource(read(routePath), routePath, fileBase, routerName);
     }
   }
 
@@ -191,7 +250,7 @@ function runtimeRoutes() {
         if (scannedFiles.has(subFile)) continue;
         scannedFiles.add(subFile);
         const binding = routeBindings.find((entry) => entry.importPath === fileBase || entry.importPath === `${fileBase}/index`);
-        collectRoutesFromSource(read(subFile), fileBase, binding?.routerName);
+        collectRoutesFromSource(read(subFile), subFile, fileBase, binding?.routerName);
       }
     }
   }

@@ -1,3 +1,4 @@
+// Team member query hooks normalize team people API rows for assignment UI consumers.
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, assertApiData } from '@/api/client';
 import type { components } from '@/api/generated/ship-openapi';
@@ -16,11 +17,12 @@ export const teamMemberKeys = {
   lists: () => [...teamMemberKeys.all, 'list'] as const,
 };
 
-function mapPersonToTeamMember(person: components['schemas']['Person']): TeamMember {
-  const rawPerson = person as components['schemas']['Person'] & { user_id?: string | null };
+type TeamPersonListItem = components['schemas']['TeamPersonListItem'];
+
+function mapPersonToTeamMember(person: TeamPersonListItem): TeamMember {
   return {
-    id: person.personId ?? person.id ?? '',
-    user_id: 'user_id' in rawPerson ? rawPerson.user_id ?? null : person.id,
+    id: person.id,
+    user_id: person.user_id,
     name: person.name,
     email: person.email ?? undefined,
     isPending: person.isPending,

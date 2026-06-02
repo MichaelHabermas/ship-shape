@@ -14,7 +14,7 @@ import { ensureReviewerSourceMutationProofAndReload } from './chat-mutation.js';
 import type { QueryRunner } from './types.js';
 
 export function fleetGraphReviewerProofEnabled(): boolean {
-  return process.env.FLEETGRAPH_REVIEWER_PROOF_ENABLED === '1';
+  return ['1', 'true'].includes(process.env.FLEETGRAPH_REVIEWER_PROOF_ENABLED ?? '');
 }
 
 export async function listFleetGraphReviewerChains(input: {

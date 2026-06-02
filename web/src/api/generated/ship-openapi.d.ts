@@ -91,6 +91,15 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Parent document not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ParentDocumentNotFoundError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -136,10 +145,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            /** @enum {string} */
-                            error: "Document not found";
-                        };
+                        "application/json": components["schemas"]["DocumentNotFoundError"];
                     };
                 };
             };
@@ -168,12 +174,23 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
                 /** @description Document not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["DocumentNotFoundError"];
+                    };
                 };
             };
         };
@@ -207,12 +224,23 @@ export interface paths {
                         "application/json": components["schemas"]["Document"];
                     };
                 };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
                 /** @description Document not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["DocumentNotFoundError"];
+                    };
                 };
             };
         };
@@ -279,7 +307,10 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ErrorResponse"];
+                        "application/json": components["schemas"]["ErrorResponse"] | {
+                            /** @enum {string} */
+                            error: "token_scope_denied";
+                        };
                     };
                 };
                 /** @description Document not found */
@@ -362,7 +393,21 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["DocumentContentPayload"];
+                    };
+                };
+                /** @description Token scope denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            error: "token_scope_denied";
+                        };
+                    };
                 };
                 /** @description Document not found */
                 404: {
@@ -454,6 +499,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["Document"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentConvertValidationError"];
                     };
                 };
                 /** @description Document not found */
@@ -1490,45 +1544,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            /**
-                             * Format: uuid
-                             * @description UUID identifier
-                             * @example 550e8400-e29b-41d4-a716-446655440000
-                             */
-                            id: string;
-                            title: string;
-                            plan: string | null;
-                            plan_validated: boolean | null;
-                            monetary_impact_expected: string | null;
-                            monetary_impact_actual: string | null;
-                            success_criteria: string[] | null;
-                            next_steps: string | null;
-                            content: {
-                                [key: string]: unknown;
-                            } | null;
-                            sprints: {
-                                /**
-                                 * Format: uuid
-                                 * @description UUID identifier
-                                 * @example 550e8400-e29b-41d4-a716-446655440000
-                                 */
-                                id: string;
-                                title: string;
-                                sprint_number: number;
-                            }[];
-                            issues: {
-                                /**
-                                 * Format: uuid
-                                 * @description UUID identifier
-                                 * @example 550e8400-e29b-41d4-a716-446655440000
-                                 */
-                                id: string;
-                                title: string;
-                                state: string;
-                                ticket_number: number;
-                            }[];
-                        };
+                        "application/json": components["schemas"]["ProjectRetroGetResponse"];
                     };
                 };
                 /** @description Project not found */
@@ -1558,12 +1574,12 @@ export interface paths {
             };
             responses: {
                 /** @description Retro saved */
-                200: {
+                201: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Project"];
+                        "application/json": components["schemas"]["ProjectRetroSaveResponse"];
                     };
                 };
                 /** @description Project not found */
@@ -1600,7 +1616,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Project"];
+                        "application/json": components["schemas"]["ProjectRetroSaveResponse"];
                     };
                 };
                 /** @description Project not found */
@@ -2526,33 +2542,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            /**
-                             * Format: uuid
-                             * @description UUID identifier
-                             * @example 550e8400-e29b-41d4-a716-446655440000
-                             */
-                            id: string;
-                            name: string;
-                            sprint_number: number;
-                            plan: string | null;
-                            plan_validated: boolean | null;
-                            issues: {
-                                /**
-                                 * Format: uuid
-                                 * @description UUID identifier
-                                 * @example 550e8400-e29b-41d4-a716-446655440000
-                                 */
-                                id: string;
-                                title: string;
-                                state: string;
-                                ticket_number: number;
-                                was_planned: boolean;
-                            }[];
-                            content: {
-                                [key: string]: unknown;
-                            } | null;
-                        };
+                        "application/json": components["schemas"]["SprintReviewResponse"];
                     };
                 };
                 /** @description Week not found */
@@ -2591,10 +2581,19 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["SprintReviewResponse"];
+                    };
                 };
                 /** @description Week not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Review already exists */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2628,6 +2627,15 @@ export interface paths {
             responses: {
                 /** @description Updated week review */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SprintReviewResponse"];
+                    };
+                };
+                /** @description Not the review owner */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -3014,7 +3022,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Week"];
+                        "application/json": components["schemas"]["WeekPlanApprovalResponse"];
                     };
                 };
                 /** @description Not authorized to approve (not the accountable person) */
@@ -3854,7 +3862,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Person"][];
+                        "application/json": components["schemas"]["TeamPersonListItem"][];
                     };
                 };
             };
@@ -4012,6 +4020,15 @@ export interface paths {
                         "application/json": components["schemas"]["WorkspaceListResponse"];
                     };
                 };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
             };
         };
         put?: never;
@@ -4048,13 +4065,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: {
-                                workspace: components["schemas"]["Workspace"];
-                            };
-                        };
+                        "application/json": components["schemas"]["WorkspaceCurrentResponse"];
                     };
                 };
                 /** @description No workspace selected */
@@ -4062,7 +4073,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -4112,14 +4125,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
                 /** @description Workspace not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -4164,7 +4181,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -4377,9 +4396,16 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        }[];
+                        "application/json": components["schemas"]["WorkspaceInvitesListResponse"];
+                    };
+                };
+                /** @description Workspace admin required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
                     };
                 };
             };
@@ -4411,7 +4437,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceInviteCreateResponse"];
+                    };
+                };
+                /** @description Workspace admin required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -4453,6 +4490,15 @@ export interface paths {
                         "application/json": components["schemas"]["SuccessResponse"];
                     };
                 };
+                /** @description Workspace admin required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
             };
         };
         options?: never;
@@ -4488,9 +4534,16 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
+                        "application/json": components["schemas"]["WorkspaceAuditLogsListResponse"];
+                    };
+                };
+                /** @description Workspace admin required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
                     };
                 };
             };
@@ -4534,6 +4587,15 @@ export interface paths {
                         "application/json": components["schemas"]["MentionSearchResult"];
                     };
                 };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
             };
         };
         put?: never;
@@ -4575,6 +4637,24 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["DocumentSearchResponse"];
+                    };
+                };
+                /** @description Invalid query */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
                     };
                 };
             };
@@ -4626,7 +4706,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -4669,6 +4760,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["LearningSearchResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
                     };
                 };
             };
@@ -5080,6 +5180,15 @@ export interface paths {
                         "application/json": components["schemas"]["LoginResponse"];
                     };
                 };
+                /** @description Missing email or password */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuthErrorResponse"];
+                    };
+                };
                 /** @description Invalid credentials */
                 401: {
                     headers: {
@@ -5128,6 +5237,15 @@ export interface paths {
                         "application/json": components["schemas"]["SuccessResponse"];
                     };
                 };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -5170,7 +5288,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
                 /** @description User not found */
                 404: {
@@ -5227,7 +5347,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -5271,7 +5393,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -5554,12 +5678,23 @@ export interface paths {
                         "application/json": components["schemas"]["Backlink"][];
                     };
                 };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
                 /** @description Document not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -5610,12 +5745,32 @@ export interface paths {
                         "application/json": components["schemas"]["SuccessResponse"];
                     };
                 };
+                /** @description Invalid input or target documents */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
                 /** @description Document not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -6703,14 +6858,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
                 /** @description Invalid invite */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
                 /** @description Internal server error */
                 500: {
@@ -6768,14 +6927,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
                 /** @description Invalid invite */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
                 /** @description Internal server error */
                 500: {
@@ -7101,7 +7264,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7136,7 +7301,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7179,7 +7346,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7220,7 +7389,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7304,7 +7475,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7440,7 +7613,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7479,7 +7654,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7615,7 +7792,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7661,7 +7840,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7718,7 +7899,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7760,7 +7943,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7848,7 +8033,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7932,7 +8119,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7975,7 +8164,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -8020,7 +8211,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -8066,7 +8259,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -8371,6 +8566,154 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["DevDatabaseStatusResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create OAuth app
+         * @description Create a PlugForge OAuth app for the current workspace. The client secret is returned once.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateOAuthAppRequest"];
+                };
+            };
+            responses: {
+                /** @description OAuth app created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OAuthAppCreatedResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Workspace admin session required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get OAuth bearer context
+         * @description Return the user, app, workspace, and granted scopes for the current OAuth access token.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OAuth bearer context */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicMeResponse"];
+                    };
+                };
+                /** @description Missing, invalid, revoked, or expired bearer token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicApiError"];
+                    };
+                };
+                /** @description Insufficient OAuth scope */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicApiError"];
+                    };
+                };
+                /** @description User or route not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicApiError"];
+                    };
+                };
+                /** @description Rate limited */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicApiError"];
+                    };
+                };
+                /** @description Server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicApiError"];
                     };
                 };
             };
@@ -10160,6 +10503,17 @@ export interface components {
              */
             parent_id?: string | null;
             /**
+             * @description Document visibility scope
+             * @enum {string}
+             */
+            visibility?: "private" | "workspace";
+            /**
+             * Format: uuid
+             * @description Source document ID when this row was produced by type conversion
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            converted_from_id?: string | null;
+            /**
              * Format: date-time
              * @description ISO 8601 datetime string
              * @example 2025-01-30T14:30:00.000Z
@@ -10209,6 +10563,11 @@ export interface components {
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             parent_id?: string | null;
+            /**
+             * @description Document visibility scope
+             * @enum {string}
+             */
+            visibility?: "private" | "workspace";
             /**
              * Format: date-time
              * @description ISO 8601 datetime string
@@ -10280,6 +10639,18 @@ export interface components {
              */
             document_type?: "wiki" | "issue" | "program" | "project" | "sprint" | "person" | "weekly_plan" | "weekly_retro" | "standup" | "weekly_review";
         };
+        DocumentNotFoundError: {
+            /** @enum {string} */
+            error: "Document not found";
+        };
+        ParentDocumentNotFoundError: {
+            /** @enum {string} */
+            error: "Parent document not found";
+        };
+        DocumentConvertValidationError: {
+            /** @enum {string} */
+            error: "Cannot convert an archived document";
+        };
         TipTapDocument: {
             type: string;
             content: unknown[];
@@ -10334,6 +10705,18 @@ export interface components {
         } | {
             /** @enum {string} */
             type: "delete";
+        };
+        DocumentContentPayload: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            title: string;
+            content: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * @description Issue workflow state
@@ -11115,6 +11498,46 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        ProjectRetroIssuesSummary: {
+            total: number;
+            completed: number;
+            cancelled: number;
+            active: number;
+        };
+        ProjectRetroWeekItem: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            title: string;
+            sprint_number?: string | number | unknown;
+        };
+        ProjectRetroGetResponse: {
+            is_draft: boolean;
+            plan_validated?: boolean | null;
+            monetary_impact_expected: string | null;
+            monetary_impact_actual: string | null;
+            success_criteria: string[];
+            next_steps: string | null;
+            content: {
+                [key: string]: unknown;
+            };
+            weeks: components["schemas"]["ProjectRetroWeekItem"][];
+            issues_summary: components["schemas"]["ProjectRetroIssuesSummary"];
+        };
+        ProjectRetroSaveResponse: {
+            is_draft: boolean;
+            plan_validated?: boolean | null;
+            monetary_impact_expected?: string | null;
+            monetary_impact_actual?: string | null;
+            success_criteria?: string[];
+            next_steps?: string | null;
+            content: {
+                [key: string]: unknown;
+            };
+        };
         Program: {
             /**
              * Format: uuid
@@ -11459,6 +11882,51 @@ export interface components {
              */
             updated_at: string;
         };
+        SprintReviewResponse: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            sprint_id: string;
+            title: string;
+            content: {
+                [key: string]: unknown;
+            } | null;
+            plan_validated: boolean | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            owner_id: string | null;
+            owner_name?: string | null;
+            owner_email?: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            created_at: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            updated_at: string | null;
+            is_draft: boolean;
+        };
+        WeekPlanApprovalResponse: {
+            /** @enum {boolean} */
+            success: true;
+            approval: components["schemas"]["ApprovalTracking"];
+        };
         ActiveWeeksResponse: {
             weeks: components["schemas"]["ActiveWeekItem"][];
             current_sprint_number: number;
@@ -11596,6 +12064,32 @@ export interface components {
             isArchived: boolean;
             /** @description User has not accepted invite yet */
             isPending: boolean;
+        };
+        TeamPersonListItem: {
+            /**
+             * Format: uuid
+             * @description Person document ID
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            user_id: string | null;
+            name: string;
+            /** Format: email */
+            email: string | null;
+            isArchived: boolean;
+            isPending: boolean;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            reportsTo?: string | null;
+            role?: string | null;
         };
         SprintPeriod: {
             number: number;
@@ -11763,6 +12257,26 @@ export interface components {
                 isSuperAdmin: boolean;
             };
         };
+        WorkspaceCurrentResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                workspace: components["schemas"]["Workspace"];
+            };
+        };
+        WorkspaceSwitchData: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            workspaceId: string;
+        };
+        WorkspaceSwitchResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["WorkspaceSwitchData"];
+        };
         CreateWorkspace: {
             name: string;
             /**
@@ -11818,6 +12332,82 @@ export interface components {
             /** @enum {boolean} */
             success: true;
             data: components["schemas"]["WorkspaceMembersListData"];
+        };
+        WorkspaceInvite: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            /** Format: email */
+            email: string;
+            token: string;
+            /** @enum {string} */
+            role: "admin" | "member";
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            expiresAt: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            createdAt: string;
+            invitedByName?: string;
+            x509SubjectDn?: string | null;
+        };
+        WorkspaceInvitesListData: {
+            invites: components["schemas"]["WorkspaceInvite"][];
+        };
+        WorkspaceInvitesListResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["WorkspaceInvitesListData"];
+        };
+        WorkspaceInviteCreateData: {
+            invite: components["schemas"]["WorkspaceInvite"];
+        };
+        WorkspaceInviteCreateResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["WorkspaceInviteCreateData"];
+        };
+        WorkspaceAuditLog: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            action: string;
+            resourceType: string;
+            resourceId: string | null;
+            details: {
+                [key: string]: unknown;
+            } | null;
+            ipAddress: string | null;
+            userAgent: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            createdAt: string;
+            actorEmail: string;
+            actorName: string;
+            impersonatingEmail: string | null;
+        };
+        WorkspaceAuditLogsListData: {
+            logs: components["schemas"]["WorkspaceAuditLog"][];
+        };
+        WorkspaceAuditLogsListResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["WorkspaceAuditLogsListData"];
         };
         MentionSearchResult: {
             people: {
@@ -13461,11 +14051,7 @@ export interface components {
              */
             id: string;
             name: string;
-            /**
-             * @description ISO 8601 date string (YYYY-MM-DD)
-             * @example 2025-01-30
-             */
-            sprintStartDate?: string | null;
+            sprintStartDate?: string | unknown;
             /**
              * Format: date-time
              * @description ISO 8601 datetime string
@@ -13492,6 +14078,14 @@ export interface components {
             data: {
                 workspaces: components["schemas"]["AdminWorkspace"][];
             };
+        };
+        AdminCreateWorkspaceData: {
+            workspace: components["schemas"]["AdminWorkspace"];
+        };
+        AdminCreateWorkspaceResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["AdminCreateWorkspaceData"];
         };
         AdminJsonResponse: {
             /** @enum {boolean} */
@@ -13532,38 +14126,70 @@ export interface components {
             unreachable?: boolean;
             hint?: string;
         };
-        DocumentContentPayload: {
+        /** @enum {string} */
+        PublicApiScope: "documents:read" | "documents:write" | "issues:read" | "issues:write" | "sprints:read" | "sprints:write" | "webhooks:manage";
+        CreateOAuthAppRequest: {
+            name: string;
+            redirect_uris: string[];
+            requested_scopes: components["schemas"]["PublicApiScope"][];
+        };
+        OAuthAppCreated: {
             /**
              * Format: uuid
              * @description UUID identifier
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             id: string;
-            title: string;
-            content: {
-                [key: string]: unknown;
-            } | null;
+            name: string;
+            client_id: string;
+            /** @description Raw client secret. Returned only once during app creation. */
+            client_secret: string;
+            redirect_uris: string[];
+            requested_scopes: components["schemas"]["PublicApiScope"][];
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            created_at: string;
+            warning: string;
         };
-        WorkspaceSwitchData: {
+        OAuthAppCreatedResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["OAuthAppCreated"];
+        };
+        PublicApiError: {
+            /** @enum {string} */
+            code: "unauthorized" | "forbidden" | "not_found" | "validation_failed" | "rate_limited" | "server_error";
+            message: string;
+            details?: {
+                [key: string]: unknown;
+            };
+            request_id: string;
+        };
+        PublicMeResponse: {
+            user: {
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                id: string;
+                /** Format: email */
+                email: string;
+                name: string;
+            };
+            app: {
+                client_id: string;
+            };
             /**
              * Format: uuid
              * @description UUID identifier
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
-            workspaceId: string;
-        };
-        WorkspaceSwitchResponse: {
-            /** @enum {boolean} */
-            success: true;
-            data: components["schemas"]["WorkspaceSwitchData"];
-        };
-        AdminCreateWorkspaceData: {
-            workspace: components["schemas"]["AdminWorkspace"];
-        };
-        AdminCreateWorkspaceResponse: {
-            /** @enum {boolean} */
-            success: true;
-            data: components["schemas"]["AdminCreateWorkspaceData"];
+            workspace_id: string;
+            granted_scopes: components["schemas"]["PublicApiScope"][];
         };
         FleetGraphFindingsListResponse: {
             findings: {
@@ -15345,6 +15971,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommentResponse"][];
+                };
+            };
+            /** @description Document not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentNotFoundError"];
                 };
             };
         };
