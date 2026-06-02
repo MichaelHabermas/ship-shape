@@ -16,5 +16,14 @@
     "build": "tsc",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.2.0"
+  },
+  "peerDependencies": {
+    "@ship/shared": "0.0.0"
+  },
+  "devDependencies": {
+    "@ship/shared": "workspace:*"
   }
 }

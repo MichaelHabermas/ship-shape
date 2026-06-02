@@ -1,13 +1,19 @@
-// Public API middleware validates OAuth bearer tokens and records per-request audit rows.
+// Public API middleware validates OAuth bearer tokens, rate limits, and records audit rows.
 import crypto from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
-import rateLimit from 'express-rate-limit';
+import type { PublicApiErrorCode, PublicApiScope } from '@ship/shared';
 import { pool } from '../../../db/client.js';
 import { isDevEnv, isTestEnv } from '../../../config/runtime.js';
 import { logHotError } from '../../../utils/hot-log.js';
+import type { Principal } from '../../../security/principal.js';
 import { validateOAuthAccessToken, type OAuthAccessTokenContext } from '../../oauth/tokens.js';
-import type { PublicApiScope } from '../../scopes/registry.js';
-import { sendPublicApiError, type PublicApiErrorCode } from './errors.js';
+import {
+  RATE_LIMIT_HEADER_LIMIT,
+  RATE_LIMIT_HEADER_REMAINING,
+  RATE_LIMIT_HEADER_RESET,
+  RATE_LIMIT_HEADER_RETRY_AFTER,
+} from '../../ratelimit/headers.js';
+import { sendPublicApiError } from './errors.js';
 
 export type PublicApiRequestContext = OAuthAccessTokenContext & {
   requestId: string;
@@ -16,6 +22,16 @@ export type PublicApiRequestContext = OAuthAccessTokenContext & {
 };
 
 const MAX_PUBLIC_API_REQUEST_ID_LENGTH = 128;
+const PUBLIC_API_RATE_LIMIT_WINDOW_MS = 60_000;
+const PUBLIC_API_TOKEN_LIMIT = isTestEnv() ? 10_000 : isDevEnv() ? 1_000 : 100;
+const PUBLIC_API_APP_LIMIT = isTestEnv() ? 20_000 : isDevEnv() ? 2_000 : 500;
+
+type RateBucket = {
+  remaining: number;
+  resetAt: number;
+};
+
+const rateBuckets = new Map<string, RateBucket>();
 
 declare global {
   namespace Express {
@@ -99,22 +115,37 @@ export function publicApiAuditMiddleware(req: Request, res: Response, next: Next
   next();
 }
 
-export const publicApiRateLimitMiddleware = rateLimit({
-  windowMs: 60 * 1000,
-  max: isTestEnv() ? 10000 : isDevEnv() ? 1000 : 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req: Request, res: Response) => {
-    const requestId = req.publicApiRequestId ?? publicApiRequestIdFromRequest(req);
-    req.publicApiRequestId = requestId;
+export function publicApiRateLimitMiddleware(req: Request, res: Response, next: NextFunction): void {
+  const { requestId, result } = consumePublicApiPreAuthRateLimit(req, res);
+
+  if (!result.allowed) {
     req.publicApiErrorCode = 'rate_limited';
+    res.setHeader(RATE_LIMIT_HEADER_RETRY_AFTER, String(result.retryAfterSeconds));
     sendPublicApiError(res, 429, {
       code: 'rate_limited',
       message: 'Too many requests. Please slow down.',
+      details: { retry_after_seconds: result.retryAfterSeconds },
       request_id: requestId,
     });
-  },
-});
+    return;
+  }
+
+  next();
+}
+
+export function consumePublicApiPreAuthRateLimit(
+  req: Request,
+  res: Response
+): {
+  requestId: string;
+  result: ReturnType<typeof consumePublicApiBucket>;
+} {
+  const requestId = req.publicApiRequestId ?? publicApiRequestIdFromRequest(req);
+  req.publicApiRequestId = requestId;
+  const result = consumePublicApiBucket(`ip:${req.ip}`, PUBLIC_API_TOKEN_LIMIT);
+  setPublicApiRateLimitHeaders(res, result.limit, result.remaining, result.resetAt);
+  return { requestId, result };
+}
 
 export function requirePublicApiBearer(requiredScope: PublicApiScope | null) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -145,6 +176,34 @@ export function requirePublicApiBearer(requiredScope: PublicApiScope | null) {
         requestId,
         requiredScope,
       };
+
+      const tokenLimit = consumePublicApiBucket(`token:${validation.context.tokenId}`, PUBLIC_API_TOKEN_LIMIT);
+      mergePublicApiRateLimitHeaders(res, tokenLimit.limit, tokenLimit.remaining, tokenLimit.resetAt);
+      if (!tokenLimit.allowed) {
+        req.publicApiErrorCode = 'rate_limited';
+        res.setHeader(RATE_LIMIT_HEADER_RETRY_AFTER, String(tokenLimit.retryAfterSeconds));
+        sendPublicApiError(res, 429, {
+          code: 'rate_limited',
+          message: 'Too many requests. Please slow down.',
+          details: { retry_after_seconds: tokenLimit.retryAfterSeconds },
+          request_id: requestId,
+        });
+        return;
+      }
+
+      const appLimit = consumePublicApiBucket(`app:${validation.context.appId}`, PUBLIC_API_APP_LIMIT);
+      mergePublicApiRateLimitHeaders(res, appLimit.limit, appLimit.remaining, appLimit.resetAt);
+      if (!appLimit.allowed) {
+        req.publicApiErrorCode = 'rate_limited';
+        res.setHeader(RATE_LIMIT_HEADER_RETRY_AFTER, String(appLimit.retryAfterSeconds));
+        sendPublicApiError(res, 429, {
+          code: 'rate_limited',
+          message: 'Too many requests. Please slow down.',
+          details: { retry_after_seconds: appLimit.retryAfterSeconds },
+          request_id: requestId,
+        });
+        return;
+      }
 
       if (requiredScope && !validation.context.grantedScopes.includes(requiredScope)) {
         req.publicApiErrorCode = 'forbidden';
@@ -207,6 +266,73 @@ export function publicApiRequestIdFromRequest(req: Request): string {
     return requestId;
   }
   return crypto.randomUUID();
+}
+
+export function publicApiPrincipalFromRequest(req: Request): Principal {
+  if (!req.publicApi) {
+    throw new Error('Public API route is missing OAuth context');
+  }
+  return {
+    kind: 'oauth_access_token',
+    tokenId: req.publicApi.tokenId,
+    appId: req.publicApi.appId,
+    clientId: req.publicApi.clientId,
+    userId: req.publicApi.userId,
+    workspaceId: req.publicApi.workspaceId,
+    isSuperAdmin: false,
+    scopes: req.publicApi.grantedScopes,
+  };
+}
+
+function consumePublicApiBucket(key: string, limit: number): {
+  allowed: boolean;
+  limit: number;
+  remaining: number;
+  resetAt: number;
+  retryAfterSeconds: number;
+} {
+  const now = Date.now();
+  const existing = rateBuckets.get(key);
+  const bucket = existing && existing.resetAt > now
+    ? existing
+    : { remaining: limit, resetAt: now + PUBLIC_API_RATE_LIMIT_WINDOW_MS };
+
+  const allowed = bucket.remaining > 0;
+  if (allowed) {
+    bucket.remaining -= 1;
+  }
+  rateBuckets.set(key, bucket);
+  return {
+    allowed,
+    limit,
+    remaining: Math.max(0, bucket.remaining),
+    resetAt: bucket.resetAt,
+    retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
+  };
+}
+
+function setPublicApiRateLimitHeaders(
+  res: Response,
+  limit: number,
+  remaining: number,
+  resetAt: number
+): void {
+  res.setHeader(RATE_LIMIT_HEADER_LIMIT, String(limit));
+  res.setHeader(RATE_LIMIT_HEADER_REMAINING, String(remaining));
+  res.setHeader(RATE_LIMIT_HEADER_RESET, String(Math.ceil(resetAt / 1000)));
+}
+
+function mergePublicApiRateLimitHeaders(
+  res: Response,
+  limit: number,
+  remaining: number,
+  resetAt: number
+): void {
+  const currentRemaining = Number(res.getHeader(RATE_LIMIT_HEADER_REMAINING));
+  const nextRemaining = Number.isFinite(currentRemaining)
+    ? Math.min(currentRemaining, remaining)
+    : remaining;
+  setPublicApiRateLimitHeaders(res, limit, nextRemaining, resetAt);
 }
 
 function sendUnauthorized(

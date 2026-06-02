@@ -1,8 +1,8 @@
 // OAuth token service validates PlugForge /api/v1 bearer tokens without using legacy API tokens.
 import crypto from 'crypto';
 import type { Pool, PoolClient } from 'pg';
+import { PUBLIC_API_SCOPES, type PublicApiScope } from '@ship/shared';
 import { pool } from '../../db/client.js';
-import { PUBLIC_API_SCOPES, type PublicApiScope } from '../scopes/registry.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
@@ -67,14 +67,25 @@ export async function createOAuthAccessToken(
     workspaceId: string;
     grantedScopes: PublicApiScope[];
     expiresAt: Date;
+    grantId?: string;
+    refreshTokenFamilyId?: string;
   },
   db: QueryRunner = pool
 ): Promise<CreatedOAuthAccessToken> {
   const token = generateOAuthAccessToken();
   const tokenHash = hashOAuthAccessToken(token);
   const result = await db.query<CreatedOAuthAccessTokenRow>(
-    `INSERT INTO oauth_access_tokens (app_id, user_id, workspace_id, token_hash, granted_scopes, expires_at)
-     SELECT $1, $2, $3, $4, $5, $6
+    `INSERT INTO oauth_access_tokens (
+       app_id,
+       user_id,
+       workspace_id,
+       token_hash,
+       granted_scopes,
+       expires_at,
+       grant_id,
+       refresh_token_family_id
+     )
+     SELECT $1, $2, $3, $4, $5, $6, $7, $8
      FROM oauth_apps
      JOIN workspace_memberships wm
        ON wm.workspace_id = oauth_apps.workspace_id
@@ -90,6 +101,8 @@ export async function createOAuthAccessToken(
       tokenHash,
       input.grantedScopes,
       input.expiresAt,
+      input.grantId ?? null,
+      input.refreshTokenFamilyId ?? null,
     ]
   );
 

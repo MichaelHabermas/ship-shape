@@ -1,5 +1,6 @@
 // Principal types describe authenticated actors for capability authorization.
 import type { Request } from 'express';
+import type { PublicApiScope } from '@ship/shared';
 
 export type ApiTokenScope =
   | 'legacy:full'
@@ -27,6 +28,16 @@ export type Principal =
       workspaceId: string;
       isSuperAdmin: boolean;
       scopes: ApiTokenScope[];
+    }
+  | {
+      kind: 'oauth_access_token';
+      tokenId: string;
+      appId: string;
+      clientId: string;
+      userId: string;
+      workspaceId: string;
+      isSuperAdmin: false;
+      scopes: PublicApiScope[];
     }
   | {
       kind: 'fleetgraph_system';

@@ -1,3 +1,4 @@
+// Document creation service owns generic document inserts and post-create side effects.
 import { pool } from '../../db/client.js';
 import { broadcastToUser } from '../../collaboration/index.js';
 import {
@@ -21,6 +22,10 @@ import {
   type DocumentAccessRow,
   type MutationResult,
 } from './types.js';
+import {
+  dispatchWebhookDeliveries,
+  enqueueWebhookEvent,
+} from '../../platform/webhooks/service.js';
 
 export async function createDocumentMutation({
   actor,
@@ -99,7 +104,7 @@ export async function createDocumentMutation({
       [
         actor.workspaceId,
         document_type,
-        'Untitled',
+        principal.kind === 'oauth_access_token' ? input.title || 'Untitled' : 'Untitled',
         parent_id || null,
         JSON.stringify(properties || {}),
         actor.userId,
@@ -127,8 +132,27 @@ export async function createDocumentMutation({
       await addBelongsToAssociation(newDoc.id, program_id, 'program', client);
     }
 
+    const webhook = await enqueueWebhookEvent({
+      type: 'document.created',
+      workspace_id: actor.workspaceId,
+      idempotency_key: `document.created:${newDoc.id}`,
+      payload: {
+        document: {
+          id: newDoc.id,
+          title: newDoc.title,
+          document_type: newDoc.document_type,
+          api_url: `/api/v1/documents/${newDoc.id}`,
+          ui_url: `/documents/${newDoc.id}`,
+        },
+        actor: {
+          id: actor.userId,
+        },
+      },
+    }, client);
+
     await client.query('COMMIT');
     await upsertDocumentSearchIndex(newDoc.id);
+    void dispatchWebhookDeliveries(webhook.deliveryIds);
 
     if (document_type === 'weekly_plan' || (properties && 'outcome' in properties)) {
       broadcastToUser(actor.userId, 'accountability:updated', { documentId: newDoc.id, documentType: document_type });

@@ -8642,90 +8642,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get OAuth bearer context
-         * @description Return the user, app, workspace, and granted scopes for the current OAuth access token.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OAuth bearer context */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PublicMeResponse"];
-                    };
-                };
-                /** @description Missing, invalid, revoked, or expired bearer token */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PublicApiError"];
-                    };
-                };
-                /** @description Insufficient OAuth scope */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PublicApiError"];
-                    };
-                };
-                /** @description User or route not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PublicApiError"];
-                    };
-                };
-                /** @description Rate limited */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PublicApiError"];
-                    };
-                };
-                /** @description Server error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PublicApiError"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/setup/status": {
         parameters: {
             query?: never;
@@ -14158,38 +14074,6 @@ export interface components {
             /** @enum {boolean} */
             success: true;
             data: components["schemas"]["OAuthAppCreated"];
-        };
-        PublicApiError: {
-            /** @enum {string} */
-            code: "unauthorized" | "forbidden" | "not_found" | "validation_failed" | "rate_limited" | "server_error";
-            message: string;
-            details?: {
-                [key: string]: unknown;
-            };
-            request_id: string;
-        };
-        PublicMeResponse: {
-            user: {
-                /**
-                 * Format: uuid
-                 * @description UUID identifier
-                 * @example 550e8400-e29b-41d4-a716-446655440000
-                 */
-                id: string;
-                /** Format: email */
-                email: string;
-                name: string;
-            };
-            app: {
-                client_id: string;
-            };
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
-            workspace_id: string;
-            granted_scopes: components["schemas"]["PublicApiScope"][];
         };
         FleetGraphFindingsListResponse: {
             findings: {

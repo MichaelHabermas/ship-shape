@@ -7,6 +7,7 @@ export * from './document-view.js';
 export * from './content-extract.js';
 export * from './document-mentions.js';
 export * from './collab-protocol.js';
+export * from './public-api.js';
 export * from './fleetgraph/reviewer-verifier.js';
 export {
   buildFleetGraphCoreWireSchemas,

@@ -1,14 +1,25 @@
-// Canonical initial webhook event names. Payload schemas and domain publication
-// points are intentionally not defined in this anchor.
-export const WEBHOOK_EVENT_TYPES = [
-  'document.created',
-  'document.updated',
-  'document.deleted',
-  'issue.created',
-  'issue.assigned',
-  'issue.status_changed',
-  'sprint.started',
-  'sprint.completed',
-] as const;
+// Webhook event registry names and validates public event payloads as data.
+import { z } from 'zod';
+import {
+  DocumentCreatedWebhookPayloadSchema,
+  type WebhookEvent,
+  type WebhookEventType,
+} from '@ship/shared';
 
-export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];
+const genericWebhookPayloadSchema = z.record(z.unknown());
+
+export const WEBHOOK_EVENT_SCHEMAS = {
+  'document.created': DocumentCreatedWebhookPayloadSchema,
+  'document.updated': genericWebhookPayloadSchema,
+  'document.deleted': genericWebhookPayloadSchema,
+  'issue.created': genericWebhookPayloadSchema,
+  'issue.assigned': genericWebhookPayloadSchema,
+  'issue.status_changed': genericWebhookPayloadSchema,
+  'sprint.started': genericWebhookPayloadSchema,
+  'sprint.completed': genericWebhookPayloadSchema,
+} satisfies Record<WebhookEventType, z.ZodTypeAny>;
+
+export function parseWebhookEvent(event: WebhookEvent): WebhookEvent {
+  WEBHOOK_EVENT_SCHEMAS[event.type].parse(event.payload);
+  return event;
+}

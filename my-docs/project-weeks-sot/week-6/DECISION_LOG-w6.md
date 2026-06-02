@@ -5,10 +5,27 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 ## 2026-06-02 — First Public API Vertical Slice
 
 - OAuth app registration is a session-authenticated management route at `POST /api/platform/apps`, not a public `/api/v1` route and not an OAuth protocol endpoint.
-- The first `/api/v1/me` slice validates real OAuth access tokens, but tests seed access tokens directly. `/oauth/token` issuance waits for the PKCE/device-flow slice.
+- The first `/api/v1/me` slice validates real OAuth access tokens, but tests seed access tokens directly. The OAuth front-door slice must replace that fake issuance proof before public document APIs.
 - `/api/v1/me` is explicitly auth-only in public route metadata with `requiredScope: null`. Do not add `me:read` unless the canonical scope registry changes deliberately.
 - Legacy `api_tokens` are not accepted for `/api/v1/*`; public API auth uses `oauth_access_tokens` tied to an OAuth app, user, workspace, granted scopes, and public audit row.
 - OAuth `client_secret` values are stored with Argon2id hashes. OAuth access tokens are random high-entropy bearer tokens stored as SHA-256 hashes for lookup.
 - Mounted platform/public routes are registered in existing OpenAPI artifacts and checked by route parity, even though standalone public OpenAPI generation is deferred.
 - Public API rate limiting precedes audit inserts to avoid unauthenticated durable-write amplification. Public request IDs are capped at 128 characters before storage.
 - Access-token creation requires current workspace membership; later membership removal remains a validation-time `membership_revoked` denial rather than cascading token deletion.
+
+## 2026-06-02 — OAuth Authorization Code + PKCE Front Door
+
+- `/oauth/authorize` -> React consent -> `/oauth/token` is the first real PlugForge auth front door; public documents and SDK `authorizationCodeFlow()` remain deferred.
+- OAuth provider state is service-owned in `api/src/platform/oauth/provider.ts`: authorize validation, grants, one-time code issuance/exchange, access tokens, refresh rotation, and refresh reuse invalidation. HTTP routes stay thin adapters.
+- Authorization Code + PKCE requires `response_type=code`, exact `redirect_uri`, registered scopes, `code_challenge`, and `code_challenge_method=S256`; invalid verifier/reuse/expiry/mismatch returns `invalid_grant`.
+- Refresh tokens ship from day one as one-time-use 30-day families. Reuse invalidates the whole family and revokes linked access tokens before returning `invalid_grant`.
+- Consent UI lives at web `/oauth/consent`, while Vite proxies only `/oauth/authorize`, `/oauth/token`, and consent helper API routes. This keeps the browser consent surface in React without swallowing the protocol endpoints.
+- Consent surfaces get clickjacking protection with `X-Frame-Options: DENY` and `Content-Security-Policy: frame-ancestors 'none'` in API, Vite dev/preview, and Render static headers.
+
+## 2026-06-02 — TTFE Developer Spine
+
+- Device Grant is the CLI auth path. The drill may approve device codes through disposable local DB state, but the CLI still obtains tokens by polling the real `/oauth/token` Device Grant endpoint.
+- Public OpenAPI is generated separately at `docs/openapi.json`; internal `api/openapi.json` must not carry `/api/v1` public paths.
+- Public document create honors explicit titles only for OAuth public principals. Internal document create keeps `"Untitled"` semantics.
+- `@ship/cli` keeps `@ship/sdk` as a peer dependency plus workspace devDependency so packed fresh installs use local SDK+CLI tarballs instead of resolving `@ship/sdk` from npm.
+- `ship webhooks tail --once` is the actual receiver used by `pnpm drill ttfe`; it returns 200 only for verified signed events once a subscription secret is present.

@@ -24,6 +24,7 @@
     "fleetgraph:eval:surface": "tsx src/scripts/fleetgraph-product-surface-eval.ts",
     "db:orphan-check": "tsx src/db/scripts/orphan-diagnostic.ts",
     "openapi:generate": "tsx src/scripts/generate-openapi.ts",
+    "public-openapi:generate": "tsx src/scripts/generate-public-openapi.ts",
     "mcp": "tsx src/mcp/server.ts",
     "trace:smoke": "tsx src/scripts/trace-smoke.ts"
   },

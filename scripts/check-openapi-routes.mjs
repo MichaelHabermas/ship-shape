@@ -9,6 +9,7 @@ const appPath = join(root, 'api/src/app.ts');
 const routesDir = join(root, 'api/src/routes');
 const platformDir = join(root, 'api/src/platform');
 const openApiPath = join(root, 'api/openapi.json');
+const publicOpenApiPath = join(root, 'docs/openapi.json');
 const strict = process.argv.includes('--strict');
 
 const methods = ['get', 'post', 'put', 'patch', 'delete'];
@@ -188,10 +189,6 @@ function runtimeRoutes() {
   const routeBindings = extractRouteBindings(appSource);
   const routes = new Set();
 
-  for (const route of publicApiRegistryRoutes()) {
-    routes.add(route);
-  }
-
   for (const method of methods) {
     const appRouteRegex = new RegExp(`app\\.${method}\\(\\s*['"\`]([^'"\`]+)['"\`]`, 'g');
     for (const match of appSource.matchAll(appRouteRegex)) {
@@ -284,14 +281,14 @@ function runtimeRoutes() {
   return routes;
 }
 
-function openApiRoutes() {
-  const spec = JSON.parse(read(openApiPath));
+function openApiRoutes(specPath, serverBasePath) {
+  const spec = JSON.parse(read(specPath));
   const routes = new Set();
   const paths = Object.keys(spec.paths ?? {});
-  const prefixed = paths.filter((path) => path.startsWith('/api/'));
+  const prefixed = paths.filter((path) => path === serverBasePath || path.startsWith(`${serverBasePath}/`));
 
   if (prefixed.length > 0) {
-    console.error('OpenAPI paths must omit /api because servers[0].url is /api:');
+    console.error(`OpenAPI paths must omit ${serverBasePath} because servers[0].url is ${serverBasePath}:`);
     for (const path of prefixed) console.error(`  ${path}`);
     process.exitCode = 1;
   }
@@ -299,30 +296,47 @@ function openApiRoutes() {
   for (const [path, operations] of Object.entries(spec.paths ?? {})) {
     for (const method of methods) {
       if (operations?.[method]) {
-        routes.add(`${method.toUpperCase()} /api${normalizeOpenApiPath(path)}`);
+        routes.add(`${method.toUpperCase()} ${serverBasePath}${normalizeOpenApiPath(path)}`);
       }
     }
   }
   return routes;
 }
 
+function compare(label, runtime, openapi) {
+  const missing = [...runtime].filter((route) => !openapi.has(route)).sort();
+  const stale = [...openapi].filter((route) => !runtime.has(route)).sort();
+
+  console.log(`${label} runtime routes: ${runtime.size}`);
+  console.log(`${label} OpenAPI routes: ${openapi.size}`);
+  console.log(`${label} missing from OpenAPI: ${missing.length}`);
+  for (const route of missing) console.log(`  - ${route}`);
+  console.log(`${label} stale in OpenAPI: ${stale.length}`);
+  for (const route of stale) console.log(`  - ${route}`);
+  return { missing, stale };
+}
+
+const publicRuntime = new Set(publicApiRegistryRoutes());
 const runtime = runtimeRoutes();
-const openapi = openApiRoutes();
+const internalRuntime = new Set([...runtime].filter((route) => !publicRuntime.has(route)));
+const internalOpenapi = openApiRoutes(openApiPath, '/api');
+const publicOpenapi = existsSync(publicOpenApiPath)
+  ? openApiRoutes(publicOpenApiPath, '/api/v1')
+  : new Set();
 
-const missing = [...runtime].filter((route) => !openapi.has(route)).sort();
-const stale = [...openapi].filter((route) => !runtime.has(route)).sort();
-
-console.log(`Runtime routes: ${runtime.size}`);
-console.log(`OpenAPI routes: ${openapi.size}`);
-console.log(`Missing from OpenAPI: ${missing.length}`);
-for (const route of missing) console.log(`  - ${route}`);
-console.log(`Stale in OpenAPI: ${stale.length}`);
-for (const route of stale) console.log(`  - ${route}`);
-if ((missing.length > 0 || stale.length > 0) && !strict) {
+const internal = compare('Internal', internalRuntime, internalOpenapi);
+const publicSpec = compare('Public', publicRuntime, publicOpenapi);
+if (
+  (internal.missing.length > 0 || internal.stale.length > 0 || publicSpec.missing.length > 0 || publicSpec.stale.length > 0) &&
+  !strict
+) {
   console.log('OpenAPI route coverage check is report-only. Pass --strict to fail on missing or stale routes.');
 }
 
-if (strict && (missing.length > 0 || stale.length > 0)) {
+if (
+  strict &&
+  (internal.missing.length > 0 || internal.stale.length > 0 || publicSpec.missing.length > 0 || publicSpec.stale.length > 0)
+) {
   process.exitCode = 1;
 }
 

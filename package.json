@@ -28,7 +28,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "check:affected-ts": "node ./scripts/check-affected-ts.mjs",
-    "openapi:generate": "pnpm --filter @ship/api openapi:generate && pnpm exec openapi-typescript api/openapi.json -o web/src/api/generated/ship-openapi.d.ts && node ./scripts/check-openapi-types.mjs",
+    "openapi:generate": "pnpm --filter @ship/api openapi:generate && pnpm --filter @ship/api public-openapi:generate && pnpm exec openapi-typescript api/openapi.json -o web/src/api/generated/ship-openapi.d.ts && node ./scripts/check-openapi-types.mjs",
     "openapi:check": "node ./scripts/check-openapi-routes.mjs",
     "openapi:check:strict": "node ./scripts/check-openapi-routes.mjs --strict",
     "docs:check": "node ./scripts/doc-sync/check.mjs",

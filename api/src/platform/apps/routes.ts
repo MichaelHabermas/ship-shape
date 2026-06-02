@@ -1,11 +1,10 @@
 // OAuth app registration routes create shown-once client credentials for workspace admins.
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
+import { ERROR_CODES, HTTP_STATUS, PUBLIC_API_SCOPES } from '@ship/shared';
 import { authMiddleware, workspaceAdminMiddleware } from '../../middleware/auth.js';
 import { logAuditEvent } from '../../services/audit.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
-import { PUBLIC_API_SCOPES } from '../scopes/registry.js';
 import { createOAuthApp } from './service.js';
 
 const createOAuthAppSchema = z.object({

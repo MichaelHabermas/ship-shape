@@ -1,3 +1,4 @@
+// ESLint config enforces repo-wide type safety and PlugForge import boundaries.
 import globals from 'globals';
 import importX from 'eslint-plugin-import-x';
 import tseslint from 'typescript-eslint';
@@ -20,6 +21,47 @@ const maxLinesExemptGlobs = [
 const maxLinesRule = [
   'warn',
   { max: 500, skipBlankLines: true, skipComments: true },
+];
+
+const publicApiV1BoundaryRule = [
+  'error',
+  {
+    patterns: [
+      {
+        group: [
+          '../../../routes/**',
+          '../../../../routes/**',
+          '../../../../../routes/**',
+          'api/src/routes/**',
+        ],
+        message: 'Public /api/v1 routes must call shared services, not internal route handlers.',
+      },
+    ],
+  },
+];
+
+const integrationBoundaryRule = [
+  'error',
+  {
+    patterns: [
+      {
+        group: [
+          '../api/src/**',
+          '../../api/src/**',
+          '../../../api/src/**',
+          '**/api/src/**',
+          'api/src/**',
+          '../web/src/**',
+          '../../web/src/**',
+          '../../../web/src/**',
+          '**/web/src/**',
+          'web/src/**',
+          '@/*',
+        ],
+        message: 'Integrations must access Ship through @ship/sdk, not app internals.',
+      },
+    ],
+  },
 ];
 
 const typeSafetyRules = {
@@ -112,6 +154,18 @@ export default [
     files: ['api/src/**/*.ts', 'shared/src/**/*.ts', 'e2e/**/*.ts'],
     languageOptions: {
       globals: globals.node,
+    },
+  },
+  {
+    files: ['api/src/platform/api/v1/**/*.ts'],
+    rules: {
+      'no-restricted-imports': publicApiV1BoundaryRule,
+    },
+  },
+  {
+    files: ['integrations/**/*.{js,mjs,cjs,ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': integrationBoundaryRule,
     },
   },
   {

@@ -2,8 +2,9 @@
 import crypto from 'crypto';
 import argon2 from 'argon2';
 import type { Pool, PoolClient } from 'pg';
+import type { PublicApiScope } from '@ship/shared';
 import { pool } from '../../db/client.js';
-import { PUBLIC_API_SCOPES, type PublicApiScope } from '../scopes/registry.js';
+import { isPublicApiScope } from '../scopes/registry.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
@@ -26,12 +27,6 @@ export type CreatedOAuthApp = {
 };
 
 type CreatedOAuthAppRow = Omit<CreatedOAuthApp, 'client_secret'>;
-
-const PUBLIC_SCOPE_SET = new Set<string>(PUBLIC_API_SCOPES);
-
-export function isPublicApiScope(scope: string): scope is PublicApiScope {
-  return PUBLIC_SCOPE_SET.has(scope);
-}
 
 export function generateOAuthClientId(): string {
   return `ship_app_${crypto.randomBytes(16).toString('hex')}`;

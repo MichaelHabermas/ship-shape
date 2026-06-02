@@ -1,3 +1,4 @@
+// Vite config serves the React app while proxying API, realtime, and OAuth protocol routes.
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
@@ -24,22 +25,47 @@ function getApiPort(): number {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   const apiPort = getApiPort();
+  const apiTarget = `http://localhost:${apiPort}`;
+  const frameProtectionHeaders = {
+    'X-Frame-Options': 'DENY',
+    'Content-Security-Policy': "frame-ancestors 'none'",
+  };
 
   // Proxy configuration shared between dev and preview servers
   const proxyConfig = {
     '/api': {
-      target: `http://localhost:${apiPort}`,
+      target: apiTarget,
       changeOrigin: true,
     },
     '/collaboration': {
-      target: `http://localhost:${apiPort}`,
+      target: apiTarget,
       changeOrigin: true,
       ws: true,
     },
     '/events': {
-      target: `http://localhost:${apiPort}`,
+      target: apiTarget,
       changeOrigin: true,
       ws: true,
+    },
+    '/oauth/authorize': {
+      target: apiTarget,
+      changeOrigin: true,
+    },
+    '/oauth/token': {
+      target: apiTarget,
+      changeOrigin: true,
+    },
+    '/oauth/device/verify': {
+      target: apiTarget,
+      changeOrigin: true,
+    },
+    '/oauth/consent/request': {
+      target: apiTarget,
+      changeOrigin: true,
+    },
+    '/oauth/consent/approve': {
+      target: apiTarget,
+      changeOrigin: true,
     },
   };
 
@@ -82,6 +108,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: parseInt(process.env.VITE_PORT || env.VITE_PORT || '5173'),
       strictPort: true,
+      headers: frameProtectionHeaders,
       proxy: proxyConfig,
     },
     // Preview server config - used by `vite preview` for E2E tests
@@ -89,6 +116,7 @@ export default defineConfig(({ mode }) => {
     preview: {
       port: parseInt(env.VITE_PORT || '4173'),
       strictPort: true,
+      headers: frameProtectionHeaders,
       proxy: proxyConfig,
     },
   };

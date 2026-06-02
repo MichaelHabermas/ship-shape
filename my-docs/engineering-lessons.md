@@ -143,3 +143,22 @@ ShipShape example (2026-05-31): Tier 3 cleared ~487 E2E warnings. Top file `week
 If users expect conversation, a deterministic intent classifier will feel robotic no matter how many branches you add. Tests that lock exact greeting strings, force `modelCalls: 0` on chat, or add a flag that disables the chat model will green-light a broken product. Separate concerns: keep detection, workers, and auth deterministic; use the model for PM chat when key and model name are configured; when unconfigured, fail honestly; assert outcomes (grounding, gates, no hallucination) instead of canned copy.
 
 ShipShape example (2026-06): FleetGraph `POST /api/fleetgraph/chat` fell back to an 800+ line template router whenever `OPENAI_API_KEY` was unset, while docs and evals treated zero-token chat as success. We removed the product router and the chat-deterministic env flag, return unavailable text without a key, and mock `@langchain/openai` in tests on the real `generateContextChatText` path.
+
+## 12. Seeded Tokens Can Hide A Missing Front Door
+
+Tests that insert bearer tokens directly prove token validation, not credential issuance. For auth platforms, keep a separate proof that starts where users and clients start: authorization request, consent, credential exchange, and one real protected API call. Otherwise every downstream feature can accidentally build on a fictional login path.
+
+ShipShape example (2026-06): `/api/v1/me` accepted OAuth access tokens, but the first tests seeded those tokens directly. The route was real; the platform entrance was not. The fix was to add Authorization Code + PKCE, browser consent, one-time code exchange, refresh rotation, and a Playwright flow that mints the token before calling `/api/v1/me`.
+
+## 13. A Packed Install Is A Different Product Than A Workspace Link
+
+Workspace links hide packaging mistakes. A CLI can import a sibling SDK perfectly in a monorepo and still fail for users when the packed tarball asks the package manager to fetch that private workspace dependency from a registry.
+
+The transferable rules:
+
+- Test developer tools from packed artifacts in a fresh temp project.
+- Make CLI packages depend on public SDKs the way users will install them: usually peer dependency plus dev workspace dependency.
+- Keep the demo path and test path on the same executable receiver whenever possible.
+- Treat "works with workspace symlink" as local convenience, not release proof.
+
+ShipShape example (2026-06): `ship webhooks tail` worked from the workspace, but `pnpm drill ttfe` failed because packed `@ship/cli` depended on `@ship/sdk` as `workspace:*` and fresh install tried npm. Moving `@ship/sdk` to a CLI peer dependency made the packed SDK+CLI drill real.

@@ -1,13 +1,8 @@
-// Canonical initial scope names. This list is data, not middleware logic; add
-// future scopes here only when a real public surface needs them.
-export const PUBLIC_API_SCOPES = [
-  'documents:read',
-  'documents:write',
-  'issues:read',
-  'issues:write',
-  'sprints:read',
-  'sprints:write',
-  'webhooks:manage',
-] as const;
+// Public scope guard keeps API authorization checks aligned with shared contracts.
+import { PUBLIC_API_SCOPES, type PublicApiScope } from '@ship/shared';
 
-export type PublicApiScope = (typeof PUBLIC_API_SCOPES)[number];
+const PUBLIC_SCOPE_SET = new Set<string>(PUBLIC_API_SCOPES);
+
+export function isPublicApiScope(scope: string): scope is PublicApiScope {
+  return PUBLIC_SCOPE_SET.has(scope);
+}

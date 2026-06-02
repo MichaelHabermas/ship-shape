@@ -2,25 +2,11 @@
 import express from 'express';
 import request from 'supertest';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { z } from 'zod';
+import { PublicApiErrorSchema } from '@ship/shared';
 import { pool } from '../../../db/client.js';
 import { type IdRow, requireFirstRow } from '../../../test/pg-result.js';
 import { createOAuthAccessToken } from '../../oauth/tokens.js';
 import { publicApiAuditMiddleware, requirePublicApiBearer } from './middleware.js';
-
-const PublicApiErrorSchema = z.object({
-  code: z.enum([
-    'unauthorized',
-    'forbidden',
-    'not_found',
-    'validation_failed',
-    'rate_limited',
-    'server_error',
-  ]),
-  message: z.string(),
-  details: z.record(z.unknown()).optional(),
-  request_id: z.string(),
-});
 
 describe('public API middleware', () => {
   const app = express();

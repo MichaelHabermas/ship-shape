@@ -1,39 +1,12 @@
 // Public /api/v1/me tests prove OAuth bearer validation and public audit logging.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
-import { z } from 'zod';
+import { PublicApiErrorSchema, PublicMeResponseSchema } from '@ship/shared';
 import { createApp } from '../../../app.js';
 import { pool } from '../../../db/client.js';
 import { createOAuthAccessToken, hashOAuthAccessToken } from '../../oauth/tokens.js';
 import { expectJsonBody } from '../../../test/expect-json-body.js';
 import { type IdRow, requireFirstRow } from '../../../test/pg-result.js';
-
-const PublicApiErrorSchema = z.object({
-  code: z.enum([
-    'unauthorized',
-    'forbidden',
-    'not_found',
-    'validation_failed',
-    'rate_limited',
-    'server_error',
-  ]),
-  message: z.string(),
-  details: z.record(z.unknown()).optional(),
-  request_id: z.string(),
-});
-
-const PublicMeSchema = z.object({
-  user: z.object({
-    id: z.string().uuid(),
-    email: z.string(),
-    name: z.string(),
-  }),
-  app: z.object({
-    client_id: z.string(),
-  }),
-  workspace_id: z.string().uuid(),
-  granted_scopes: z.array(z.string()),
-});
 
 describe('GET /api/v1/me', () => {
   const app = createApp();
@@ -234,6 +207,9 @@ describe('GET /api/v1/me', () => {
       message: 'Malformed JSON request body',
       request_id: requestId,
     });
+    expect(response.headers['x-ratelimit-limit']).toBeDefined();
+    expect(response.headers['x-ratelimit-remaining']).toBeDefined();
+    expect(response.headers['x-ratelimit-reset']).toBeDefined();
   });
 
   it('returns the public ApiError contract for unknown v1 routes', async () => {
@@ -270,7 +246,7 @@ describe('GET /api/v1/me', () => {
       .set('x-request-id', requestId)
       .set('Authorization', `Bearer ${validToken}`);
 
-    const body = expectJsonBody(response, 200, PublicMeSchema);
+    const body = expectJsonBody(response, 200, PublicMeResponseSchema);
     expect(body.user).toEqual({
       id: userId,
       email: testEmail,

@@ -1,5 +1,4 @@
-// Exact delivery attempt fields canon names. This is not the full database table
-// shape; ids, replay metadata, and status modeling will be decided with storage.
+// Webhook delivery log types keep attempt fields aligned with the public contract.
 export type WebhookDeliveryAttemptRecord = {
   subscription_id: string;
   event_id: string;
