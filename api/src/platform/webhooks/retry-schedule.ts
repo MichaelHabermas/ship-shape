@@ -1,3 +1,5 @@
+// Retry timing from canon. Scheduling, jitter, DLQ transition, and deterministic
+// test clocks are separate implementation work.
 export const WEBHOOK_RETRY_DELAYS_MS = [
   1_000,
   4_000,
