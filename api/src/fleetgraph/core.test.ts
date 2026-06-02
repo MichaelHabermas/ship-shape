@@ -1,5 +1,4 @@
 // Verifies the shared FleetGraph core boundary without real model calls or Ship mutations.
-import './test/setup-chat-openai-mock.js';
 import { resetChatOpenAIMock } from './test/setup-chat-openai-mock.js';
 import type { FleetGraphEvidenceItem } from '@ship/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
