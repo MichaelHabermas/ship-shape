@@ -1,9 +1,7 @@
-/**
- * Team schemas - Team grid, people, and capacity management
- */
-
+// Team OpenAPI schemas describe people, allocation, assignments, and review grids.
 import { z, registry } from '../registry.js';
 import { UuidSchema, DateSchema } from './common.js';
+import { ApprovalTrackingSchema } from './projects.js';
 
 // ============== Person ==============
 
@@ -14,6 +12,7 @@ export const PersonSchema = z.object({
   email: z.string().email().nullable(),
   isArchived: z.boolean(),
   isPending: z.boolean().openapi({ description: 'User has not accepted invite yet' }),
+  reportsTo: UuidSchema.nullable().optional(),
 }).openapi('Person');
 
 registry.register('Person', PersonSchema);
@@ -64,29 +63,77 @@ export const TeamGridAssociationSchema = z.object({
 
 export const TeamGridResponseSchema = z.object({
   users: z.array(PersonSchema),
-  sprints: z.array(SprintPeriodSchema),
+  weeks: z.array(SprintPeriodSchema),
   associations: z.record(z.record(TeamGridAssociationSchema)).openapi({
     description: 'Map of user_id -> sprint_number -> associations',
   }),
+  currentSprintNumber: z.number().int(),
 }).openapi('TeamGridResponse');
 
 registry.register('TeamGridResponse', TeamGridResponseSchema);
 
+export const TeamAssignmentSchema = z.object({
+  projectId: UuidSchema.nullable(),
+  projectName: z.string().nullable(),
+  projectColor: z.string().nullable(),
+  programId: UuidSchema.nullable(),
+  programName: z.string().nullable(),
+  emoji: z.string().nullable(),
+  color: z.string().nullable(),
+}).openapi('TeamAssignment');
+
+registry.register('TeamAssignment', TeamAssignmentSchema);
+
+export const TeamAssignmentsResponseSchema = z.record(z.record(TeamAssignmentSchema)).openapi('TeamAssignmentsResponse');
+
+registry.register('TeamAssignmentsResponse', TeamAssignmentsResponseSchema);
+
+export const TeamAssignRequestSchema = z.object({
+  personId: UuidSchema.optional(),
+  userId: UuidSchema.optional(),
+  projectId: UuidSchema.optional(),
+  programId: UuidSchema.optional(),
+  sprintNumber: z.number().int(),
+}).openapi('TeamAssignRequest');
+
+registry.register('TeamAssignRequest', TeamAssignRequestSchema);
+
+export const TeamUnassignRequestSchema = z.object({
+  personId: UuidSchema.optional(),
+  userId: UuidSchema.optional(),
+  sprintNumber: z.number().int(),
+}).openapi('TeamUnassignRequest');
+
+registry.register('TeamUnassignRequest', TeamUnassignRequestSchema);
+
+export const TeamAssignResponseSchema = z.object({
+  success: z.literal(true),
+  sprintId: UuidSchema,
+}).openapi('TeamAssignResponse');
+
+registry.register('TeamAssignResponse', TeamAssignResponseSchema);
+
+export const TeamUnassignResponseSchema = z.object({
+  success: z.literal(true),
+}).openapi('TeamUnassignResponse');
+
+registry.register('TeamUnassignResponse', TeamUnassignResponseSchema);
+
+export const TeamAssignmentErrorSchema = z.object({
+  error: z.string(),
+  issuesOrphaned: z.array(z.object({
+    id: UuidSchema,
+    title: z.string(),
+  })).optional(),
+}).openapi('TeamAssignmentError');
+
+registry.register('TeamAssignmentError', TeamAssignmentErrorSchema);
+
 // ============== Review Cell ==============
 
-const ReviewCellSchema = z.object({
-  planApproval: z.object({
-    state: z.enum(['approved', 'changed_since_approved']),
-    approved_by: UuidSchema.nullable(),
-    approved_at: z.string().nullable(),
-    approved_version_id: z.number().nullable(),
-  }).nullable(),
-  reviewApproval: z.object({
-    state: z.enum(['approved', 'changed_since_approved']),
-    approved_by: UuidSchema.nullable(),
-    approved_at: z.string().nullable(),
-    approved_version_id: z.number().nullable(),
-  }).nullable(),
+export const ReviewCellSchema = z.object({
+  planApproval: ApprovalTrackingSchema.nullable(),
+  reviewApproval: ApprovalTrackingSchema.nullable(),
   reviewRating: z.object({
     value: z.number().int().min(1).max(5),
     rated_by: UuidSchema,
@@ -95,6 +142,8 @@ const ReviewCellSchema = z.object({
   hasPlan: z.boolean(),
   hasRetro: z.boolean(),
   sprintId: UuidSchema.nullable(),
+  planDocId: UuidSchema.nullable(),
+  retroDocId: UuidSchema.nullable(),
 }).openapi('ReviewCell');
 
 registry.register('ReviewCell', ReviewCellSchema);
@@ -106,6 +155,7 @@ export const ReviewsResponseSchema = z.object({
     programId: UuidSchema.nullable(),
     programName: z.string().nullable(),
     programColor: z.string().nullable(),
+    reportsTo: UuidSchema.nullable().optional(),
   })),
   weeks: z.array(SprintPeriodSchema),
   reviews: z.record(z.record(ReviewCellSchema)).openapi({
@@ -202,7 +252,7 @@ registry.registerPath({
   path: '/team/assignments',
   tags: ['Team'],
   summary: 'List team assignments',
-  responses: { 200: { description: 'Assignments', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
+  responses: { 200: { description: 'Assignments', content: { 'application/json': { schema: TeamAssignmentsResponseSchema } } } },
 });
 
 registry.registerPath({
@@ -210,8 +260,12 @@ registry.registerPath({
   path: '/team/assign',
   tags: ['Team'],
   summary: 'Create team assignment',
-  request: { body: { content: { 'application/json': { schema: z.record(z.unknown()) } } } },
-  responses: { 200: { description: 'Assignment created' } },
+  request: { body: { content: { 'application/json': { schema: TeamAssignRequestSchema } } } },
+  responses: {
+    200: { description: 'Assignment created', content: { 'application/json': { schema: TeamAssignResponseSchema } } },
+    400: { description: 'Invalid assignment request', content: { 'application/json': { schema: TeamAssignmentErrorSchema } } },
+    403: { description: 'Assignment forbidden', content: { 'application/json': { schema: TeamAssignmentErrorSchema } } },
+  },
 });
 
 registry.registerPath({
@@ -219,7 +273,13 @@ registry.registerPath({
   path: '/team/assign',
   tags: ['Team'],
   summary: 'Remove team assignment',
-  responses: { 204: { description: 'Assignment removed' } },
+  request: { body: { content: { 'application/json': { schema: TeamUnassignRequestSchema } } } },
+  responses: {
+    200: { description: 'Assignment removed', content: { 'application/json': { schema: TeamUnassignResponseSchema } } },
+    400: { description: 'Invalid unassignment request', content: { 'application/json': { schema: TeamAssignmentErrorSchema } } },
+    403: { description: 'Unassignment forbidden', content: { 'application/json': { schema: TeamAssignmentErrorSchema } } },
+    404: { description: 'Assignment not found', content: { 'application/json': { schema: TeamAssignmentErrorSchema } } },
+  },
 });
 
 registry.registerPath({

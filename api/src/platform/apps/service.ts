@@ -5,12 +5,14 @@ import type { Pool, PoolClient } from 'pg';
 import type { PublicApiScope } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import { isPublicApiScope } from '../scopes/registry.js';
+import { SHIP_AGENT_READ_SCOPES } from '../oauth/ship-agent-scopes.js';
 import type { PublicCursorPayload } from '../api/v1/pagination.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 const CLIENT_SECRET_GRACE_MS = 24 * 60 * 60 * 1000;
 export const SHIP_AGENT_SYSTEM_KEY = 'ship-agent';
-export const SHIP_AGENT_SCOPES = ['documents:read', 'issues:read', 'sprints:read'] as const satisfies readonly PublicApiScope[];
+/** @deprecated Prefer SHIP_AGENT_READ_SCOPES from ship-agent-scopes.ts */
+export const SHIP_AGENT_SCOPES = SHIP_AGENT_READ_SCOPES;
 
 export type CreateOAuthAppInput = {
   workspaceId: string;

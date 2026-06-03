@@ -3868,6 +3868,13 @@
           "isPending": {
             "type": "boolean",
             "description": "User has not accepted invite yet"
+          },
+          "reportsTo": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           }
         },
         "required": [
@@ -4045,7 +4052,7 @@
               "$ref": "#/components/schemas/Person"
             }
           },
-          "sprints": {
+          "weeks": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SprintPeriod"
@@ -4060,83 +4067,217 @@
               }
             },
             "description": "Map of user_id -> sprint_number -> associations"
+          },
+          "currentSprintNumber": {
+            "type": "integer"
           }
         },
         "required": [
           "users",
-          "sprints",
-          "associations"
+          "weeks",
+          "associations",
+          "currentSprintNumber"
+        ]
+      },
+      "TeamAssignment": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "programId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "programName": {
+            "type": "string",
+            "nullable": true
+          },
+          "emoji": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "projectId",
+          "projectName",
+          "projectColor",
+          "programId",
+          "programName",
+          "emoji",
+          "color"
+        ]
+      },
+      "TeamAssignmentsResponse": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/components/schemas/TeamAssignment"
+          }
+        }
+      },
+      "TeamAssignRequest": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "programId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "sprintNumber": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sprintNumber"
+        ]
+      },
+      "TeamUnassignRequest": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "sprintNumber": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sprintNumber"
+        ]
+      },
+      "TeamAssignResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "sprintId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "success",
+          "sprintId"
+        ]
+      },
+      "TeamUnassignResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "TeamAssignmentError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "issuesOrphaned": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID identifier",
+                  "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title"
+              ]
+            }
+          }
+        },
+        "required": [
+          "error"
         ]
       },
       "ReviewCell": {
         "type": "object",
         "properties": {
           "planApproval": {
-            "type": "object",
             "nullable": true,
-            "properties": {
-              "state": {
-                "type": "string",
-                "enum": [
-                  "approved",
-                  "changed_since_approved"
-                ]
-              },
-              "approved_by": {
-                "type": "string",
-                "nullable": true,
-                "format": "uuid",
-                "description": "UUID identifier",
-                "example": "550e8400-e29b-41d4-a716-446655440000"
-              },
-              "approved_at": {
-                "type": "string",
-                "nullable": true
-              },
-              "approved_version_id": {
-                "type": "number",
-                "nullable": true
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApprovalTracking"
               }
-            },
-            "required": [
-              "state",
-              "approved_by",
-              "approved_at",
-              "approved_version_id"
             ]
           },
           "reviewApproval": {
-            "type": "object",
             "nullable": true,
-            "properties": {
-              "state": {
-                "type": "string",
-                "enum": [
-                  "approved",
-                  "changed_since_approved"
-                ]
-              },
-              "approved_by": {
-                "type": "string",
-                "nullable": true,
-                "format": "uuid",
-                "description": "UUID identifier",
-                "example": "550e8400-e29b-41d4-a716-446655440000"
-              },
-              "approved_at": {
-                "type": "string",
-                "nullable": true
-              },
-              "approved_version_id": {
-                "type": "number",
-                "nullable": true
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApprovalTracking"
               }
-            },
-            "required": [
-              "state",
-              "approved_by",
-              "approved_at",
-              "approved_version_id"
             ]
           },
           "reviewRating": {
@@ -4176,6 +4317,20 @@
             "format": "uuid",
             "description": "UUID identifier",
             "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "planDocId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "retroDocId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           }
         },
         "required": [
@@ -4184,7 +4339,9 @@
           "reviewRating",
           "hasPlan",
           "hasRetro",
-          "sprintId"
+          "sprintId",
+          "planDocId",
+          "retroDocId"
         ]
       },
       "ReviewsResponse": {
@@ -4218,6 +4375,13 @@
                 "programColor": {
                   "type": "string",
                   "nullable": true
+                },
+                "reportsTo": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid",
+                  "description": "UUID identifier",
+                  "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
               },
               "required": [
@@ -20382,10 +20546,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "nullable": true
-                  }
+                  "$ref": "#/components/schemas/TeamAssignmentsResponse"
                 }
               }
             }
@@ -20403,17 +20564,41 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "additionalProperties": {
-                  "nullable": true
-                }
+                "$ref": "#/components/schemas/TeamAssignRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Assignment created"
+            "description": "Assignment created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAssignResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid assignment request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAssignmentError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Assignment forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAssignmentError"
+                }
+              }
+            }
           }
         }
       },
@@ -20422,9 +20607,55 @@
           "Team"
         ],
         "summary": "Remove team assignment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamUnassignRequest"
+              }
+            }
+          }
+        },
         "responses": {
-          "204": {
-            "description": "Assignment removed"
+          "200": {
+            "description": "Assignment removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamUnassignResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid unassignment request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAssignmentError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Unassignment forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAssignmentError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Assignment not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAssignmentError"
+                }
+              }
+            }
           }
         }
       }

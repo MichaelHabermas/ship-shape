@@ -19,9 +19,9 @@ import { VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { requireFirstRow } from '../../utils/query-rows.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../../fleetgraph/events.js';
 import {
-  commitAndDispatchWebhooks,
-  publishWebhookEventInTransaction,
-} from '../../platform/webhooks/event-bus.js';
+  commitDomainWebhooks,
+  publishDomainWebhookInTransaction,
+} from '../../platform/webhooks/mutation-publisher.js';
 import {
   type CountRow,
   type IncompleteChildRow,
@@ -330,12 +330,12 @@ export async function updateIssueMutation(
 
   const webhookDeliveryIds: string[] = [];
   for (const webhookEvent of webhookEvents) {
-    const webhook = await publishWebhookEventInTransaction(webhookEvent, client);
+    const webhook = await publishDomainWebhookInTransaction(webhookEvent, client);
     webhookDeliveryIds.push(...webhook.deliveryIds);
   }
 
   await client.query('COMMIT');
-  commitAndDispatchWebhooks(webhookDeliveryIds);
+  commitDomainWebhooks(webhookDeliveryIds);
 
   await enqueueFleetGraphIssueAttentionEvents({
     workspaceId,

@@ -11,6 +11,7 @@ import {
   mapReviewSprintMapEntry,
 } from './types.js';
 import type {
+  ReviewCellData,
   ReviewPersonRow,
   ReviewSprintMapEntry,
   ReviewSprintRow,
@@ -153,28 +154,10 @@ router.get('/reviews', authMiddleware, async (req: Request, res: Response) => {
     );
 
     // Build reviews map: personId -> sprintNumber -> cell data
-    const reviews: Record<string, Record<number, {
-      planApproval: unknown;
-      reviewApproval: unknown;
-      reviewRating: unknown;
-      hasPlan: boolean;
-      hasRetro: boolean;
-      sprintId: string | null;
-      planDocId: string | null;
-      retroDocId: string | null;
-    }>> = {};
+    const reviews: Record<string, Record<number, ReviewCellData>> = {};
 
     for (const person of peopleResult.rows) {
-      const personReviews: Record<number, {
-        planApproval: unknown;
-        reviewApproval: unknown;
-        reviewRating: unknown;
-        hasPlan: boolean;
-        hasRetro: boolean;
-        sprintId: string | null;
-        planDocId: string | null;
-        retroDocId: string | null;
-      }> = {};
+      const personReviews: Record<number, ReviewCellData> = {};
       for (const week of weeks) {
         const key = `${person.id}_${week.number}`;
         const sprint = sprintMap.get(key);

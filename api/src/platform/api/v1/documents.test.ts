@@ -8,7 +8,7 @@ import {
 } from '@ship/shared';
 import { createApp } from '../../../app.js';
 import { pool } from '../../../db/client.js';
-import { createOAuthAccessToken } from '../../oauth/tokens.js';
+import { createPublicApiTestContext, type PublicApiTestContext } from '../../../test/public-api-fixtures.js';
 import { expectJsonBody } from '../../../test/expect-json-body.js';
 import { type IdRow, requireFirstRow } from '../../../test/pg-result.js';
 
@@ -26,101 +26,34 @@ type PublicApiAuditRow = {
 
 describe('/api/v1/documents', () => {
   const app = createApp();
-  const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const email = `public-documents-${testRunId}@ship.local`;
-  const clientId = `ship_app_documents_${testRunId}`;
-
+  let ctx: PublicApiTestContext;
   let workspaceId: string;
   let userId: string;
   let memberUserId: string;
-  let appId: string;
+  let clientId: string;
   let readWriteToken: string;
   let readOnlyToken: string;
   let memberReadToken: string;
 
   beforeAll(async () => {
-    const workspaceResult = await pool.query<IdRow>(
-      'INSERT INTO workspaces (name) VALUES ($1) RETURNING id',
-      [`Public Documents ${testRunId}`]
-    );
-    workspaceId = requireFirstRow(workspaceResult.rows).id;
-    const userResult = await pool.query<IdRow>(
-      `INSERT INTO users (email, password_hash, name)
-       VALUES ($1, 'test-hash', 'Public Documents User')
-       RETURNING id`,
-      [email]
-    );
-    userId = requireFirstRow(userResult.rows).id;
-    await pool.query(
-      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
-       VALUES ($1, $2, 'admin')`,
-      [workspaceId, userId]
-    );
-    const memberUserResult = await pool.query<IdRow>(
-      `INSERT INTO users (email, password_hash, name)
-       VALUES ($1, 'test-hash', 'Public Documents Member')
-       RETURNING id`,
-      [`public-documents-member-${testRunId}@ship.local`]
-    );
-    memberUserId = requireFirstRow(memberUserResult.rows).id;
-    await pool.query(
-      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
-       VALUES ($1, $2, 'member')`,
-      [workspaceId, memberUserId]
-    );
-    const appResult = await pool.query<IdRow>(
-      `INSERT INTO oauth_apps (
-         workspace_id,
-         owner_user_id,
-         name,
-         client_id,
-         client_secret_hash,
-         redirect_uris,
-         requested_scopes
-       )
-       VALUES ($1, $2, 'Public Documents Test App', $3, 'test-secret-hash', $4, $5)
-       RETURNING id`,
-      [
-        workspaceId,
-        userId,
-        clientId,
-        ['https://example.test/callback'],
-        ['documents:read', 'documents:write'],
-      ]
-    );
-    appId = requireFirstRow(appResult.rows).id;
-
-    readWriteToken = (await createOAuthAccessToken({
-      appId,
-      userId,
-      workspaceId,
-      grantedScopes: ['documents:read', 'documents:write'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
-    readOnlyToken = (await createOAuthAccessToken({
-      appId,
-      userId,
-      workspaceId,
-      grantedScopes: ['documents:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
-    memberReadToken = (await createOAuthAccessToken({
-      appId,
-      userId: memberUserId,
-      workspaceId,
-      grantedScopes: ['documents:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
+    ctx = await createPublicApiTestContext({
+      label: 'Public Documents',
+      clientIdPrefix: 'ship_app_documents',
+      requestedScopes: ['documents:read', 'documents:write'],
+      includeMember: true,
+    });
+    workspaceId = ctx.workspaceId;
+    userId = ctx.adminUserId;
+    if (!ctx.memberUserId) throw new Error('expected member user in documents test fixture');
+    memberUserId = ctx.memberUserId;
+    clientId = ctx.clientId;
+    readWriteToken = await ctx.issueToken(['documents:read', 'documents:write']);
+    readOnlyToken = await ctx.issueToken(['documents:read']);
+    memberReadToken = await ctx.issueToken(['documents:read'], memberUserId);
   });
 
   afterAll(async () => {
-    await pool.query('DELETE FROM public_api_audit_logs WHERE workspace_id = $1 OR client_id = $2', [workspaceId, clientId]);
-    await pool.query('DELETE FROM oauth_access_tokens WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM oauth_apps WHERE id = $1', [appId]);
-    await pool.query('DELETE FROM workspace_memberships WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM users WHERE id = ANY($1::uuid[])', [[userId, memberUserId]]);
-    await pool.query('DELETE FROM workspaces WHERE id = $1', [workspaceId]);
+    await ctx.cleanup();
   });
 
   it('enforces write scope and returns public rate-limit headers', async () => {
@@ -172,7 +105,7 @@ describe('/api/v1/documents', () => {
     const validation = expectJsonBody(validationResponse, 400, PublicApiErrorSchema);
     expect(validation.code).toBe('validation_failed');
 
-    const requestId = `${testRunId}-create`;
+    const requestId = `${ctx.testRunId}-create`;
     const createResponse = await request(app)
       .post('/api/v1/documents')
       .set('x-request-id', requestId)
@@ -182,7 +115,7 @@ describe('/api/v1/documents', () => {
 
     const audit = await waitForAuditRow(requestId);
     expect(audit).toMatchObject({
-      app_id: appId,
+      app_id: ctx.appId,
       client_id: clientId,
       user_id: userId,
       workspace_id: workspaceId,

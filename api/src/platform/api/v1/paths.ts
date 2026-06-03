@@ -1,17 +1,20 @@
-// Canonical public paths named by PlugForge so future slices do not duplicate
-// string literals. This is not the complete future route inventory.
-export const PUBLIC_API_V1_BASE_PATH = '/api/v1';
-export const PUBLIC_OPENAPI_PATH = '/api/v1/openapi.json';
-export const PUBLIC_FLEETGRAPH_ATTENTION_CONTEXTS_PATH = '/api/v1/fleetgraph/attention-contexts';
-export const PUBLIC_ME_PATH = '/api/v1/me';
-export const PUBLIC_DOCUMENTS_PATH = '/api/v1/documents';
-export const PUBLIC_DOCUMENT_PATH = '/api/v1/documents/:id';
-export const PUBLIC_ISSUES_PATH = '/api/v1/issues';
-export const PUBLIC_ISSUE_PATH = '/api/v1/issues/:id';
-export const PUBLIC_SPRINTS_PATH = '/api/v1/sprints';
-export const PUBLIC_SPRINT_PATH = '/api/v1/sprints/:id';
-export const PUBLIC_SPRINT_ISSUES_PATH = '/api/v1/sprints/:id/issues';
-export const PUBLIC_WEBHOOKS_PATH = '/api/v1/webhooks';
-export const PUBLIC_WEBHOOK_DELIVERIES_PATH = '/api/v1/webhooks/deliveries';
+// Canonical public paths composed from @ship/shared suffixes for registry and routers.
+import { PUBLIC_API_RELATIVE_PATHS, PUBLIC_API_V1_BASE } from '@ship/shared';
+
+export const PUBLIC_API_V1_BASE_PATH = PUBLIC_API_V1_BASE;
+export const PUBLIC_OPENAPI_PATH = `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.openapi}`;
+export const PUBLIC_FLEETGRAPH_ATTENTION_CONTEXTS_PATH =
+  `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.fleetgraphAttentionContexts}`;
+export const PUBLIC_ME_PATH = `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.me}`;
+export const PUBLIC_DOCUMENTS_PATH = `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.documents}`;
+export const PUBLIC_DOCUMENT_PATH = `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.document}`;
+export const PUBLIC_ISSUES_PATH = `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.issues}`;
+export const PUBLIC_ISSUE_PATH = `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.issue}`;
+export const PUBLIC_SPRINTS_PATH = `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.sprints}`;
+export const PUBLIC_SPRINT_PATH = `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.sprint}`;
+export const PUBLIC_SPRINT_ISSUES_PATH = `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.sprintIssues}`;
+export const PUBLIC_WEBHOOKS_PATH = `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.webhooks}`;
+export const PUBLIC_WEBHOOK_DELIVERIES_PATH =
+  `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.webhookDeliveries}`;
 export const PUBLIC_WEBHOOK_DELIVERY_REPLAY_PATH =
-  '/api/v1/webhooks/deliveries/:id/replay';
+  `${PUBLIC_API_V1_BASE}${PUBLIC_API_RELATIVE_PATHS.webhookDeliveryReplay}`;

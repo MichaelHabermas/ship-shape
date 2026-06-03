@@ -4,7 +4,7 @@ import { pool } from '../../db/client.js';
 import type { Principal } from '../../security/principal.js';
 import { detectFleetGraphAttentionDecisions, detectFleetGraphAttentionDecisionsForSource, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings, type FleetGraphAttentionDedupeDecision, type FleetGraphDetectorQuietExit, type FleetGraphStaleFinding } from '../detection/detector.js';
 import { runFleetGraph, type FleetGraphCoreOptions } from '../core.js';
-import type { FleetGraphAttentionEvent } from '../persistence.js';
+import type { FleetGraphAttentionEventRow } from '../persistence.js';
 import type { FleetGraphResult } from '../types.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
@@ -147,7 +147,7 @@ async function runEventGraphExecute(
 }
 
 export async function runFleetGraphAttentionEvent(input: {
-  event: FleetGraphAttentionEvent;
+  event: FleetGraphAttentionEventRow;
   principal: Principal;
   today?: Date;
   db?: QueryRunner;

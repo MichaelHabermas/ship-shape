@@ -1,8 +1,9 @@
 // OAuth token service validates PlugForge /api/v1 bearer tokens without using legacy API tokens.
 import crypto from 'crypto';
 import type { Pool, PoolClient } from 'pg';
-import { PUBLIC_API_SCOPES, type PublicApiScope } from '@ship/shared';
+import type { PublicApiScope } from '@ship/shared';
 import { pool } from '../../db/client.js';
+import { isPublicApiScope } from '../scopes/registry.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
@@ -49,8 +50,6 @@ export type CreatedOAuthAccessToken = {
 type CreatedOAuthAccessTokenRow = {
   id: string;
 };
-
-const PUBLIC_SCOPE_SET = new Set<string>(PUBLIC_API_SCOPES);
 
 export function generateOAuthAccessToken(): string {
   return `ship_oat_${crypto.randomBytes(32).toString('hex')}`;
@@ -169,6 +168,6 @@ export async function validateOAuthAccessToken(
 function normalizeGrantedScopes(scopes: unknown): PublicApiScope[] {
   if (!Array.isArray(scopes)) return [];
   return scopes.filter(
-    (scope): scope is PublicApiScope => typeof scope === 'string' && PUBLIC_SCOPE_SET.has(scope)
+    (scope): scope is PublicApiScope => typeof scope === 'string' && isPublicApiScope(scope)
   );
 }

@@ -12,7 +12,7 @@ import type { Principal } from '../security/principal.js';
 import type { FleetGraphAttentionDedupeDecision, FleetGraphDetectorQuietExit } from './detection/detector.js';
 import type {
   FleetGraphFinding,
-  FleetGraphRun,
+  FleetGraphRunRow,
   FleetGraphRunDecision,
   JsonRecord,
   RecordFleetGraphRunInput,
@@ -131,7 +131,7 @@ export type FleetGraphInput = {
 export type FleetGraphResult = {
   decision: FleetGraphRunDecision;
   finding?: FleetGraphFinding | null;
-  run: FleetGraphRun;
+  run: FleetGraphRunRow;
   findingInput?: SaveBlockedImportantIssueFindingInput;
   runInput: RecordFleetGraphRunInput;
   visibleOutput?: FleetGraphVisibleOutput;

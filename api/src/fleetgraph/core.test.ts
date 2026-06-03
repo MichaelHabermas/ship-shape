@@ -6,10 +6,11 @@ import { pool } from '../db/client.js';
 import { pgResult } from '../test/pg-result.js';
 import { runFleetGraph, shouldAutoCaptureTrace, type FleetGraphPersistencePort } from './core.js';
 import { evidenceFromDetectorCandidate, filterEvidenceForActor, visibleOutputForFinding } from './evidence.js';
+import type { FleetGraphAttentionCandidate } from './detection/detector.js';
 import {
   blockedImportantIssueDedupeKey,
   type FleetGraphFinding,
-  type FleetGraphRun,
+  type FleetGraphRunRow,
   type RecordFleetGraphRunInput,
 } from './persistence.js';
 import type { Principal } from '../security/principal.js';
@@ -58,7 +59,7 @@ const candidate = {
   blocker_iteration_id: '66666666-6666-4666-8666-666666666666',
   blocker_iteration_created_at: new Date('2026-05-26T12:00:00Z'),
   dedupeKey,
-};
+} satisfies FleetGraphAttentionCandidate;
 
 function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding {
   return {
@@ -97,7 +98,7 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
   };
 }
 
-function run(decision: FleetGraphRun['decision'], outputSnapshot: FleetGraphRun['output_snapshot'] = {}): FleetGraphRun {
+function run(decision: FleetGraphRunRow['decision'], outputSnapshot: FleetGraphRunRow['output_snapshot'] = {}): FleetGraphRunRow {
   return {
     id: '77777777-7777-4777-8777-777777777777',
     workspace_id: workspaceId,

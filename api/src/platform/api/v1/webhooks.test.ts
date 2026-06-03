@@ -10,7 +10,11 @@ import {
 } from '@ship/shared';
 import { createApp } from '../../../app.js';
 import { pool } from '../../../db/client.js';
-import { createOAuthAccessToken } from '../../oauth/tokens.js';
+import {
+  createPublicApiTestContext,
+  deleteWebhookDataForWorkspace,
+  type PublicApiTestContext,
+} from '../../../test/public-api-fixtures.js';
 import type { IWebhookDeliverer, WebhookDelivererRequest } from '../../webhooks/deliverer.js';
 import {
   configureWebhookServiceDependencies,
@@ -43,14 +47,10 @@ class CapturingWebhookDeliverer implements IWebhookDeliverer {
 
 describe('/api/v1/webhooks', () => {
   const app = createApp();
-  const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const email = `public-webhooks-${testRunId}@ship.local`;
-  const clientId = `ship_app_webhooks_${testRunId}`;
   const targetUrl = 'https://hooks.example.test/webhook';
-
+  let ctx: PublicApiTestContext;
   let workspaceId: string;
   let userId: string;
-  let appId: string;
   let token: string;
   let restoreWebhookDependencies: (() => void) | null = null;
   const deliveries: CapturedWebhookDelivery[] = [];
@@ -61,65 +61,20 @@ describe('/api/v1/webhooks', () => {
       validateTargetUrl: async () => {},
     });
 
-    const workspaceResult = await pool.query<IdRow>(
-      'INSERT INTO workspaces (name) VALUES ($1) RETURNING id',
-      [`Public Webhooks ${testRunId}`]
-    );
-    workspaceId = requireFirstRow(workspaceResult.rows).id;
-    const userResult = await pool.query<IdRow>(
-      `INSERT INTO users (email, password_hash, name)
-       VALUES ($1, 'test-hash', 'Public Webhooks User')
-       RETURNING id`,
-      [email]
-    );
-    userId = requireFirstRow(userResult.rows).id;
-    await pool.query(
-      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
-       VALUES ($1, $2, 'admin')`,
-      [workspaceId, userId]
-    );
-    const appResult = await pool.query<IdRow>(
-      `INSERT INTO oauth_apps (
-         workspace_id,
-         owner_user_id,
-         name,
-         client_id,
-         client_secret_hash,
-         redirect_uris,
-         requested_scopes
-       )
-       VALUES ($1, $2, 'Public Webhooks Test App', $3, 'test-secret-hash', $4, $5)
-       RETURNING id`,
-      [
-        workspaceId,
-        userId,
-        clientId,
-        ['https://example.test/callback'],
-        ['documents:read', 'documents:write', 'webhooks:manage'],
-      ]
-    );
-    appId = requireFirstRow(appResult.rows).id;
-    token = (await createOAuthAccessToken({
-      appId,
-      userId,
-      workspaceId,
-      grantedScopes: ['documents:read', 'documents:write', 'webhooks:manage'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
+    ctx = await createPublicApiTestContext({
+      label: 'Public Webhooks',
+      clientIdPrefix: 'ship_app_webhooks',
+      requestedScopes: ['documents:read', 'documents:write', 'webhooks:manage'],
+    });
+    workspaceId = ctx.workspaceId;
+    userId = ctx.adminUserId;
+    token = await ctx.issueToken(['documents:read', 'documents:write', 'webhooks:manage']);
   });
 
   afterAll(async () => {
     restoreWebhookDependencies?.();
-    await pool.query('DELETE FROM webhook_deliveries WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM webhook_events WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM webhook_subscriptions WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM public_api_audit_logs WHERE workspace_id = $1 OR client_id = $2', [workspaceId, clientId]);
-    await pool.query('DELETE FROM oauth_access_tokens WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM oauth_apps WHERE id = $1', [appId]);
-    await pool.query('DELETE FROM workspace_memberships WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
-    await pool.query('DELETE FROM workspaces WHERE id = $1', [workspaceId]);
+    await deleteWebhookDataForWorkspace(workspaceId);
+    await ctx.cleanup();
   });
 
   it('rejects webhook target URLs with fragments', async () => {
@@ -235,7 +190,7 @@ describe('/api/v1/webhooks', () => {
       .send({ event: 'document.created', target_url: targetUrl });
     expectJsonBody(subscriptionResponse, 201, PublicWebhookSubscriptionCreatedSchema);
 
-    const idempotencyKey = `document.created:duplicate-${testRunId}`;
+    const idempotencyKey = `document.created:duplicate-${ctx.testRunId}`;
     const duplicateDocumentId = await insertWebhookDocument();
     const event = {
       type: 'document.created' as const,

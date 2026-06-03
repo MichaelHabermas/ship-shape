@@ -19,7 +19,7 @@ const maxLinesExemptGlobs = [
 ];
 
 const maxLinesRule = [
-  'warn',
+  'error',
   { max: 500, skipBlankLines: true, skipComments: true },
 ];
 

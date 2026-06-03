@@ -9,7 +9,7 @@ import {
 } from '@ship/shared';
 import { createApp } from '../../../app.js';
 import { pool } from '../../../db/client.js';
-import { createOAuthAccessToken } from '../../oauth/tokens.js';
+import { createPublicApiTestContext, type PublicApiTestContext } from '../../../test/public-api-fixtures.js';
 import { expectJsonBody } from '../../../test/expect-json-body.js';
 import { type IdRow, requireFirstRow } from '../../../test/pg-result.js';
 
@@ -27,99 +27,36 @@ type PublicApiAuditRow = {
 
 describe('/api/v1/issues', () => {
   const app = createApp();
-  const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const clientId = `ship_app_issues_${testRunId}`;
-
+  let ctx: PublicApiTestContext;
   let workspaceId: string;
   let userId: string;
   let memberUserId: string;
-  let appId: string;
+  let clientId: string;
   let readWriteToken: string;
   let readOnlyToken: string;
   let documentsOnlyToken: string;
   let memberReadToken: string;
 
   beforeAll(async () => {
-    workspaceId = requireFirstRow((await pool.query<IdRow>(
-      'INSERT INTO workspaces (name) VALUES ($1) RETURNING id',
-      [`Public Issues ${testRunId}`]
-    )).rows).id;
-    userId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO users (email, password_hash, name)
-       VALUES ($1, 'test-hash', 'Public Issues Admin')
-       RETURNING id`,
-      [`public-issues-${testRunId}@ship.local`]
-    )).rows).id;
-    memberUserId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO users (email, password_hash, name)
-       VALUES ($1, 'test-hash', 'Public Issues Member')
-       RETURNING id`,
-      [`public-issues-member-${testRunId}@ship.local`]
-    )).rows).id;
-    await pool.query(
-      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
-       VALUES ($1, $2, 'admin'), ($1, $3, 'member')`,
-      [workspaceId, userId, memberUserId]
-    );
-    appId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO oauth_apps (
-         workspace_id,
-         owner_user_id,
-         name,
-         client_id,
-         client_secret_hash,
-         redirect_uris,
-         requested_scopes
-       )
-       VALUES ($1, $2, 'Public Issues Test App', $3, 'test-secret-hash', $4, $5)
-       RETURNING id`,
-      [
-        workspaceId,
-        userId,
-        clientId,
-        ['https://example.test/callback'],
-        ['issues:read', 'issues:write', 'documents:read'],
-      ]
-    )).rows).id;
-
-    readWriteToken = (await createOAuthAccessToken({
-      appId,
-      userId,
-      workspaceId,
-      grantedScopes: ['issues:read', 'issues:write'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
-    readOnlyToken = (await createOAuthAccessToken({
-      appId,
-      userId,
-      workspaceId,
-      grantedScopes: ['issues:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
-    documentsOnlyToken = (await createOAuthAccessToken({
-      appId,
-      userId,
-      workspaceId,
-      grantedScopes: ['documents:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
-    memberReadToken = (await createOAuthAccessToken({
-      appId,
-      userId: memberUserId,
-      workspaceId,
-      grantedScopes: ['issues:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
+    ctx = await createPublicApiTestContext({
+      label: 'Public Issues',
+      clientIdPrefix: 'ship_app_issues',
+      requestedScopes: ['issues:read', 'issues:write', 'documents:read'],
+      includeMember: true,
+    });
+    workspaceId = ctx.workspaceId;
+    userId = ctx.adminUserId;
+    if (!ctx.memberUserId) throw new Error('expected member user in issues test fixture');
+    memberUserId = ctx.memberUserId;
+    clientId = ctx.clientId;
+    readWriteToken = await ctx.issueToken(['issues:read', 'issues:write']);
+    readOnlyToken = await ctx.issueToken(['issues:read']);
+    documentsOnlyToken = await ctx.issueToken(['documents:read']);
+    memberReadToken = await ctx.issueToken(['issues:read'], memberUserId);
   });
 
   afterAll(async () => {
-    await pool.query('DELETE FROM public_api_audit_logs WHERE workspace_id = $1 OR client_id = $2', [workspaceId, clientId]);
-    await pool.query('DELETE FROM oauth_access_tokens WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM oauth_apps WHERE id = $1', [appId]);
-    await pool.query('DELETE FROM workspace_memberships WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM users WHERE id = ANY($1::uuid[])', [[userId, memberUserId]]);
-    await pool.query('DELETE FROM workspaces WHERE id = $1', [workspaceId]);
+    await ctx.cleanup();
   });
 
   it('returns public errors for missing and insufficient scopes', async () => {
@@ -187,7 +124,7 @@ describe('/api/v1/issues', () => {
       .send({ confirm_orphan_children: true });
     expectJsonBody(confirmOnly, 400, PublicApiErrorSchema);
 
-    const patchRequestId = `${testRunId}-patch-forbidden`;
+    const patchRequestId = `${ctx.testRunId}-patch-forbidden`;
     const forbiddenPatch = await request(app)
       .patch(`/api/v1/issues/${patchTarget.id}`)
       .set('x-request-id', patchRequestId)
@@ -198,7 +135,7 @@ describe('/api/v1/issues', () => {
 
     const patchAudit = await waitForAuditRow(patchRequestId);
     expect(patchAudit).toMatchObject({
-      app_id: appId,
+      app_id: ctx.appId,
       client_id: clientId,
       user_id: userId,
       workspace_id: workspaceId,
@@ -209,7 +146,7 @@ describe('/api/v1/issues', () => {
       error_code: 'forbidden',
     });
 
-    const requestId = `${testRunId}-create`;
+    const requestId = `${ctx.testRunId}-create`;
     const response = await request(app)
       .post('/api/v1/issues')
       .set('x-request-id', requestId)
@@ -219,7 +156,7 @@ describe('/api/v1/issues', () => {
 
     const audit = await waitForAuditRow(requestId);
     expect(audit).toMatchObject({
-      app_id: appId,
+      app_id: ctx.appId,
       client_id: clientId,
       user_id: userId,
       workspace_id: workspaceId,

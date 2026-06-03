@@ -38,7 +38,15 @@ Current placed anchors:
 - Domain mutations call `publishWebhookEventInTransaction` and `commitAndDispatchWebhooks` from `event-bus.ts`; do not reintroduce `dispatch: 'none'` at call sites.
 - `api/src/services/document-mutations/webhook-events.ts` builds `document.created` payloads; issue payloads use `issue-core.ts`.
 - `api/src/services/issue-mutations/issue-core.ts` is the shared issue row mapper for public read and webhook adapters.
-- `api/src/platform/api/v1/route-handlers.ts` owns shared validation/cursor/accountability helpers for v1 routers.
+- `api/src/platform/api/v1/public-sql-helpers.ts` owns shared validation/cursor/accountability SQL helpers for v1 routers (not route dispatch).
+- `api/src/platform/api/v1/route-request.ts` parses query/params/body by registry `operationId` via OpenAPI contracts.
+- `shared/src/public-api-paths.ts` is the SSOT for `/api/v1` path suffixes; SDK and `api/.../paths.ts` compose from it.
+- `api/src/test/public-api-fixtures.ts` seeds OAuth workspaces for public route tests.
+- `api/src/platform/api/v1/document-read-model.ts`, `sprint-read-model.ts`, `issue-read-model.ts` own public read SQL/mappers.
+- `api/src/services/document-mutations/document-core.ts` mirrors `issue-core.ts` for webhook payloads.
+- `api/src/platform/oauth/ship-agent-scopes.ts` defines `SHIP_AGENT_READ_SCOPES`.
+- Webhook modules: `webhook-subscriptions.ts`, `webhook-fanout.ts`, `webhook-delivery.ts`, `webhook-target-url.ts`, `webhook-replay.ts`, `mutation-publisher.ts`; `service.ts` re-exports.
+- `api/src/fleetgraph/attention-context-factory.ts` selects in-process vs HTTP loopback readers.
 - `api/src/platform/api/v1/route-openapi-contracts.ts` drives public OpenAPI generation keyed by `operationId`.
 - `api/src/fleetgraph/attention-context-reader.ts` exposes in-process and HTTP `AttentionContextReader` implementations; agent chat keeps HTTP loopback via `HttpAttentionContextReader`.
 - `scripts/ci/plugforge-verify.sh` now includes `issues.test.ts`, `sprints.test.ts`, `fleetgraph.test.ts`, `deliverer.test.ts`, and `worker.test.ts`.
@@ -141,6 +149,8 @@ The final correctness pass for that earlier public work API slice proved visibil
 After the Agent-as-Citizen read-context foundation slice on 2026-06-02, targeted proof is `scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts src/services/issue-mutations/webhook-events.test.ts src/platform/api/v1/webhooks.test.ts src/platform/apps/routes.test.ts src/platform/oauth/agent-token-broker.test.ts src/platform/api/v1/route-metadata.test.ts src/platform/api/v1/fleetgraph.test.ts src/config/fleetgraph.test.ts src/routes/fleetgraph.test.ts src/fleetgraph/core.test.ts`, plus `pnpm --filter @ship/sdk test`, `pnpm --filter @ship/cli check`, `pnpm openapi:check:strict`, `pnpm drill ttfe`, `pnpm type-check`, `pnpm lint`, `pnpm test:api`, and `pnpm build`.
 
 ## Leverage Points
+
+- `@ship/cli` public commands: `ship me`, `ship documents|docs`, `ship issues`, `ship sprints`, `ship fleetgraph attention-contexts`, `ship webhooks subscriptions|deliveries|tail` (all via `@ship/sdk` only). Default `ship login` scopes include `issues:read` and `sprints:read` so FleetGraph CLI matches `SHIP_AGENT_READ_SCOPES` + write/manage flags.
 
 The TTFE developer spine is now real enough to compose: Device Grant login -> OAuth token -> public documents -> generated public OpenAPI -> SDK/CLI -> signed `document.created` webhook -> `pnpm drill ttfe`. Public work APIs add issues/sprints and issue webhooks, and FleetGraph now has delegated public source-read access. The next leverage is Slack/GitLab through the public API and SDK, not new internal integration shortcuts.
 

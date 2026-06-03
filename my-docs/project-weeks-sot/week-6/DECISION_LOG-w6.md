@@ -88,3 +88,14 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Plugforge CI regenerates `docs/openapi.json` and fails on drift; registry `operationId`s must match `route-openapi-contracts.ts` keys and the committed spec operation set.
 - `exchangeAuthorizationCode` is exported from `provider.ts` via `refresh-rotation.ts` (not re-exported through `authorization-code.ts`).
 - `resetWebhookBootstrapForTests()` clears event-bus subscribers and the dispatch handler before resetting the bootstrap flag.
+
+## 2026-06-03 — Plugforge Architecture Deepening (execution)
+
+- Public API route tests use `api/src/test/public-api-fixtures.ts` for OAuth workspace setup and cleanup.
+- Ship Agent read scopes SSOT: `api/src/platform/oauth/ship-agent-scopes.ts` (`SHIP_AGENT_READ_SCOPES`); `tokens.ts` uses `isPublicApiScope` from `scopes/registry.ts`.
+- Public read models: `document-read-model.ts`, `sprint-read-model.ts`; shared SQL helpers in `public-sql-helpers.ts` (renamed from `route-handlers.ts`).
+- Wire-shape SSOT: `document-core.ts` for webhooks; `issue-core.ts` drives public issue core fields; `issue-wire-parity.test.ts` guards public vs webhook shapes.
+- Public request parsing: `route-request.ts` keyed by registry `operationId`; path suffixes in `@ship/shared` `public-api-paths.ts`.
+- Webhooks split: `webhook-subscriptions.ts`, `webhook-fanout.ts`, `webhook-delivery.ts`, `webhook-target-url.ts`, `webhook-replay.ts`, `webhook-service-deps.ts`, `mutation-publisher.ts`; `service.ts` remains the import facade.
+- FleetGraph: `attention-context-factory.ts` chooses in-process vs HTTP loopback readers.
+- SDK uses `@ship/shared` `PUBLIC_API_RELATIVE_PATHS`; CLI exposes full registry parity (`ship me`, documents, issues, sprints, fleetgraph, webhooks subscriptions/deliveries).

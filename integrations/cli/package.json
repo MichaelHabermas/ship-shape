@@ -8,7 +8,8 @@
     "ship": "./src/index.mjs"
   },
   "scripts": {
-    "check": "node --check src/index.mjs"
+    "check": "node --check src/index.mjs && node --check src/public-api.mjs && node --check src/parse-args.mjs",
+    "test": "node --test test/*.test.mjs"
   },
   "peerDependencies": {
     "@ship/sdk": "0.0.0"

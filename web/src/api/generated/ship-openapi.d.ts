@@ -3766,9 +3766,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
+                        "application/json": components["schemas"]["TeamAssignmentsResponse"];
                     };
                 };
             };
@@ -3800,9 +3798,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TeamAssignRequest"];
                 };
             };
             responses: {
@@ -3811,7 +3807,27 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["TeamAssignResponse"];
+                    };
+                };
+                /** @description Invalid assignment request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamAssignmentError"];
+                    };
+                };
+                /** @description Assignment forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamAssignmentError"];
+                    };
                 };
             };
         };
@@ -3823,14 +3839,47 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TeamUnassignRequest"];
+                };
+            };
             responses: {
                 /** @description Assignment removed */
-                204: {
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["TeamUnassignResponse"];
+                    };
+                };
+                /** @description Invalid unassignment request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamAssignmentError"];
+                    };
+                };
+                /** @description Unassignment forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamAssignmentError"];
+                    };
+                };
+                /** @description Assignment not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamAssignmentError"];
+                    };
                 };
             };
         };
@@ -12654,6 +12703,12 @@ export interface components {
             isArchived: boolean;
             /** @description User has not accepted invite yet */
             isPending: boolean;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            reportsTo?: string | null;
         };
         TeamPersonListItem: {
             /**
@@ -12724,39 +12779,110 @@ export interface components {
         };
         TeamGridResponse: {
             users: components["schemas"]["Person"][];
-            sprints: components["schemas"]["SprintPeriod"][];
+            weeks: components["schemas"]["SprintPeriod"][];
             /** @description Map of user_id -> sprint_number -> associations */
             associations: {
                 [key: string]: {
                     [key: string]: components["schemas"]["TeamGridAssociation"];
                 };
             };
+            currentSprintNumber: number;
+        };
+        TeamAssignment: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            projectId: string | null;
+            projectName: string | null;
+            projectColor: string | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            programId: string | null;
+            programName: string | null;
+            emoji: string | null;
+            color: string | null;
+        };
+        TeamAssignmentsResponse: {
+            [key: string]: {
+                [key: string]: components["schemas"]["TeamAssignment"];
+            };
+        };
+        TeamAssignRequest: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            personId?: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            userId?: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            projectId?: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            programId?: string;
+            sprintNumber: number;
+        };
+        TeamUnassignRequest: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            personId?: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            userId?: string;
+            sprintNumber: number;
+        };
+        TeamAssignResponse: {
+            /** @enum {boolean} */
+            success: true;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            sprintId: string;
+        };
+        TeamUnassignResponse: {
+            /** @enum {boolean} */
+            success: true;
+        };
+        TeamAssignmentError: {
+            error: string;
+            issuesOrphaned?: {
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                id: string;
+                title: string;
+            }[];
         };
         ReviewCell: {
-            planApproval: {
-                /** @enum {string} */
-                state: "approved" | "changed_since_approved";
-                /**
-                 * Format: uuid
-                 * @description UUID identifier
-                 * @example 550e8400-e29b-41d4-a716-446655440000
-                 */
-                approved_by: string | null;
-                approved_at: string | null;
-                approved_version_id: number | null;
-            } | null;
-            reviewApproval: {
-                /** @enum {string} */
-                state: "approved" | "changed_since_approved";
-                /**
-                 * Format: uuid
-                 * @description UUID identifier
-                 * @example 550e8400-e29b-41d4-a716-446655440000
-                 */
-                approved_by: string | null;
-                approved_at: string | null;
-                approved_version_id: number | null;
-            } | null;
+            planApproval: components["schemas"]["ApprovalTracking"] | null;
+            reviewApproval: components["schemas"]["ApprovalTracking"] | null;
             reviewRating: {
                 value: number;
                 /**
@@ -12775,6 +12901,18 @@ export interface components {
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             sprintId: string | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            planDocId: string | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            retroDocId: string | null;
         };
         ReviewsResponse: {
             people: {
@@ -12793,6 +12931,12 @@ export interface components {
                 programId: string | null;
                 programName: string | null;
                 programColor: string | null;
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                reportsTo?: string | null;
             }[];
             weeks: components["schemas"]["SprintPeriod"][];
             /** @description Map of personId -> sprintNumber -> review cell data */

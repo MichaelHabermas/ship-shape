@@ -7,19 +7,21 @@ import {
 } from '@ship/shared';
 import { createApp } from '../../../app.js';
 import { pool } from '../../../db/client.js';
-import { createOAuthAccessToken } from '../../oauth/tokens.js';
+import {
+  createPublicApiTestContext,
+  deleteIssueIterationsForWorkspace,
+  type PublicApiTestContext,
+} from '../../../test/public-api-fixtures.js';
 import { expectJsonBody } from '../../../test/expect-json-body.js';
 import { type IdRow, requireFirstRow } from '../../../test/pg-result.js';
 
 describe('/api/v1/fleetgraph/attention-contexts', () => {
   const app = createApp();
-  const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const clientId = `ship_app_fleetgraph_${testRunId}`;
-
+  let ctx: PublicApiTestContext;
   let workspaceId: string;
   let adminUserId: string;
   let memberUserId: string;
-  let appId: string;
+  let clientId: string;
   let readToken: string;
   let missingDocumentScopeToken: string;
   let memberReadToken: string;
@@ -28,71 +30,24 @@ describe('/api/v1/fleetgraph/attention-contexts', () => {
   let hiddenIssueId: string;
 
   beforeAll(async () => {
-    workspaceId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO workspaces (name, sprint_start_date)
-       VALUES ($1, '2026-01-05')
-       RETURNING id`,
-      [`Public FleetGraph ${testRunId}`]
-    )).rows).id;
-    adminUserId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO users (email, password_hash, name)
-       VALUES ($1, 'test-hash', 'Public FleetGraph Admin')
-       RETURNING id`,
-      [`public-fleetgraph-admin-${testRunId}@ship.local`]
-    )).rows).id;
-    memberUserId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO users (email, password_hash, name)
-       VALUES ($1, 'test-hash', 'Public FleetGraph Member')
-       RETURNING id`,
-      [`public-fleetgraph-member-${testRunId}@ship.local`]
-    )).rows).id;
-    await pool.query(
-      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
-       VALUES ($1, $2, 'admin'), ($1, $3, 'member')`,
-      [workspaceId, adminUserId, memberUserId]
+    ctx = await createPublicApiTestContext({
+      label: 'Public FleetGraph',
+      clientIdPrefix: 'ship_app_fleetgraph',
+      requestedScopes: ['documents:read', 'issues:read', 'sprints:read'],
+      includeMember: true,
+      workspaceExtras: { sprintStartDate: '2026-01-05' },
+    });
+    workspaceId = ctx.workspaceId;
+    adminUserId = ctx.adminUserId;
+    if (!ctx.memberUserId) throw new Error('expected member user in fleetgraph test fixture');
+    memberUserId = ctx.memberUserId;
+    clientId = ctx.clientId;
+    readToken = await ctx.issueToken(['documents:read', 'issues:read', 'sprints:read']);
+    missingDocumentScopeToken = await ctx.issueToken(['issues:read', 'sprints:read']);
+    memberReadToken = await ctx.issueToken(
+      ['documents:read', 'issues:read', 'sprints:read'],
+      memberUserId
     );
-    appId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO oauth_apps (
-         workspace_id,
-         owner_user_id,
-         name,
-         client_id,
-         client_secret_hash,
-         redirect_uris,
-         requested_scopes
-       )
-       VALUES ($1, $2, 'Public FleetGraph Test App', $3, 'test-secret-hash', $4, $5)
-       RETURNING id`,
-      [
-        workspaceId,
-        adminUserId,
-        clientId,
-        ['https://example.test/callback'],
-        ['documents:read', 'issues:read', 'sprints:read'],
-      ]
-    )).rows).id;
-
-    readToken = (await createOAuthAccessToken({
-      appId,
-      userId: adminUserId,
-      workspaceId,
-      grantedScopes: ['documents:read', 'issues:read', 'sprints:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
-    missingDocumentScopeToken = (await createOAuthAccessToken({
-      appId,
-      userId: adminUserId,
-      workspaceId,
-      grantedScopes: ['issues:read', 'sprints:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
-    memberReadToken = (await createOAuthAccessToken({
-      appId,
-      userId: memberUserId,
-      workspaceId,
-      grantedScopes: ['documents:read', 'issues:read', 'sprints:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
 
     visibleSprintId = await insertDocument('sprint', 'Visible Sprint', 'workspace', {
       sprint_number: 7,
@@ -143,15 +98,12 @@ describe('/api/v1/fleetgraph/attention-contexts', () => {
   });
 
   afterAll(async () => {
-    await pool.query('DELETE FROM public_api_audit_logs WHERE workspace_id = $1 OR client_id = $2', [workspaceId, clientId]);
-    await pool.query('DELETE FROM oauth_access_tokens WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM issue_iterations WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM document_associations WHERE document_id IN (SELECT id FROM documents WHERE workspace_id = $1)', [workspaceId]);
-    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM oauth_apps WHERE id = $1', [appId]);
-    await pool.query('DELETE FROM workspace_memberships WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM users WHERE id = ANY($1::uuid[])', [[adminUserId, memberUserId]]);
-    await pool.query('DELETE FROM workspaces WHERE id = $1', [workspaceId]);
+    await deleteIssueIterationsForWorkspace(workspaceId);
+    await pool.query(
+      'DELETE FROM document_associations WHERE document_id IN (SELECT id FROM documents WHERE workspace_id = $1)',
+      [workspaceId]
+    );
+    await ctx.cleanup();
   });
 
   it('requires all FleetGraph read scopes', async () => {
@@ -187,7 +139,7 @@ describe('/api/v1/fleetgraph/attention-contexts', () => {
   });
 
   it('supports source filters for a caller with all required scopes', async () => {
-    const requestId = `fleetgraph-context-${testRunId}`;
+    const requestId = `fleetgraph-context-${ctx.testRunId}`;
     const response = await request(app)
       .get('/api/v1/fleetgraph/attention-contexts')
       .query({ source_issue_id: visibleIssueId, limit: 1 })

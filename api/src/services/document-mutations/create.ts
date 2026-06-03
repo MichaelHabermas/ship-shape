@@ -13,9 +13,9 @@ import {
 import { upsertDocumentSearchIndex } from '../../utils/tiptap-search.js';
 import { getDocumentAccessContext, getReadableDocument } from '../document-access.js';
 import {
-  commitAndDispatchWebhooks,
-  publishWebhookEventInTransaction,
-} from '../../platform/webhooks/event-bus.js';
+  commitDomainWebhooks,
+  publishDomainWebhookInTransaction,
+} from '../../platform/webhooks/mutation-publisher.js';
 import {
   guardMutationCapability,
   nextIssueTicketNumber,
@@ -133,7 +133,7 @@ export async function createDocumentMutation({
       await addBelongsToAssociation(newDoc.id, program_id, 'program', client);
     }
 
-    const webhook = await publishWebhookEventInTransaction(
+    const webhook = await publishDomainWebhookInTransaction(
       buildDocumentCreatedWebhookEvent({
         workspaceId: actor.workspaceId,
         actorUserId: actor.userId,
@@ -143,7 +143,7 @@ export async function createDocumentMutation({
     );
 
     await client.query('COMMIT');
-    commitAndDispatchWebhooks(webhook.deliveryIds);
+    commitDomainWebhooks(webhook.deliveryIds);
     await upsertDocumentSearchIndex(newDoc.id);
 
     if (document_type === 'weekly_plan' || (properties && 'outcome' in properties)) {

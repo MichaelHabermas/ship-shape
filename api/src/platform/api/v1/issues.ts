@@ -26,7 +26,7 @@ import {
   sendInvalidCursorError,
   sendMissingContext,
   sendValidationError,
-} from './route-handlers.js';
+} from './public-sql-helpers.js';
 import {
   findPublicIssue,
   listPublicIssuesPage,
@@ -38,6 +38,7 @@ import {
   publicIssuesListRouteMetadata,
   publicIssuesUpdateRouteMetadata,
 } from './route-metadata.js';
+import { parsePublicRouteBody, parsePublicRouteParams, parsePublicRouteQuery } from './route-request.js';
 
 export const publicIssuesRouter = Router();
 
@@ -46,7 +47,11 @@ publicIssuesRouter.get(
   requirePublicApiBearer(publicIssuesListRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicIssuesListRouteMetadata.path);
-    const parsed = PublicIssueListQuerySchema.safeParse(req.query);
+    const parsed = parsePublicRouteQuery(
+      publicIssuesListRouteMetadata.operationId,
+      req.query,
+      PublicIssueListQuerySchema
+    );
     if (!parsed.success) {
       sendValidationError(req, res, parsed.error);
       return;
@@ -77,7 +82,11 @@ publicIssuesRouter.get(
   requirePublicApiBearer(publicIssuesGetRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicIssuesGetRouteMetadata.path);
-    const parsed = PublicIssueParamsSchema.safeParse(req.params);
+    const parsed = parsePublicRouteParams(
+      publicIssuesGetRouteMetadata.operationId,
+      req.params,
+      PublicIssueParamsSchema
+    );
     if (!parsed.success) {
       sendValidationError(req, res, parsed.error);
       return;
@@ -107,7 +116,11 @@ publicIssuesRouter.post(
   requirePublicApiBearer(publicIssuesCreateRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicIssuesCreateRouteMetadata.path);
-    const parsed = PublicIssueCreateSchema.safeParse(req.body);
+    const parsed = parsePublicRouteBody(
+      publicIssuesCreateRouteMetadata.operationId,
+      req.body,
+      PublicIssueCreateSchema
+    );
     if (!parsed.success) {
       sendValidationError(req, res, parsed.error);
       return;
@@ -161,11 +174,22 @@ publicIssuesRouter.patch(
   requirePublicApiBearer(publicIssuesUpdateRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicIssuesUpdateRouteMetadata.path);
-    const params = PublicIssueParamsSchema.safeParse(req.params);
-    const body = PublicIssueUpdateSchema.safeParse(req.body);
-    if (!params.success || !body.success) {
-      const error = params.success ? body.error : params.error;
-      if (error) sendValidationError(req, res, error);
+    const params = parsePublicRouteParams(
+      publicIssuesUpdateRouteMetadata.operationId,
+      req.params,
+      PublicIssueParamsSchema
+    );
+    const body = parsePublicRouteBody(
+      publicIssuesUpdateRouteMetadata.operationId,
+      req.body,
+      PublicIssueUpdateSchema
+    );
+    if (!params.success) {
+      sendValidationError(req, res, params.error);
+      return;
+    }
+    if (!body.success) {
+      sendValidationError(req, res, body.error);
       return;
     }
     if (!req.publicApi) {
