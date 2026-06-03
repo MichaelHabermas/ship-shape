@@ -30,6 +30,38 @@ function isJsonResponse(response: Response): boolean {
   return contentType?.includes('application/json') ?? false;
 }
 
+function nonJsonApiFailure<T>(response: Response): ApiResponse<T> {
+  if (response.status === 404) {
+    return {
+      success: false,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: 'API route not found. The deployed API may be outdated — redeploy ship-shape-api.',
+      },
+    };
+  }
+  if (response.status >= 500) {
+    return {
+      success: false,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: `Server error (HTTP ${response.status}). Try again or check API deployment.`,
+      },
+    };
+  }
+  return {
+    success: false,
+    error: {
+      code: 'NETWORK_ERROR',
+      message: `Server returned non-JSON response (HTTP ${response.status}).`,
+    },
+  };
+}
+
+function shouldTreatNonJsonAsSessionExpired(response: Response): boolean {
+  return response.status !== 404 && response.status < 500;
+}
+
 async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
@@ -267,12 +299,8 @@ async function request<T>(
 
   // CloudFront may intercept errors and return HTML - detect and redirect
   if (!isJsonResponse(response)) {
-    // On public routes like /invite, return error response instead of redirecting
-    if (window.location.pathname.startsWith('/invite')) {
-      return {
-        success: false,
-        error: { code: 'NETWORK_ERROR', message: 'Server returned non-JSON response' },
-      };
+    if (window.location.pathname.startsWith('/invite') || !shouldTreatNonJsonAsSessionExpired(response)) {
+      return nonJsonApiFailure<T>(response);
     }
     handleSessionExpired(); // never returns
   }
@@ -303,6 +331,9 @@ async function request<T>(
       headers,
     });
     if (!isJsonResponse(retryResponse)) {
+      if (!shouldTreatNonJsonAsSessionExpired(retryResponse)) {
+        return nonJsonApiFailure<T>(retryResponse);
+      }
       handleSessionExpired(); // never returns
     }
     return readJson<ApiResponse<T>>(retryResponse);

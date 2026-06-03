@@ -9,7 +9,7 @@ describe('Health endpoint', () => {
     const response = await request(app).get('/health')
 
     expect(response.status).toBe(200)
-    expect(response.body).toEqual({ status: 'ok' })
+    expect(response.body).toEqual({ status: 'ok', plugforge: true })
     expect(response.headers['content-type']).toMatch(/json/)
   })
 })

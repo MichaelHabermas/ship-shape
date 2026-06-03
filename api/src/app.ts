@@ -307,7 +307,7 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
 
   // Health check (no CSRF needed)
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok' });
+    res.json({ status: 'ok', plugforge: true });
   });
 
   if (isDevEnv()) {
