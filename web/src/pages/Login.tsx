@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
-import { Icon } from '@/components/icons/uswds';
 import { publicFetchJson } from '@/lib/public-fetch';
 import type { ApiResponse } from '@ship/shared';
 import type {
@@ -378,21 +377,6 @@ export function LoginPage() {
           </div>
         )}
 
-        {/*
-          USWDS Icon visual verification - different sizes and colors
-          Used in E2E tests to verify icons are loading correctly 
-        */}
-        {import.meta.env.VITE_APP_ENV !== 'production' && (
-          <div data-testid="uswds-icons" className="mt-6 border-t border-border pt-4 text-center text-xs text-muted">
-            <p className="mb-2 text-muted">USWDS Icons:</p>
-            <div className="flex items-center justify-center gap-3">
-              <Icon name="check" className="h-3 w-3 text-green-500" title="Check (h-3)" />
-              <Icon name="close" className="h-4 w-4 text-red-400" title="Close (h-4)" />
-              <Icon name="warning" className="h-5 w-5 text-yellow-500" title="Warning (h-5)" />
-              <Icon name="info" className="h-6 w-6 text-accent" title="Info (h-6)" />
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );
