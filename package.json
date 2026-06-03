@@ -36,6 +36,8 @@
     "docs:check:fleetgraph-chat": "node ./scripts/check-fleetgraph-chat-contract.mjs",
     "docs:facts:render": "node ./scripts/doc-sync/render-fact-blocks.mjs",
     "drill": "node ./scripts/drill.mjs",
+    "plugforge:verify": "./scripts/ci/plugforge-verify.sh",
+    "plugforge:oauth-e2e": "./scripts/ci/plugforge-oauth-e2e.sh",
     "clean": "pnpm --recursive run clean && rm -rf node_modules",
     "test": "pnpm test:api",
     "test:api": "./scripts/run-api-tests.sh",

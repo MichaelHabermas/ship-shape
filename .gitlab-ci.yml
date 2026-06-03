@@ -49,26 +49,53 @@ verify:
   extends: .default_node_job
   stage: verify
   script:
-    - pnpm lint
-    - pnpm type-check
-    - pnpm openapi:check:strict
-    - >
-      pnpm test:api --
-      src/platform/oauth/provider.test.ts
-      src/platform/api/v1/route-metadata.test.ts
-      src/platform/api/v1/me.test.ts
-      src/platform/api/v1/documents.test.ts
-      src/platform/api/v1/webhooks.test.ts
-      src/platform/webhooks/event-bus.test.ts
-      src/platform/webhooks/service.test.ts
-      src/services/issue-mutations/webhook-events.test.ts
-      src/platform/apps/routes.test.ts
-      src/platform/oauth/agent-token-broker.test.ts
-    - pnpm --filter @ship/sdk test
-    - pnpm --filter @ship/cli check
+    - chmod +x ./scripts/ci/plugforge-verify.sh
+    - ./scripts/ci/plugforge-verify.sh
+
+plugforge-oauth-e2e:
+  stage: verify
+  image: node:20-bookworm
+  services:
+    - name: docker:24-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - .pnpm-store/
+      - .pnpm/
+  before_script:
+    - export PNPM_HOME="$CI_PROJECT_DIR/.pnpm"
+    - export PATH="$PNPM_HOME:$PATH"
+    - corepack enable
+    - corepack prepare pnpm@10.27.0 --activate
+    - pnpm config set store-dir .pnpm-store
+    - apt-get update
+    - apt-get install -y --no-install-recommends docker.io
+    - rm -rf /var/lib/apt/lists/*
+    - |
+      for attempt in $(seq 1 30); do
+        if docker info >/dev/null 2>&1; then
+          break
+        fi
+        if [ "$attempt" = "30" ]; then
+          echo "Docker service did not become ready after 30 attempts"
+          exit 1
+        fi
+        sleep 1
+      done
+    - pnpm install --frozen-lockfile
+  script:
+    - chmod +x ./scripts/ci/plugforge-oauth-e2e.sh
+    - ./scripts/ci/plugforge-oauth-e2e.sh
 
 ttfe:
   extends: .default_node_job
   stage: ttfe
   script:
+    - export DATABASE_URL="${TTFE_DATABASE_URL}"
     - pnpm drill ttfe

@@ -267,6 +267,8 @@ Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-do
 | Developer portal (apps, webhooks, deliveries, replay) | Workspace Settings → Developer tab |
 | Device verification | http://localhost:5173/oauth/device |
 | TTFE drill (the signature proof) | `pnpm drill ttfe` |
+| MVP CI parity (local) | `pnpm plugforge:verify` and `pnpm plugforge:oauth-e2e` |
+| MVP CI (remote) | [Plugforge MVP workflow](https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-mvp.yml) on `main` |
 
 Demo login remains `dev@ship.local` / `admin123`. Create OAuth apps (and capture the one-time secret) via the Developer tab; this branch does not seed a fixed public demo client. Run the drill live — it produces the verified signed webhook that is the actual acceptance bar.
 
