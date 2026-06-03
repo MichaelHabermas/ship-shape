@@ -58,6 +58,7 @@
     "submission:validate": "node ./scripts/submission/validate-ledger.mjs",
     "submission:render": "pnpm submission:validate && node ./scripts/submission/render-dashboard.mjs && node ./scripts/submission/render-markdown-sections.mjs && node ./scripts/submission/render-evidence-bundle.mjs",
     "submission:check": "node ./scripts/submission/check-generated.mjs && node ./scripts/submission/check-evidence-bundle.mjs",
+    "submission:test": "node --test ./scripts/submission/submission-pipeline.test.mjs",
     "worktree:init": "./scripts/worktree-init.sh",
     "branches:sync": "bash ./scripts/sync-feature-branches.sh",
     "db:seed": "pnpm --filter @ship/api db:seed",
