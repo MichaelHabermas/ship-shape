@@ -35,6 +35,7 @@ import {
   OAUTH_TOKEN_PATH,
 } from './platform/oauth/routes.js';
 import { publicApiV1Router } from './platform/api/v1/router.js';
+import { bootstrapWebhooks } from './platform/webhooks/bootstrap.js';
 import { consumePublicApiPreAuthRateLimit } from './platform/api/v1/middleware.js';
 import { sendPublicApiError } from './platform/api/v1/errors.js';
 import { RATE_LIMIT_HEADER_RETRY_AFTER } from './platform/ratelimit/headers.js';
@@ -243,6 +244,8 @@ const apiLimiter = rateLimit({
 
 
 export function createApp(corsOrigin: string = 'http://localhost:5173'): express.Express {
+  bootstrapWebhooks();
+
   const app = express();
 
   // Trust proxy headers (CloudFront) for secure cookies and correct protocol detection

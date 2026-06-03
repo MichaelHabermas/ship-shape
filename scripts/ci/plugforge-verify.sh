@@ -17,7 +17,12 @@ node ./scripts/ci/validate-public-openapi.mjs
   src/platform/api/v1/middleware.test.ts \
   src/platform/api/v1/me.test.ts \
   src/platform/api/v1/documents.test.ts \
+  src/platform/api/v1/issues.test.ts \
+  src/platform/api/v1/sprints.test.ts \
+  src/platform/api/v1/fleetgraph.test.ts \
   src/platform/api/v1/webhooks.test.ts \
+  src/platform/webhooks/deliverer.test.ts \
+  src/platform/webhooks/worker.test.ts \
   src/platform/webhooks/event-bus.test.ts \
   src/platform/webhooks/service.test.ts \
   src/services/issue-mutations/webhook-events.test.ts \

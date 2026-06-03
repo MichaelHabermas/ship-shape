@@ -20,6 +20,7 @@ import {
   requirePublicApiBearer,
 } from './middleware.js';
 import { sendPublicApiError } from './errors.js';
+import { sendInvalidCursorError } from './route-handlers.js';
 import {
   decodePublicCursor,
   encodePublicCursor,
@@ -172,15 +173,6 @@ function sendValidationOrContextError(req: Request, res: Response, error: z.ZodE
     code: req.publicApiErrorCode,
     message: error ? 'Invalid request' : 'Public API context missing',
     ...(error ? { details: { fields: error.flatten() } } : {}),
-    request_id: requestIdFromContext(req),
-  });
-}
-
-function sendInvalidCursorError(req: Request, res: Response): void {
-  req.publicApiErrorCode = 'validation_failed';
-  sendPublicApiError(res, 400, {
-    code: 'validation_failed',
-    message: 'Invalid cursor',
     request_id: requestIdFromContext(req),
   });
 }

@@ -1,6 +1,7 @@
 // Issue webhook helpers build public event payloads from issue rows.
 import type { IssueState, WebhookEvent, WebhookEventResource } from '@ship/shared';
 import type { IssueDocumentRow } from '../../db/documents-repository.js';
+import { issueCoreFromDocumentRow, webhookIssueResourceFromCore } from './issue-core.js';
 
 type IssueWebhookInput = {
   workspaceId: string;
@@ -55,19 +56,7 @@ export function buildIssueStatusChangedWebhookEvent(
 }
 
 function issueWebhookResource(row: IssueDocumentRow) {
-  const props = row.properties ?? {};
-  const state = typeof props.state === 'string' ? props.state : 'backlog';
-  const assigneeId = typeof props.assignee_id === 'string' ? props.assignee_id : null;
-  return {
-    id: row.id,
-    title: row.title,
-    display_id: row.ticket_number === null ? '' : `#${row.ticket_number}`,
-    ticket_number: row.ticket_number,
-    state,
-    assignee_id: assigneeId,
-    api_url: `/api/v1/issues/${row.id}`,
-    ui_url: `/documents/${row.id}`,
-  };
+  return webhookIssueResourceFromCore(issueCoreFromDocumentRow(row));
 }
 
 function issueWebhookResourceMetadata(row: IssueDocumentRow): WebhookEventResource {

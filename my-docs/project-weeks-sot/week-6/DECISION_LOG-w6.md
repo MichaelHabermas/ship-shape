@@ -70,3 +70,12 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Ship Agent tokens are delegated real `oauth_access_tokens` tied to the initiating user/session. Do not add Client Credentials unless explicitly re-decided; losing user-bound audit is the wrong default for this slice.
 - `FLEETGRAPH_USE_PUBLIC_API=true` affects user-initiated FleetGraph chat/source reads only. Scheduled/no-user worker paths stay internal, and FleetGraph-owned findings/runs remain internal persistence.
 - `/api/v1/fleetgraph/attention-contexts` is a narrow public source-read API for detector-critical issue/sprint context. It is read-only, requires `documents:read`, `issues:read`, and `sprints:read`, appears in OpenAPI/SDK parity, and intentionally exposes no FleetGraph finding/run write surface.
+
+## 2026-06-03 — Plugforge Architecture Deepening
+
+- OAuth provider logic is split into flow modules with a stable `provider.ts` re-export facade; HTTP routes and tests keep importing from `provider.ts`.
+- Webhook retry due-processing runs via an in-process 5s interval worker at API startup, not a queue-backed worker.
+- Webhook domain mutations use `publishWebhookEventInTransaction` + `commitAndDispatchWebhooks`; bootstrap lives in `webhooks/bootstrap.ts`.
+- Public OpenAPI is metadata-driven through `route-openapi-contracts.ts` keyed by registry `operationId`.
+- FleetGraph attention contexts use an `AttentionContextReader` port; public routes use in-process reads, agent chat keeps HTTP loopback for audit proof.
+- Issue public/webhook wire shapes share `issue-core.ts` core field extraction.

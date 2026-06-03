@@ -1,6 +1,5 @@
 // Public issue routes expose document-backed work items through OAuth issue scopes.
 import { Router, type Request, type Response } from 'express';
-import { z } from 'zod';
 import {
   PublicIssueCreateSchema,
   PublicIssueListQuerySchema,
@@ -20,6 +19,11 @@ import {
   requirePublicApiBearer,
 } from './middleware.js';
 import { sendPublicApiError } from './errors.js';
+import {
+  sendInvalidCursorError,
+  sendMissingContext,
+  sendValidationError,
+} from './route-handlers.js';
 import {
   findPublicIssue,
   listPublicIssuesPage,
@@ -208,34 +212,6 @@ publicIssuesRouter.patch(
 function publicIssueIdFromMutationBody(body: Record<string, unknown>): string {
   if (typeof body.id === 'string') return body.id;
   throw new Error('Issue mutation returned no issue id');
-}
-
-function sendValidationError(req: Request, res: Response, error: z.ZodError): void {
-  req.publicApiErrorCode = 'validation_failed';
-  sendPublicApiError(res, 400, {
-    code: 'validation_failed',
-    message: 'Invalid request',
-    details: { fields: error.flatten() },
-    request_id: req.publicApi?.requestId ?? req.publicApiRequestId ?? publicApiRequestIdFromRequest(req),
-  });
-}
-
-function sendInvalidCursorError(req: Request, res: Response): void {
-  req.publicApiErrorCode = 'validation_failed';
-  sendPublicApiError(res, 400, {
-    code: 'validation_failed',
-    message: 'Invalid cursor',
-    request_id: req.publicApi?.requestId ?? req.publicApiRequestId ?? publicApiRequestIdFromRequest(req),
-  });
-}
-
-function sendMissingContext(req: Request, res: Response): void {
-  req.publicApiErrorCode = 'server_error';
-  sendPublicApiError(res, 500, {
-    code: 'server_error',
-    message: 'Public API context missing',
-    request_id: req.publicApiRequestId ?? 'unknown',
-  });
 }
 
 function sendMutationError(

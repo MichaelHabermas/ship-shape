@@ -18,6 +18,7 @@ async function main() {
   const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
   let closeCollaboration: () => Promise<void> | void = () => undefined;
   let stopFleetGraphWorker: () => void | Promise<void> = () => undefined;
+  let stopWebhookDeliveryWorker: () => void = () => undefined;
 
   const bootHealthHandler: RequestListener = (req, res) => {
     if (req.url?.split('?')[0] === '/health') {
@@ -44,6 +45,7 @@ async function main() {
   const shutdownController = createShutdownController({
     server,
     cleanup: async () => {
+      stopWebhookDeliveryWorker();
       await stopFleetGraphWorker();
       await closeCollaboration();
       const { closeDatabasePool } = await import('./db/client.js');
@@ -79,6 +81,13 @@ async function main() {
 
   const { startFleetGraphWorker } = await import('./fleetgraph/execution/worker.js');
   stopFleetGraphWorker = startFleetGraphWorker();
+
+  const { bootstrapWebhooks } = await import('./platform/webhooks/bootstrap.js');
+  bootstrapWebhooks();
+
+  const { startWebhookDeliveryWorker } = await import('./platform/webhooks/worker.js');
+  stopWebhookDeliveryWorker = startWebhookDeliveryWorker();
+
   console.log('API app ready');
 }
 

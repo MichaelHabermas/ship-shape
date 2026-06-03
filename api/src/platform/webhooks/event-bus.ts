@@ -78,6 +78,21 @@ export async function publishWebhookEvent(
   return webhookEventBus.publish(event, options);
 }
 
+export async function publishWebhookEventInTransaction(
+  event: WebhookEvent,
+  db: QueryRunner
+): Promise<WebhookEventPublishResult> {
+  return publishWebhookEvent(event, {
+    db,
+    dispatch: 'none',
+    errorMode: 'throw',
+  });
+}
+
+export function commitAndDispatchWebhooks(deliveryIds: string[]): void {
+  scheduleWebhookDeliveryDispatch(deliveryIds);
+}
+
 export function scheduleWebhookEvent(event: WebhookEvent): void {
   void publishWebhookEvent(event).catch((error: unknown) => {
     logHotError('webhooks.event_bus', 'Webhook event publication failed', error, {

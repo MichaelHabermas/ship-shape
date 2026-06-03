@@ -33,7 +33,15 @@ Current placed anchors:
 - `api/src/services/issue-mutations/webhook-events.ts` with issue webhook payload/idempotency helpers called from issue mutation services.
 - `api/src/platform/oauth/routes.ts` with exact OAuth route paths.
 - `api/src/platform/oauth/errors.ts` with exact `invalid_grant` anchor.
-- `api/src/platform/oauth/provider.ts` with real Authorization Code + PKCE, consent grants, one-time codes, access token issuance, refresh rotation, and refresh-family reuse invalidation.
+- `api/src/platform/oauth/provider.ts` is now a thin re-export facade over `authorization-code.ts`, `device-grant.ts`, `refresh-rotation.ts`, `grants.ts`, `pkce.ts`, `secrets.ts`, and `scopes.ts`.
+- `api/src/platform/webhooks/bootstrap.ts` wires the event-bus subscriber and dispatch handler once at startup; `api/src/platform/webhooks/worker.ts` polls `processDueWebhookDeliveries` on a 5s interval in production.
+- Domain mutations call `publishWebhookEventInTransaction` and `commitAndDispatchWebhooks` from `event-bus.ts`; do not reintroduce `dispatch: 'none'` at call sites.
+- `api/src/services/document-mutations/webhook-events.ts` builds `document.created` payloads; issue payloads use `issue-core.ts`.
+- `api/src/services/issue-mutations/issue-core.ts` is the shared issue row mapper for public read and webhook adapters.
+- `api/src/platform/api/v1/route-handlers.ts` owns shared validation/cursor/accountability helpers for v1 routers.
+- `api/src/platform/api/v1/route-openapi-contracts.ts` drives public OpenAPI generation keyed by `operationId`.
+- `api/src/fleetgraph/attention-context-reader.ts` exposes in-process and HTTP `AttentionContextReader` implementations; agent chat keeps HTTP loopback via `HttpAttentionContextReader`.
+- `scripts/ci/plugforge-verify.sh` now includes `issues.test.ts`, `sprints.test.ts`, `fleetgraph.test.ts`, `deliverer.test.ts`, and `worker.test.ts`.
 - `api/src/platform/oauth/http-routes.ts` mounted at `/oauth` for `/authorize`, `/consent/request/:requestId`, `/consent/approve`, and `/token`.
 - `web/src/pages/OAuthConsent.tsx` and React route `/oauth/consent` as the authenticated consent UI; Vite proxies only protocol/helper routes so the consent page stays client-side.
 - `api/src/db/migrations/052_oauth_authorization_code_pkce.sql` and `api/src/db/schema.sql` include pending auth requests, grants, one-time auth codes, refresh-token families/tokens, and nullable access-token links.

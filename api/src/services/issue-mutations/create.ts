@@ -14,8 +14,8 @@ import {
 import { requireFirstRow } from '../../utils/query-rows.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../../fleetgraph/events.js';
 import {
-  publishWebhookEvent,
-  scheduleWebhookDeliveryDispatch,
+  commitAndDispatchWebhooks,
+  publishWebhookEventInTransaction,
 } from '../../platform/webhooks/event-bus.js';
 import {
   type CreateIssueInput,
@@ -108,15 +108,11 @@ export async function createIssueMutation(
     actorUserId: userId,
     row,
   });
-  const webhook = await publishWebhookEvent(webhookEvent, {
-    db: client,
-    dispatch: 'none',
-    errorMode: 'throw',
-  });
+  const webhook = await publishWebhookEventInTransaction(webhookEvent, client);
 
   const sprintAssociations = belongs_to.filter((bt) => bt.type === 'sprint');
   await client.query('COMMIT');
-  scheduleWebhookDeliveryDispatch(webhook.deliveryIds);
+  commitAndDispatchWebhooks(webhook.deliveryIds);
 
   await enqueueFleetGraphIssueAttentionEvents({
     workspaceId,

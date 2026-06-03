@@ -4,6 +4,7 @@ import { authMiddleware } from '../../middleware/auth.js';
 import { defineRoute } from '../../openapi/define-route.js';
 import { fleetGraphConfig } from '../../config/fleetgraph.js';
 import { createShipAgentPublicClient } from '../../fleetgraph/public-api-client.js';
+import { HttpAttentionContextReader } from '../../fleetgraph/attention-context-reader.js';
 import { principalFromRequest } from '../../security/principal.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { sendInternalError, sendLegacyError } from '../../utils/route-http.js';
@@ -22,7 +23,6 @@ import {
   sourceSnapshotForReviewerChat,
 } from '../../fleetgraph/reviewer-proof/index.js';
 import { ErrorResponseSchema, ApiErrorResponseSchema } from '../../openapi/schemas/common.js';
-import type { ShipClient } from '@ship/sdk';
 import type { FleetGraphChatContext } from '@ship/shared';
 import {
   manualRunBodySchema,
@@ -54,7 +54,12 @@ router.post('/chat', authMiddleware, defineRoute({
         ? await createShipAgentPublicClient({ workspaceId, userId })
         : null;
       if (agentPublicClient) {
-        await readAttentionContextViaPublicApi(agentPublicClient.client, parsed.body.context);
+        await readAttentionContextViaPublicApi(
+          new HttpAttentionContextReader(agentPublicClient.client),
+          workspaceId,
+          userId,
+          parsed.body.context
+        );
       }
       const beforeMutation = await sourceSnapshotForReviewerChat({
         workspaceId,
@@ -104,12 +109,20 @@ router.post('/chat', authMiddleware, defineRoute({
 }));
 
 async function readAttentionContextViaPublicApi(
-  client: ShipClient,
+  reader: HttpAttentionContextReader,
+  workspaceId: string,
+  viewerUserId: string,
   context: FleetGraphChatContext
 ): Promise<void> {
   const params = attentionContextParams(context);
   if (!params) return;
-  await client.fleetgraph.attentionContexts.list({ limit: 25, ...params });
+  await reader.listAttentionContexts({
+    workspaceId,
+    viewerUserId,
+    limit: 25,
+    sourceIssueId: params.source_issue_id,
+    sourceSprintId: params.source_sprint_id,
+  });
 }
 
 function attentionContextParams(
