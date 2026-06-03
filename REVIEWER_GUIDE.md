@@ -1,77 +1,70 @@
-# Reviewer Guide
+# Reviewer Guide — Plugforge MVP (Week 6)
 
-This guide is for external reviewers evaluating the Plugforge platform work (Week 6) on the deployed Render sites. No local `pnpm dev`, database, or code checkout is required.
+Verify the **10 MVP hard gates** from [`Plugforge-specs.txt`](./my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt) on the **deployed** site. No local setup. About 15 minutes.
 
-## Primary Reviewer Pages (open these in your browser)
+**Styled copy (same content):** [plugforge-reviewer-packet.html](https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html)
 
-1. **Public API Contract Viewer (Redoc)**
-   - URL: https://ship-shape-web.onrender.com/platform-docs.html
-   - What it shows: Interactive, generated OpenAPI 3.1 documentation for the new public `/api/v1/*` surface.
-   - Includes: all endpoints, required OAuth scopes (e.g. `documents:read`, `webhooks:manage`), request/response schemas, examples, auth flows.
-   - The full contract spec it loads is also directly available at:
-     - https://ship-shape-web.onrender.com/api/v1/openapi.json
-     - https://ship-shape-web.onrender.com/openapi.json
+---
 
-2. **Reviewer Packet (self-contained narrative + evidence)**
-   - URL: https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html
-   - What it contains:
-     - The signature "5-line developer story" / Time-to-First-Event (TTFE) drill (the real acceptance bar).
-     - Live surfaces and how to demo them (viewer, SDK demo page, in-app Developer portal, OAuth device verification, CLI drill).
-     - Complete table of the public contract (every route + required scope + SDK client method).
-     - Key proofs, fitness tests, boundary enforcement, webhook reliability details.
-     - Architecture highlights and SOLID rationale pointers.
-     - Exact repro steps a reviewer can follow on the deployed site.
-     - Links to source-of-truth docs (spec, PRD, PRESEARCH, architecture.md, etc.).
-   - This is the main artifact designed so the platform work does not get buried in the rest of the app or the general category ledger.
+## Login and URLs
 
-(These files are committed to `web/public/` so they are served as static assets on every web deploy. The packet was previously only in `my-docs/` and not reviewer-visible on prod.)
+| | |
+|---|---|
+| **Web app** | https://ship-shape-web.onrender.com/ |
+| **API base** | https://ship-shape-api.onrender.com |
+| **API health** | https://ship-shape-api.onrender.com/health |
+| **API docs viewer** | https://ship-shape-web.onrender.com/platform-docs.html |
+| **OpenAPI JSON** | https://ship-shape-api.onrender.com/api/v1/openapi.json |
+| **SDK demo (PKCE)** | https://ship-shape-web.onrender.com/sdk-demo |
 
-## API Base and Live Endpoints
+**Demo admin login**
 
-- Deployed API: https://ship-shape-api.onrender.com
-  - Health: https://ship-shape-api.onrender.com/health (should return `{"status":"ok"}`)
-- Public platform endpoints live under `/api/v1/` (OAuth-protected with scopes). See the full list + shapes in the Redoc viewer above.
-  - Examples (not exhaustive):
-    - `GET /api/v1/me`
-    - `GET /api/v1/documents`, `GET /api/v1/documents/:id`, `POST /api/v1/documents`
-    - `GET /api/v1/issues`, `POST /api/v1/issues`, `PATCH /api/v1/issues/:id`
-    - `GET /api/v1/sprints`, `GET /api/v1/sprints/:id`, `GET /api/v1/sprints/:id/issues`
-    - `GET /api/v1/webhooks`, `POST /api/v1/webhooks`, deliveries list + replay
-    - `GET /api/v1/openapi.json` (public, no auth)
-    - `GET /api/v1/fleetgraph/attention-contexts` (agent surface)
-  - OAuth provider (device flow, PKCE, etc.): `/oauth/authorize`, `/oauth/token`, `/oauth/device/code`, `/oauth/device/verify` on the API host.
-- The in-app **Developer Portal** (self-service for OAuth apps, webhook subs, delivery log + replay) is inside the web app (see repro steps in the packet).
+| Field | Value |
+|---|---|
+| Email | `dev@ship.local` |
+| Password | `admin123` |
 
-## Repro / Demo Steps for Reviewers (follow the packet)
+After login, open **Workspace Settings → Developer** (admin only).
 
-See the "Repro for Reviewers (live demo script)" section inside the packet for the exact flow.
+---
 
-High-level:
-- Open the main web: https://ship-shape-web.onrender.com/
-- (Optional but recommended for portal demo) Log in as an admin user in a workspace.
-- Go to Workspace Settings → Developer tab to create OAuth apps (client secret shown once), manage webhooks, view/replay deliveries.
-- Use the viewer (link above) or the SDK demo page (`/sdk-demo`) with a created client ID for PKCE flow.
-- For the signature TTFE experience: use the CLI (`ship login` via device flow against the deployed API, create doc, `ship webhooks tail` to receive and verify signed webhook). The packet has the exact commands.
-- The 5-line story that proves the platform contract: `pnpm install @ship/sdk` → `ship login` → `ship docs create` → `ship webhooks tail` (verified signed delivery arrives).
+## Do this first (gates 1, 2, 8)
 
-Pre-registered OAuth apps with read-only scopes may be provided for graders (see packet or ask for credentials). The packet also covers negative cases (bad verifier, etc.) and the agent rewire proof.
+1. Open the [web app](https://ship-shape-web.onrender.com/) and sign in with the credentials above.
+2. Go to **Workspace Settings → Developer**. Click **Create app**. Pick scopes `documents:read`, `documents:write`, and `webhooks:manage`. Copy the **client_id** and the **client secret** when shown.
+   - **Pass if:** the secret appears **once** on create; you cannot view it again afterward (only rotate/revoke).
+3. Open [SDK demo](https://ship-shape-web.onrender.com/sdk-demo). Paste your **client_id**, click **Connect**, approve consent. After redirect, the page should show **Connected.** and load **Documents** / **Issues** lists (or “Loaded empty lists.”).
+   - **Pass if:** redirect completes; lists load without auth errors. Try **Create** to add a document.
+4. Confirm the demo loaded public API data after connect (proves bearer token works with the SDK).
+   - **Pass if:** **Connected.** / **Loaded.** status and document or issue rows appear (or empty lists with no error). Automated `.me()` proof: [`e2e/oauth-auth-code.spec.ts`](./e2e/oauth-auth-code.spec.ts).
 
-## Other Useful Deployed Links
+---
 
-- Main web app: https://ship-shape-web.onrender.com/
-- API health: https://ship-shape-api.onrender.com/health
-- (If needed for other evidence) Reviewer evidence bundle (currently contains week-4 artifacts + security submission material): https://ship-shape-reviewer-evidence.onrender.com/
+## MVP checklist (all 10 gates)
 
-## Notes for This Deploy
+Each row: do the **live check**, then confirm **pass if**.
 
-- The public `/api/v1` surface (and its OpenAPI) is the core of the Plugforge work. The viewer + packet are the two pages a reviewer should open first.
-- The backend API deploy must include the platform code (oauth apps, scopes, event bus, webhooks deliverer, public v1 router, etc.) for live calls to succeed. Health may be green even if the v1 surface is not yet wired in a particular deploy.
-- Login for the in-app portal (if you want to demo app registration / deliveries): use the documented dev credentials or a pre-provisioned grader account (see the packet for details).
-- The viewer on the production web origin defaults to loading the spec from the same origin (`/api/v1/openapi.json`). We published the full committed snapshot there so reviewers see the complete contract.
-- The packet is now also published statically on the web so it is directly reachable.
+| # | Gate | Live check | Pass if |
+|---|------|------------|---------|
+| 1 | OAuth app registration; secret shown once | Steps 1–2 above | App created; raw secret shown exactly once, not recoverable |
+| 2 | Authorization Code + PKCE end-to-end | Step 3 (SDK demo) | Full connect → consent → token → SDK calls succeed. Automated proof: [`e2e/oauth-auth-code.spec.ts`](./e2e/oauth-auth-code.spec.ts) in CI on `main` |
+| 3 | Bearer middleware on every `/api/v1/*` | In a terminal: `curl -s https://ship-shape-api.onrender.com/api/v1/documents` (no header). Then: `curl -s -H "Authorization: Bearer bad" https://ship-shape-api.onrender.com/api/v1/documents` | Both return **401** JSON with `code` and `message` (ApiError shape) |
+| 4 | Documents: GET list, GET :id, POST + scopes | Open [API docs viewer](https://ship-shape-web.onrender.com/platform-docs.html) → find **documents** | GET list/id require `documents:read`; POST requires `documents:write` |
+| 5 | Consistent ApiError on public failures | Use the 401 responses from gate 3 | Body includes `code`, `message`, and `request_id`. Fitness test in CI: `api/src/platform/api/v1/route-metadata.test.ts` |
+| 6 | ScopeRegistry; 403 names missing scope | Create a **second** OAuth app with **only** `documents:read`. On SDK demo, connect with that client_id, then click **Create** | Error/status names missing scope (e.g. `documents:write`), not generic forbidden. CI: `api/src/platform/api/v1/middleware.test.ts` |
+| 7 | OpenAPI 3.1 generated at `/api/v1/openapi.json` | Open [OpenAPI JSON](https://ship-shape-api.onrender.com/api/v1/openapi.json) and [API docs viewer](https://ship-shape-web.onrender.com/platform-docs.html) | Spec loads (not empty/stub); viewer lists `/api/v1` operations; `openapi` field is **3.1.x** |
+| 8 | SDK: `new ShipClient({ token }).me()` | Step 4 above (lists load after connect) | Authenticated SDK calls succeed; `.me()` covered by CI (`e2e/oauth-auth-code.spec.ts`) |
+| 9 | Regression suite + perf within +10% | Not runnable from the deployed site alone | **CI on `main` passes** (Playwright + API tests). See [GitHub Actions](https://github.com/MichaelHabermas/ship-shape/actions) for latest green run |
+| 10 | Deployed + published OpenAPI + grader OAuth | Confirm health: [API /health](https://ship-shape-api.onrender.com/health). Create an app with **read-only** scope `documents:read` in Developer tab (or reuse gate 1 app) | Web + API + OpenAPI URL public; grader can self-register a read-only OAuth app (no support ticket) |
 
-## Background / Submission Context
+---
 
-See the packet itself and `my-docs/project-weeks-sot/week-6/` (PRD.md, PRESEARCH.md, DECISION_LOG-w6.md, w6-specs/Plugforge-specs.txt) for the full requirements, architecture decisions, and proof artifacts. The TTFE drill (`pnpm drill ttfe`) is the canonical end-to-end proof that a stranger can go from `pnpm install @ship/sdk` to a verified signed webhook.
+## What this guide is not
 
-If anything is missing or the spec in the viewer looks stale after a deploy, re-run the web build after ensuring `docs/openapi.json` (the authoritative full snapshot) and the packet are present under `web/public/`.
+- **Final submission bar** (TTFE webhook drill, full CLI story, agent rewire) lives in the packet’s “Beyond MVP” section and [`README.md` § Week 6](./README.md#week-6-plugforge-evidence)—not required for Tuesday MVP gates.
+
+---
+
+## Spec source
+
+Canonical MVP wording: [`my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt`](./my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt) (lines 43–66).

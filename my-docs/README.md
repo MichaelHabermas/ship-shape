@@ -14,4 +14,4 @@ Week 4 reviewer entrypoints:
 - [`project-weeks-sot/week-4/reviewer-dashboard.html`](./project-weeks-sot/week-4/reviewer-dashboard.html)
 - Claim authority: [`evidence/submission-ledger.json`](./evidence/submission-ledger.json)
 
-See also [`REVIEWER_GUIDE.md`](../REVIEWER_GUIDE.md) at the repo root.
+**Week 6 MVP reviewers:** start at [`REVIEWER_GUIDE.md`](../REVIEWER_GUIDE.md) (deployed HTML: [plugforge-reviewer-packet.html](https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html)).

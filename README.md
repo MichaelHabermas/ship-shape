@@ -252,7 +252,9 @@ Start with [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md). The final Week 5 delivera
 
 ## Week 6 PlugForge Evidence
 
-**Start here for reviewers:** [`my-docs/project-weeks-sot/week-6/plugforge-reviewer-packet.html`](./my-docs/project-weeks-sot/week-6/plugforge-reviewer-packet.html) — focused, self-contained static packet with the five-line story, contract table, repro steps, proofs, and surfaces. It exists precisely so the platform work does not get buried in the general app or the Category 1-8 ledger.
+**Start here for MVP reviewers:** [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md) — login, links, and a 10-gate checklist for the deployed site (~15 min, no local setup). Deployed HTML copy: [plugforge-reviewer-packet.html](https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html).
+
+Final-submission bar (TTFE drill, CLI story, webhooks, agent rewire): [`README.md` § Week 6 surfaces](./README.md#week-6-plugforge-evidence) below and [`docs/architecture.md`](./docs/architecture.md).
 
 Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-docs/project-weeks-sot/week-6/). Canonical surfaces:
 
