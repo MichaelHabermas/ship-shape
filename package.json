@@ -22,7 +22,7 @@
     "dev:shared": "pnpm --filter @ship/shared dev",
     "build": "pnpm --recursive run build",
     "build:shared": "pnpm --filter @ship/shared build",
-    "build:api": "pnpm run build:shared && pnpm --filter @ship/api build",
+    "build:api": "pnpm run build:shared && pnpm --filter @ship/sdk build && pnpm --filter @ship/api build",
     "build:web": "pnpm run build:shared && pnpm --filter @ship/web build",
     "type-check": "pnpm --recursive run type-check && tsc --noEmit -p e2e/tsconfig.json",
     "lint": "eslint .",
