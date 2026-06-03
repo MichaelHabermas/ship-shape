@@ -1,0 +1,243 @@
+<!doctype html>
+<!-- Plugforge Reviewer Packet
+     Static, self-contained HTML for clear reviewer demo of the Week 6 platform work.
+     Update key sections (drill output, route table if changed, dates) before sharing.
+     Run `pnpm drill ttfe` live during demos for the signature proof.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Plugforge • ShipShape Platform Reviewer Packet</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2320201d'/%3E%3Cpath d='M3 4h10v2H3zm0 3h7v2H3zm0 3h10v2H3z' fill='%23fffdf8'/%3E%3C/svg%3E" />
+    <style>
+      :root { --bg:#f6f4ef; --paper:#fffdf8; --ink:#151515; --muted:#66635d; --line:#d8d1c3; --dark:#20201d; --proven-bg:#e7f2e5; --proven-ink:#24542a; --partial-bg:#fff3cf; --partial-ink:#73500b; --open-bg:#f7dedc; --open-ink:#7d2f28; --fill-bg:#e9edf3; --fill-ink:#38475d; --code-bg:#f0ede4; }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--bg); color:var(--ink); font-family:"Avenir Next","Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif; line-height:1.5; }
+      .page { width:min(1100px, calc(100vw - 32px)); margin:0 auto; padding:24px 0 60px; }
+      a { color:inherit; text-decoration:underline; text-underline-offset:2px; }
+      a:hover { text-decoration-thickness:2px; }
+      h1,h2,h3 { margin:0 0 8px; }
+      h1 { font-size:clamp(26px, 4.5vw, 38px); line-height:1.05; letter-spacing:-0.01em; }
+      h2 { font-size:18px; margin-top:28px; margin-bottom:10px; border-bottom:1px solid var(--line); padding-bottom:6px; }
+      h3 { font-size:14px; color:var(--muted); margin-top:16px; }
+      p, li { color:#34342f; }
+      .lede { font-size:15px; max-width:72ch; }
+      .hero { background:var(--paper); border:1px solid var(--line); padding:20px 22px; margin-bottom:16px; }
+      .badge { display:inline-flex; align-items:center; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:800; line-height:1; white-space:nowrap; border:1px solid var(--line); background:var(--paper); }
+      .badge.proven { background:var(--proven-bg); border-color:#b6d6b2; color:var(--proven-ink); }
+      .badge.target { background:#e8f0f7; border-color:#9ab8d4; color:#1f3a52; }
+      pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      pre { background:var(--code-bg); border:1px solid var(--line); padding:14px; overflow:auto; font-size:13px; line-height:1.4; margin:8px 0; }
+      .terminal { background:#111; color:#ddd; border-color:#333; }
+      .terminal .prompt { color:#888; }
+      .grid { display:grid; gap:12px; }
+      .two-col { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+      .card { background:var(--paper); border:1px solid var(--line); padding:14px; }
+      table { width:100%; border-collapse:collapse; font-size:13px; }
+      th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; }
+      th { font-weight:700; color:var(--muted); background:#fbf8f0; font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+      tr:last-child td { border-bottom:0; }
+      .scope { font-family:monospace; font-size:11px; background:#f0ede4; padding:1px 5px; border-radius:3px; white-space:nowrap; }
+      .path { font-family:monospace; font-size:12px; }
+      .muted { color:var(--muted); }
+      .callout { background:#fbf8f0; border:1px solid var(--line); padding:12px 14px; margin:12px 0; }
+      .section { margin-bottom:18px; }
+      .small { font-size:12px; }
+      .cmd { background:var(--dark); color:#fffdf8; padding:2px 6px; border-radius:3px; font-size:12px; }
+      .meta { font-size:12px; color:var(--muted); }
+      .proof-list { margin:8px 0; padding-left:18px; }
+      .proof-list li { margin:3px 0; }
+      .footer { margin-top:40px; font-size:12px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; }
+      .status-row { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="hero">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+          <div>
+            <div class="meta" style="margin-bottom:4px;">WEEK 6 • SHIPSHAPE</div>
+            <h1>Plugforge</h1>
+            <p class="lede" style="margin:6px 0 0;">Turning Ship into a platform with a contract-grade public API, OAuth 2.0 (Auth Code + PKCE + Device Grant), HMAC-signed webhooks with retries/DLQ/replay, a typed @ship/sdk, reference CLI, developer portal, and the agent rewired as a first-class platform citizen.</p>
+          </div>
+          <div style="text-align:right; min-width:160px;">
+            <div class="badge proven">MVP complete</div>
+            <div class="meta" style="margin-top:6px;">TTFE drill • OpenAPI parity • boundary enforced</div>
+          </div>
+        </div>
+
+        <div class="callout" style="margin-top:16px;">
+          <strong style="font-size:13px;">The Signature Challenge (the actual bar)</strong>
+          <p style="margin:6px 0 0; font-size:13px;">On a clean machine, following only the published docs + SDK: go from nothing to a <em>verified signed webhook</em> in the terminal.</p>
+          <pre class="terminal" style="margin:10px 0 4px;"><span class="prompt">$</span> pnpm install @ship/sdk
+<span class="prompt">$</span> ship login                         <span style="color:#888"># Device Authorization Grant</span>
+<span class="prompt">$</span> ship docs create --title "hello"
+<span class="prompt">$</span> ship webhooks tail
+<span style="color:#8f8;">document.created</span> arrives with Ship-Signature verified ✓</pre>
+          <div class="meta">Target: ≤ 30 min real elapsed on clean machine (docs only). &lt; 60 s P95 in CI. 0% flake over repeated runs.</div>
+        </div>
+      </div>
+
+      <div class="status-row">
+        <span class="badge proven">All MVP gates met</span>
+        <span class="badge proven">OpenAPI 3.1 generated + validated</span>
+        <span class="badge proven">SDK ↔ spec parity (fitness test)</span>
+        <span class="badge target">TTFE drill passes</span>
+        <span class="badge proven">Public/internal boundary linted</span>
+        <span class="badge proven">Webhook signing + retry + replay + DLQ</span>
+      </div>
+
+      <div class="section">
+        <h2>Live Surfaces (point reviewers here)</h2>
+        <div class="grid two-col">
+          <div class="card">
+            <h3>Public API Contract</h3>
+            <p class="small"><a href="http://localhost:3000/api/v1/openapi.json" target="_blank">/api/v1/openapi.json</a> (live, generated from Zod + route metadata in <code>api/src/platform/api/v1/</code>)</p>
+            <p class="small"><a href="http://localhost:5173/platform-docs.html" target="_blank">/platform-docs.html</a> (Redoc viewer). If opened via static preview (Live Server 5501, file://, etc.) it now defaults to a full local API URL + has <strong>Local</strong>, <strong>Deployed</strong>, and <strong>Via proxy</strong> buttons. Paste a full URL (e.g. <code>http://localhost:3000/api/v1/openapi.json</code>) + Load if your API port differs. Relative only works behind the real Vite web server (proxy).</p>
+            <p class="small muted">Also committed at <code>docs/openapi.json</code>. Validates against OpenAPI 3.1 schema in CI.</p>
+          </div>
+          <div class="card">
+            <h3>Browser SDK Demo (PKCE)</h3>
+            <p class="small"><a href="http://localhost:5173/sdk-demo" target="_blank">/sdk-demo</a></p>
+            <p class="small muted">Create an OAuth app in Workspace Settings → Developer, paste client ID, run full Authorization Code + PKCE flow, list/create via the SDK client.</p>
+          </div>
+          <div class="card">
+            <h3>Developer Portal (self-service)</h3>
+            <p class="small">Workspace Settings → <strong>Developer</strong> tab (admin)</p>
+            <ul class="small" style="margin:4px 0 0 16px; padding:0;">
+              <li>Register OAuth apps (client_id + raw secret shown once)</li>
+              <li>Rotate/revoke secrets</li>
+              <li>Create webhook subscriptions (per event type)</li>
+              <li>View delivery log + replay failed deliveries</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Device Flow Verification</h3>
+            <p class="small"><a href="http://localhost:5173/oauth/device" target="_blank">/oauth/device</a></p>
+            <p class="small muted">CLI users land here (or paste user_code). The <code>pnpm drill ttfe</code> auto-approves via test DB for speed.</p>
+          </div>
+          <div class="card">
+            <h3>CLI + TTFE Drill (the proof)</h3>
+            <p class="small"><span class="cmd">pnpm drill ttfe</span></p>
+            <p class="small muted">Starts a throwaway API + DB fixtures, packs the real @ship/sdk + CLI, performs device login, subscribes, creates a document, verifies the signed delivery arrives and validates. Prints stage timings.</p>
+          </div>
+          <div class="card">
+            <h3>OAuth Provider Endpoints</h3>
+            <p class="small muted">/oauth/authorize, /oauth/token (PKCE + refresh), /oauth/device/code, /oauth/device/verify. All IETF-correct, no external IdP.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>The Public Contract (current surface)</h2>
+        <p class="small muted">Every route declares its scope explicitly. All failures return the same ApiError shape. List endpoints use cursor pagination (or none for small sets). SDK surface is registered in route metadata and asserted by fitness test.</p>
+        <div class="table-wrap" style="margin-top:8px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Path</th>
+                <th>Required Scope</th>
+                <th>SDK</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>GET</td><td class="path">/api/v1/me</td><td class="scope">(self)</td><td>ShipClient.me()</td><td>Authenticated identity</td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/openapi.json</td><td class="scope">(none)</td><td>—</td><td>Generated spec</td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/fleetgraph/attention-contexts</td><td class="scope">documents:read issues:read sprints:read</td><td>fleetgraph.attentionContexts.list</td><td>Agent surface (rewired)</td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/documents</td><td class="scope">documents:read</td><td>documents.list</td><td>Cursor pagination</td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/documents/:id</td><td class="scope">documents:read</td><td>documents.get</td><td></td></tr>
+              <tr><td>POST</td><td class="path">/api/v1/documents</td><td class="scope">documents:write</td><td>documents.create</td><td>Triggers webhook</td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/issues</td><td class="scope">issues:read</td><td>issues.list</td><td>Cursor</td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/issues/:id</td><td class="scope">issues:read</td><td>issues.get</td><td></td></tr>
+              <tr><td>POST</td><td class="path">/api/v1/issues</td><td class="scope">issues:write</td><td>issues.create</td><td></td></tr>
+              <tr><td>PATCH</td><td class="path">/api/v1/issues/:id</td><td class="scope">issues:write</td><td>issues.update</td><td></td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/sprints</td><td class="scope">sprints:read</td><td>sprints.list</td><td>Cursor</td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/sprints/:id</td><td class="scope">sprints:read</td><td>sprints.get</td><td></td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/sprints/:id/issues</td><td class="scope">sprints:read + issues:read</td><td>sprints.listIssues</td><td>Cursor</td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/webhooks</td><td class="scope">webhooks:manage</td><td>webhooks.list</td><td>Per-app subscriptions</td></tr>
+              <tr><td>POST</td><td class="path">/api/v1/webhooks</td><td class="scope">webhooks:manage</td><td>webhooks.create</td><td>Returns signing secret once</td></tr>
+              <tr><td>GET</td><td class="path">/api/v1/webhooks/deliveries</td><td class="scope">webhooks:manage</td><td>webhooks.listDeliveries</td><td>Cursor, status, latency</td></tr>
+              <tr><td>POST</td><td class="path">/api/v1/webhooks/deliveries/:id/replay</td><td class="scope">webhooks:manage</td><td>webhooks.replay</td><td>Idempotency-Key passed through</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted" style="margin-top:6px;">OAuth control plane (app registration, secret rotation) lives at <code>/api/platform/apps</code> — session-authenticated, workspace-admin only. Not part of the third-party public surface.</p>
+      </div>
+
+      <div class="section">
+        <h2>Key Proofs &amp; Enforcement</h2>
+        <ul class="proof-list small">
+          <li><strong>Fitness + parity</strong>: <code>api/src/platform/api/v1/route-metadata.test.ts</code> — unique ops, explicit scopes from registry, SDK metadata matches real @ship/sdk methods, list endpoints declare pagination.</li>
+          <li><strong>OpenAPI generation</strong>: <code>api/src/platform/api/v1/openapi.ts</code> (zod-to-openapi) + served route. Unit test validates the document against the 3.1 schema.</li>
+          <li><strong>Public boundary</strong>: Separate router at <code>/api/v1</code>. Lint rule (and import boundaries) prevent leakage from internal handlers. All platform concerns (bearer validation, scope require(), rate limit headers, audit, webhook publish via IEventBus) attach only here.</li>
+          <li><strong>Webhook reliability</strong>: <code>api/src/platform/webhooks/</code> — event-bus (domain layer only), signature (Stripe t= + v1= HMAC), retry schedule with jitter, delivery log, DLQ after N failures, replay endpoint that preserves Idempotency-Key.</li>
+          <li><strong>SDK</strong>: <code>sdk/</code> — resource clients, deviceLogin + authorizationCodeFlow helpers, pluggable ITokenStore, verifyWebhook(headers, rawBody, secret), async-iterator pagination, typed errors.</li>
+          <li><strong>TTFE drill</strong>: <code>scripts/drill.mjs</code> + <code>pnpm drill ttfe</code>. Real fresh-install semantics via packing; runs against containerized test DB; asserts signed + verified delivery.</li>
+          <li><strong>CLI reference</strong>: <code>integrations/cli/</code> — must-ship commands exercised by the drill and by the spec's "five-line developer story".</li>
+          <li><strong>Agent-as-citizen</strong>: FleetGraph runtime now consumes via <code>@ship/sdk</code> + delegated OAuth tokens (see <code>api/src/fleetgraph/public-api-client.ts</code> and agent-token-broker). Same scopes, same audit trail, no privileged backdoors.</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h2>Architecture Highlights (from required docs/architecture.md)</h2>
+        <div class="grid two-col">
+          <div class="card small">
+            <strong>Public / Internal split</strong><br>
+            /api/v1/* is the only public contract. Internal routes stay at /api/*. Same domain services (document mutations, issue service, etc.) are called from both; the platform layer (OAuth app + scopes + rate + audit + bus publish) is attached exclusively at the public boundary.
+          </div>
+          <div class="card small">
+            <strong>Event Bus + Webhooks</strong><br>
+            Domain writes publish to IEventBus (never routes). In-process deliverer for tests (deterministic); queue impl is substitutable. Subscriptions are per (app, event_type). Signing includes timestamp to bound replays.
+          </div>
+          <div class="card small">
+            <strong>Scopes as data</strong><br>
+            ScopeRegistry (OCP) — scopes registered at module load. <code>require('documents:write')</code> middleware produces clear 403s naming the missing scope. No stringly-typed magic in handlers.
+          </div>
+          <div class="card small">
+            <strong>SDK design</strong><br>
+            Hand-authored surface for quality + DX. Fitness test asserts every public OAuth route with an SDK mapping actually exists on the client. Async iterators hide cursor pagination from consumers.
+          </div>
+        </div>
+        <p class="small muted" style="margin-top:8px;">Full required architecture document (module layout, SOLID rationale, composition root, sequence diagrams, failure modes, agent before/after) lives at <a href="../../docs/architecture.md">docs/architecture.md</a>. Fill the remaining sections from the spec before final handoff.</p>
+      </div>
+
+      <div class="section">
+        <h2>Repro for Reviewers (live demo script)</h2>
+        <ol class="small" style="line-height:1.6;">
+          <li>Start the system: <span class="cmd">pnpm dev</span> (ensures DB, runs migrations, finds ports).</li>
+          <li>In a clean terminal (or let the drill do it): <span class="cmd">pnpm drill ttfe</span>. Watch the stages and the verified webhook arrive.</li>
+          <li>As admin (dev@ship.local / admin123): Workspace Settings → Developer tab → create an app with <span class="scope">documents:read documents:write webhooks:manage</span>. Copy the client_id and the one-time secret.</li>
+          <li>Open <a href="http://localhost:5173/sdk-demo">/sdk-demo</a>, paste client_id, Connect (PKCE flow), create a doc through the SDK.</li>
+          <li>In the Developer tab, watch the delivery appear; hit Replay on a failed one if you want to demo the DLQ/replay path.</li>
+          <li>Optional: point the CLI at the running server with --api-url and --client-id (or use the drill's fixture output).</li>
+        </ol>
+        <div class="callout small">
+          <strong>Deployed smoke:</strong> Web: https://ship-shape-web.onrender.com &nbsp;·&nbsp; API OpenAPI: https://ship-shape-api.onrender.com/api/v1/openapi.json (health: /health). Create a grader OAuth app with read scopes via the deployed Developer tab (or provide client credentials in the session). No fixed seeded client on this branch.
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Source of Truth &amp; Submission Artifacts</h2>
+        <ul class="small proof-list">
+          <li>Spec: <code>my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt</code> (and .pdf)</li>
+          <li>Literal requirements + decisions: <code>my-docs/project-weeks-sot/week-6/PRD.md</code></li>
+          <li>Pre-search (constraints, architecture discovery, post-stack): <code>my-docs/project-weeks-sot/week-6/PRESEARCH.md</code></li>
+          <li>Decision log: <code>my-docs/project-weeks-sot/week-6/DECISION_LOG-w6.md</code></li>
+          <li>Required architecture doc (1-2 pages): <code>docs/architecture.md</code></li>
+          <li>SDK package: <code>sdk/</code> (published as @ship/sdk in the workspace)</li>
+          <li>CLI reference: <code>integrations/cli/</code></li>
+          <li>Platform implementation: <code>api/src/platform/</code> (oauth/, webhooks/, api/v1/, apps/, scopes/, ratelimit/)</li>
+          <li>Overall submission ledger + big dashboard: <code>my-docs/evidence/submission-ledger.json</code> + generated reviewer artifacts (this sprint's platform work is intentionally called out separately so it doesn't disappear into the category noise).</li>
+        </ul>
+      </div>
+
+      <div class="footer">
+        Depth over breadth. A small public API that matches its spec beats a sprawling one that contradicts it. The TTFE drill is the rubric. One excellent reference integration (the CLI + webhooks tail loop) beats three half-finished ones. An agent that goes through the front door (OAuth + SDK + public API + audit) beats one with a privileged shortcut.
+        <div style="margin-top:6px;">Update this packet with fresh drill JSON output, any route additions, and screenshots of the dev portal + sdk-demo + terminal before the reviewer session.</div>
+      </div>
+    </div>
+  </body>
+</html>
