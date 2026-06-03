@@ -7,6 +7,7 @@ import {
 } from '@ship/shared';
 import {
   createWebhookSubscription,
+  isWebhookSubscriptionScopeError,
   isWebhookTargetUrlError,
   listWebhookDeliveries,
   listWebhookSubscriptions,
@@ -79,9 +80,22 @@ publicWebhooksRouter.post(
         workspaceId: req.publicApi.workspaceId,
         event: parsed.data.event,
         targetUrl: parsed.data.target_url,
+        readSubjectUserId: req.publicApi.userId,
+        readSubjectScopes: req.publicApi.grantedScopes,
+        readContextSource: 'public_oauth',
       });
       res.status(201).json(subscription);
     } catch (error) {
+      if (isWebhookSubscriptionScopeError(error)) {
+        req.publicApiErrorCode = 'forbidden';
+        sendPublicApiError(res, 403, {
+          code: 'forbidden',
+          message: `Missing required scope: ${error.missingScope}`,
+          details: { missing_scope: error.missingScope },
+          request_id: requestIdFromContext(req),
+        });
+        return;
+      }
       if (!isWebhookTargetUrlError(error)) throw error;
       req.publicApiErrorCode = 'validation_failed';
       sendPublicApiError(res, 400, {

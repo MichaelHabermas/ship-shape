@@ -42,6 +42,7 @@
     "@langfuse/tracing": "^5.4.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@opentelemetry/sdk-node": "^0.218.0",
+    "@ship/sdk": "workspace:*",
     "@ship/shared": "workspace:*",
     "argon2": "^0.44.0",
     "bcryptjs": "^3.0.3",

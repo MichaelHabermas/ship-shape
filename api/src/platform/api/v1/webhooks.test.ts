@@ -169,12 +169,17 @@ describe('/api/v1/webhooks', () => {
     const subscription = expectJsonBody(subscriptionResponse, 201, PublicWebhookSubscriptionCreatedSchema);
 
     const deliveryStart = deliveries.length;
-    const documentId = crypto.randomUUID();
+    const documentId = await insertWebhookDocument();
     const idempotencyKey = `document.created:${documentId}`;
     const enqueued = await enqueueWebhookEvent({
       type: 'document.created',
       workspace_id: workspaceId,
       idempotency_key: idempotencyKey,
+      resource: {
+        kind: 'document',
+        id: documentId,
+        document_type: 'wiki',
+      },
       payload: {
         document: {
           id: documentId,
@@ -231,17 +236,23 @@ describe('/api/v1/webhooks', () => {
     expectJsonBody(subscriptionResponse, 201, PublicWebhookSubscriptionCreatedSchema);
 
     const idempotencyKey = `document.created:duplicate-${testRunId}`;
+    const duplicateDocumentId = await insertWebhookDocument();
     const event = {
       type: 'document.created' as const,
       workspace_id: workspaceId,
       idempotency_key: idempotencyKey,
+      resource: {
+        kind: 'document' as const,
+        id: duplicateDocumentId,
+        document_type: 'wiki' as const,
+      },
       payload: {
         document: {
-          id: crypto.randomUUID(),
+          id: duplicateDocumentId,
           title: 'duplicate proof',
           document_type: 'wiki',
-          api_url: '/api/v1/documents/duplicate-proof',
-          ui_url: '/documents/duplicate-proof',
+          api_url: `/api/v1/documents/${duplicateDocumentId}`,
+          ui_url: `/documents/${duplicateDocumentId}`,
         },
         actor: { id: userId },
       },
@@ -277,6 +288,18 @@ describe('/api/v1/webhooks', () => {
     ));
     if (delivery) return delivery;
     throw new Error(`Timed out waiting for verified webhook delivery ${idempotencyKey}`);
+  }
+
+  async function insertWebhookDocument(): Promise<string> {
+    const result = await pool.query<IdRow>(
+      `INSERT INTO documents (
+         workspace_id, document_type, title, properties, created_by, visibility
+       )
+       VALUES ($1, 'wiki', $2, $3, $4, 'workspace')
+       RETURNING id`,
+      [workspaceId, `public webhook ${crypto.randomUUID()}`, {}, userId]
+    );
+    return requireFirstRow(result.rows).id;
   }
 });
 

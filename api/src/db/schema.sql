@@ -105,6 +105,8 @@ CREATE TABLE IF NOT EXISTS oauth_apps (
   redirect_uris TEXT[] NOT NULL CHECK (cardinality(redirect_uris) > 0),
   requested_scopes TEXT[] NOT NULL CHECK (cardinality(requested_scopes) > 0),
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  is_first_party BOOLEAN NOT NULL DEFAULT FALSE,
+  system_key TEXT CHECK (system_key IS NULL OR btrim(system_key) <> ''),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT oauth_apps_id_workspace_unique UNIQUE (id, workspace_id)
@@ -276,6 +278,11 @@ CREATE TABLE IF NOT EXISTS webhook_subscriptions (
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   event_type TEXT NOT NULL,
   target_url TEXT NOT NULL,
+  read_subject_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  read_subject_scopes TEXT[] NOT NULL DEFAULT '{}'::text[],
+  read_context_source TEXT NOT NULL DEFAULT 'legacy'
+    CHECK (read_context_source IN ('legacy', 'public_oauth', 'portal_session')),
+  read_context_version INTEGER NOT NULL DEFAULT 1 CHECK (read_context_version > 0),
   signing_secret_hash TEXT NOT NULL,
   signing_secret_ciphertext TEXT NOT NULL,
   signing_secret_iv TEXT NOT NULL,
@@ -293,6 +300,23 @@ CREATE TABLE IF NOT EXISTS webhook_events (
   event_type TEXT NOT NULL,
   idempotency_key TEXT NOT NULL UNIQUE,
   payload JSONB NOT NULL,
+  resource_kind TEXT CHECK (resource_kind IS NULL OR resource_kind = 'document'),
+  resource_id UUID,
+  resource_document_type TEXT CHECK (
+    resource_document_type IS NULL
+    OR resource_document_type IN (
+      'wiki',
+      'issue',
+      'program',
+      'project',
+      'sprint',
+      'person',
+      'weekly_plan',
+      'weekly_retro',
+      'standup',
+      'weekly_review'
+    )
+  ),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -1263,6 +1287,9 @@ CREATE INDEX IF NOT EXISTS idx_sessions_workspace_id ON sessions(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_oauth_state_expires_at ON oauth_state(expires_at);
 CREATE INDEX IF NOT EXISTS idx_oauth_apps_workspace_owner
   ON oauth_apps(workspace_id, owner_user_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_apps_workspace_system_key
+  ON oauth_apps(workspace_id, system_key)
+  WHERE system_key IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_app_secrets_one_active
   ON oauth_app_secrets(app_id)
   WHERE status = 'active';
@@ -1324,6 +1351,9 @@ CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_app_created
 CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_match
   ON webhook_subscriptions(workspace_id, event_type)
   WHERE active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_read_subject
+  ON webhook_subscriptions(workspace_id, read_subject_user_id)
+  WHERE read_subject_user_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_webhook_events_workspace_created
   ON webhook_events(workspace_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_subscription_created

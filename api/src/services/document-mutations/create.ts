@@ -136,6 +136,11 @@ export async function createDocumentMutation({
       type: 'document.created',
       workspace_id: actor.workspaceId,
       idempotency_key: `document.created:${newDoc.id}`,
+      resource: {
+        kind: 'document',
+        id: newDoc.id,
+        document_type: newDoc.document_type,
+      },
       payload: {
         document: {
           id: newDoc.id,

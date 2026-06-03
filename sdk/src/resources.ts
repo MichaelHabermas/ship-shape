@@ -4,6 +4,8 @@ import type {
   PublicDocument,
   PublicDocumentCreateInput as DocumentCreateInput,
   PublicDocumentListParams as DocumentListParams,
+  PublicFleetGraphAttentionContextListParams as FleetGraphAttentionContextListParams,
+  PublicFleetGraphAttentionContextsListResponse,
   PublicIssue,
   PublicIssueCreateInput as IssueCreateInput,
   PublicIssueListParams as IssueListParams,
@@ -42,6 +44,26 @@ export class DocumentsClient {
       for (const document of page.data) yield document;
       cursor = page.next_cursor ?? undefined;
     } while (cursor);
+  }
+}
+
+export class FleetGraphAttentionContextsClient {
+  constructor(private readonly client: ShipClient) {}
+
+  list(params: FleetGraphAttentionContextListParams = {}): Promise<PublicFleetGraphAttentionContextsListResponse> {
+    return this.client.request<PublicFleetGraphAttentionContextsListResponse>(
+      'GET',
+      '/fleetgraph/attention-contexts',
+      { query: params }
+    );
+  }
+}
+
+export class FleetgraphClient {
+  readonly attentionContexts: FleetGraphAttentionContextsClient;
+
+  constructor(private readonly client: ShipClient) {
+    this.attentionContexts = new FleetGraphAttentionContextsClient(client);
   }
 }
 

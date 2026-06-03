@@ -12,6 +12,8 @@ import {
   PublicDocumentParamsSchema as publicDocumentParamsSchema,
   PublicDocumentSchema as publicDocumentResponseSchema,
   PublicDocumentsListResponseSchema as publicDocumentsListResponseSchema,
+  PublicFleetGraphAttentionContextListQuerySchema as publicFleetGraphAttentionContextListQuerySchema,
+  PublicFleetGraphAttentionContextsListResponseSchema as publicFleetGraphAttentionContextsListResponseSchema,
   PublicIssueCreateSchema as publicIssueCreateSchema,
   PublicIssueListQuerySchema as publicIssueListQuerySchema,
   PublicIssueParamsSchema as publicIssueParamsSchema,
@@ -91,6 +93,8 @@ function requestForRoute(route: PublicRouteMetadata) {
   switch (route.operationId) {
     case 'documents.list':
       return { query: publicDocumentsListQuerySchema };
+    case 'fleetgraph.attentionContexts.list':
+      return { query: publicFleetGraphAttentionContextListQuerySchema };
     case 'issues.list':
       return { query: publicIssueListQuerySchema };
     case 'sprints.list':
@@ -174,6 +178,11 @@ function responsesForRoute(route: PublicRouteMetadata): PublicOpenApiResponses {
     case 'documents.list':
       return {
         '200': jsonResponse(publicDocumentsListResponseSchema, 'Document page'),
+        ...errors,
+      };
+    case 'fleetgraph.attentionContexts.list':
+      return {
+        '200': jsonResponse(publicFleetGraphAttentionContextsListResponseSchema, 'FleetGraph attention contexts'),
         ...errors,
       };
     case 'documents.get':

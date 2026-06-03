@@ -21,6 +21,7 @@ import {
 } from './service.js';
 import {
   createWebhookSubscription,
+  isWebhookSubscriptionScopeError,
   isWebhookTargetUrlError,
   listWebhookDeliveries,
   listWebhookSubscriptions,
@@ -248,19 +249,32 @@ router.post('/:appId/webhooks', async (req: Request, res: Response): Promise<voi
     return;
   }
 
-  const { workspaceId } = getAuthenticatedRouteContext(req);
+  const { userId, workspaceId } = getAuthenticatedRouteContext(req);
   try {
-    await requireOAuthAppInWorkspace(params.data.appId, workspaceId);
+    const oauthApp = await requireOAuthAppInWorkspace(params.data.appId, workspaceId);
     const subscription = await createWebhookSubscription({
       appId: params.data.appId,
       workspaceId,
       event: body.data.event,
       targetUrl: body.data.target_url,
+      readSubjectUserId: userId,
+      readSubjectScopes: oauthApp.requested_scopes,
+      readContextSource: 'portal_session',
     });
     res.status(HTTP_STATUS.CREATED).json({ success: true, data: subscription });
   } catch (error) {
     if (isWebhookTargetUrlError(error)) {
       sendValidationMessage(res, error.message);
+      return;
+    }
+    if (isWebhookSubscriptionScopeError(error)) {
+      res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        error: {
+          code: ERROR_CODES.FORBIDDEN,
+          message: `Missing required scope: ${error.missingScope}`,
+        },
+      });
       return;
     }
     sendKnownOrInternalError(res, error, 'Failed to create webhook subscription');

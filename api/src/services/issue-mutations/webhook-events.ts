@@ -1,5 +1,5 @@
 // Issue webhook helpers build public event payloads from committed issue rows.
-import type { IssueState } from '@ship/shared';
+import type { IssueState, WebhookEventResource } from '@ship/shared';
 import type { PoolClient } from 'pg';
 import type { IssueDocumentRow } from '../../db/documents-repository.js';
 import { enqueueWebhookEvent } from '../../platform/webhooks/service.js';
@@ -12,11 +12,11 @@ type IssueWebhookInput = {
 };
 
 export async function enqueueIssueCreatedWebhook(input: IssueWebhookInput): Promise<string[]> {
-  if (!isPublicIssueWebhookVisible(input.row)) return [];
   const enqueued = await enqueueWebhookEvent({
     type: 'issue.created',
     workspace_id: input.workspaceId,
     idempotency_key: `issue.created:${input.row.id}`,
+    resource: issueWebhookResourceMetadata(input.row),
     payload: {
       issue: issueWebhookResource(input.row),
       actor: { id: input.actorUserId },
@@ -28,11 +28,11 @@ export async function enqueueIssueCreatedWebhook(input: IssueWebhookInput): Prom
 export async function enqueueIssueAssignedWebhook(
   input: IssueWebhookInput & { assigneeId: string }
 ): Promise<string[]> {
-  if (!isPublicIssueWebhookVisible(input.row)) return [];
   const enqueued = await enqueueWebhookEvent({
     type: 'issue.assigned',
     workspace_id: input.workspaceId,
     idempotency_key: `issue.assigned:${input.row.id}:${input.row.updated_at.toISOString()}`,
+    resource: issueWebhookResourceMetadata(input.row),
     payload: {
       issue: issueWebhookResource(input.row),
       assignee: { id: input.assigneeId },
@@ -45,11 +45,11 @@ export async function enqueueIssueAssignedWebhook(
 export async function enqueueIssueStatusChangedWebhook(
   input: IssueWebhookInput & { previousStatus: IssueState | null; status: IssueState }
 ): Promise<string[]> {
-  if (!isPublicIssueWebhookVisible(input.row)) return [];
   const enqueued = await enqueueWebhookEvent({
     type: 'issue.status_changed',
     workspace_id: input.workspaceId,
     idempotency_key: `issue.status_changed:${input.row.id}:${input.row.updated_at.toISOString()}`,
+    resource: issueWebhookResourceMetadata(input.row),
     payload: {
       issue: issueWebhookResource(input.row),
       previous_status: input.previousStatus,
@@ -76,6 +76,10 @@ function issueWebhookResource(row: IssueDocumentRow) {
   };
 }
 
-function isPublicIssueWebhookVisible(row: IssueDocumentRow): boolean {
-  return row.visibility !== 'private';
+function issueWebhookResourceMetadata(row: IssueDocumentRow): WebhookEventResource {
+  return {
+    kind: 'document',
+    id: row.id,
+    document_type: 'issue',
+  };
 }

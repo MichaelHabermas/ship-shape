@@ -51,7 +51,22 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Public issue and sprint read models must filter associated documents through the same workspace, archive/delete, visibility, and accountability predicates as primary public document reads. Private programs, weekly plans, retros, and accountability targets must not leak through relationship metadata or filters.
 - Issue webhook events are emitted from `createIssueMutation` and `updateIssueMutation`, not from `/api/v1` handlers. This makes `issue.created`, `issue.assigned`, and `issue.status_changed` real domain events for future Slack/GitLab consumers.
 - Issue webhook payloads stay intentionally small: IDs, title/display ID, state, assignee/actor IDs, and API/UI URLs. They do not include document body/content.
-- Private issue rows do not currently fan out public issue webhooks. The durable fix is subscription subject/scope snapshots; until then, suppressing private issue events avoids exporting private titles through workspace-level webhook subscriptions.
+- Private issue rows now use selective webhook fanout. Subscriptions store creator/subject and granted-scope snapshots, and enqueue-time authorization creates delivery rows only for subjects that can currently read the event resource.
 - `@ship/sdk` now has real `issues` and `sprints` clients with list/get/create/update/listIssues/iterate methods, backed by shared public types rather than generated runtime code.
 - Web `/sdk-demo` stays the canonical browser demo route. It uses `ShipClient.authorizationCodeFlow()` plus `BrowserTokenStore`, lists documents and issues, and keeps document create only with explicit `documents:write` in the requested scope.
-- `docs/architecture.md` is now an actual current-state architecture artifact, not placeholder scaffolding.
+- `docs/architecture.md` stays out of this slice; the final architecture pass is deferred until after the platform/agent proof is complete.
+
+## 2026-06-02 — Packed TTFE Install Boundary
+
+- `pnpm drill ttfe` must prove the release artifact shape, not the workspace shape. The drill packs `@ship/shared`, `@ship/sdk`, and `@ship/cli` into tarballs, installs them into a fresh temp project, and then runs the CLI against the local API.
+- `@ship/cli` keeps `@ship/sdk` as a peer dependency plus workspace devDependency so packed installs resolve the local SDK tarball instead of trying to fetch a private workspace dependency from npm.
+- `ship webhooks tail --once` is the TTFE verification receiver. The drill succeeds only when it sees a verified `document.created` delivery from the real webhook path, not a mocked terminal transcript.
+
+## 2026-06-02 — Agent-as-Citizen Read Context Foundation
+
+- Webhook subscriptions are no longer workspace-level export controls. `document.*`, `issue.*`, and `sprint.*` events carry resource metadata and require matching read scopes at subscription creation; delivery fanout rechecks the stored subject's current resource readability at enqueue time.
+- Replay and retry preserve the original delivery authorization decision by replaying existing delivery rows and their original `Idempotency-Key`, rather than rematching all subscribers.
+- The first-party Ship Agent app is a per-workspace OAuth app with `system_key='ship-agent'`, `is_first_party=true`, and read-only scopes `documents:read`, `issues:read`, and `sprints:read`.
+- Ship Agent tokens are delegated real `oauth_access_tokens` tied to the initiating user/session. Do not add Client Credentials unless explicitly re-decided; losing user-bound audit is the wrong default for this slice.
+- `FLEETGRAPH_USE_PUBLIC_API=true` affects user-initiated FleetGraph chat/source reads only. Scheduled/no-user worker paths stay internal, and FleetGraph-owned findings/runs remain internal persistence.
+- `/api/v1/fleetgraph/attention-contexts` is a narrow public source-read API for detector-critical issue/sprint context. It is read-only, requires `documents:read`, `issues:read`, and `sprints:read`, appears in OpenAPI/SDK parity, and intentionally exposes no FleetGraph finding/run write surface.

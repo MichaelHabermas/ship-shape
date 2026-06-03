@@ -9,6 +9,8 @@ import type { PublicCursorPayload } from '../api/v1/pagination.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 const CLIENT_SECRET_GRACE_MS = 24 * 60 * 60 * 1000;
+export const SHIP_AGENT_SYSTEM_KEY = 'ship-agent';
+export const SHIP_AGENT_SCOPES = ['documents:read', 'issues:read', 'sprints:read'] as const satisfies readonly PublicApiScope[];
 
 export type CreateOAuthAppInput = {
   workspaceId: string;
@@ -66,6 +68,12 @@ export type PublicApiAuditLogSummary = {
   created_at: string;
 };
 
+export type FirstPartyOAuthApp = {
+  id: string;
+  client_id: string;
+  requested_scopes: PublicApiScope[];
+};
+
 type OAuthAppRow = {
   id: string;
   client_id: string;
@@ -97,6 +105,12 @@ type PublicApiAuditLogRow = {
   latency_ms: number;
   error_code: string | null;
   created_at: Date;
+};
+
+type FirstPartyOAuthAppRow = {
+  id: string;
+  client_id: string;
+  requested_scopes: unknown;
 };
 
 export function generateOAuthClientId(): string {
@@ -173,6 +187,56 @@ export async function createOAuthApp(input: CreateOAuthAppInput): Promise<Create
   } finally {
     client.release();
   }
+}
+
+export async function ensureShipAgentOAuthApp(
+  input: { workspaceId: string },
+  db: QueryRunner = pool
+): Promise<FirstPartyOAuthApp> {
+  const result = await db.query<FirstPartyOAuthAppRow>(
+    `INSERT INTO oauth_apps (
+       workspace_id,
+       owner_user_id,
+       name,
+       client_id,
+       client_secret_hash,
+       redirect_uris,
+       requested_scopes,
+       is_first_party,
+       system_key
+     )
+     VALUES (
+       $1,
+       NULL,
+       'Ship Agent',
+       $2,
+       'first-party-agent-no-client-secret',
+       $3,
+       $4,
+       TRUE,
+       $5
+     )
+     ON CONFLICT (workspace_id, system_key) WHERE system_key IS NOT NULL
+     DO UPDATE SET
+       name = EXCLUDED.name,
+       requested_scopes = EXCLUDED.requested_scopes,
+       is_first_party = TRUE,
+       updated_at = NOW()
+     RETURNING id, client_id, requested_scopes`,
+    [
+      input.workspaceId,
+      shipAgentClientId(input.workspaceId),
+      ['https://ship.local/first-party/ship-agent'],
+      [...SHIP_AGENT_SCOPES],
+      SHIP_AGENT_SYSTEM_KEY,
+    ]
+  );
+  const row = requireRow(result.rows[0], 'Ship Agent OAuth app upsert did not return a row');
+  return {
+    id: row.id,
+    client_id: row.client_id,
+    requested_scopes: normalizeScopes(row.requested_scopes),
+  };
 }
 
 export async function listOAuthApps(input: {
@@ -441,6 +505,10 @@ function publicAuditLogFromRow(row: PublicApiAuditLogRow): PublicApiAuditLogSumm
 function normalizeScopes(scopes: unknown): PublicApiScope[] {
   if (!Array.isArray(scopes)) return [];
   return scopes.filter(isPublicApiScope);
+}
+
+function shipAgentClientId(workspaceId: string): string {
+  return `ship_agent_${workspaceId.replace(/-/g, '')}`;
 }
 
 function requireRow<T>(row: T | undefined, message: string): T {

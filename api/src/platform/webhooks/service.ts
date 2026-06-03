@@ -2,6 +2,8 @@
 import dns from 'node:dns/promises';
 import net from 'node:net';
 import type {
+  DocumentType,
+  PublicApiScope,
   PublicWebhookDelivery,
   PublicWebhookSubscription,
   PublicWebhookSubscriptionCreated,
@@ -13,13 +15,20 @@ import type { Pool, PoolClient } from 'pg';
 import type { PublicCursorPayload } from '../api/v1/pagination.js';
 import { isProduction } from '../../config/runtime.js';
 import { pool } from '../../db/client.js';
+import { requireWorkspaceMembership } from '../../services/document-access.js';
+import { authorize } from '../../security/capabilities.js';
+import type { Principal } from '../../security/principal.js';
 import { logHotError } from '../../utils/hot-log.js';
 import {
   FetchWebhookDeliverer,
   type IWebhookDeliverer,
 } from './deliverer.js';
 import { webhookEventBus } from './event-bus.js';
-import { parseWebhookEvent } from './events.js';
+import {
+  expectedDocumentTypeForWebhookEvent,
+  parseWebhookEvent,
+  readScopeForWebhookEvent,
+} from './events.js';
 import { WEBHOOK_IDEMPOTENCY_KEY_HEADER } from './headers.js';
 import { WEBHOOK_MAX_FAILED_ATTEMPTS, WEBHOOK_RETRY_DELAYS_MS } from './retry-schedule.js';
 import {
@@ -87,12 +96,33 @@ export class WebhookTargetUrlError extends Error {
   }
 }
 
+export class WebhookSubscriptionScopeError extends Error {
+  constructor(readonly missingScope: PublicApiScope) {
+    super(`Missing required webhook read scope: ${missingScope}`);
+    this.name = 'WebhookSubscriptionScopeError';
+  }
+}
+
+export function isWebhookSubscriptionScopeError(error: unknown): error is WebhookSubscriptionScopeError {
+  return error instanceof WebhookSubscriptionScopeError;
+}
+
+export type WebhookReadContextSource = 'public_oauth' | 'portal_session';
+
+type WebhookSubscriptionReadContextSource = 'legacy' | WebhookReadContextSource;
+
 type WebhookSubscriptionRow = {
   id: string;
   app_id: string;
+  client_id: string;
+  app_is_active: boolean;
   workspace_id: string;
   event_type: WebhookEventType;
   target_url: string;
+  read_subject_user_id: string | null;
+  read_subject_scopes: PublicApiScope[];
+  read_context_source: WebhookSubscriptionReadContextSource;
+  read_context_version: number;
   signing_secret_ciphertext: string;
   signing_secret_iv: string;
   signing_secret_tag: string;
@@ -107,6 +137,9 @@ type WebhookEventRow = {
   event_type: WebhookEventType;
   idempotency_key: string;
   payload: Record<string, unknown>;
+  resource_kind: 'document' | null;
+  resource_id: string | null;
+  resource_document_type: DocumentType | null;
   created_at: Date;
 };
 
@@ -142,7 +175,18 @@ export async function createWebhookSubscription(input: {
   workspaceId: string;
   event: WebhookEventType;
   targetUrl: string;
+  readSubjectUserId: string;
+  readSubjectScopes: readonly PublicApiScope[];
+  readContextSource: WebhookReadContextSource;
 }): Promise<PublicWebhookSubscriptionCreated> {
+  if (!input.readSubjectScopes.includes('webhooks:manage')) {
+    throw new WebhookSubscriptionScopeError('webhooks:manage');
+  }
+  const requiredReadScope = readScopeForWebhookEvent(input.event);
+  if (!input.readSubjectScopes.includes(requiredReadScope)) {
+    throw new WebhookSubscriptionScopeError(requiredReadScope);
+  }
+
   await webhookServiceDependencies.validateTargetUrl(input.targetUrl);
   const signingSecret = generateWebhookSigningSecret();
   const encrypted = encryptWebhookSigningSecret(signingSecret);
@@ -152,13 +196,19 @@ export async function createWebhookSubscription(input: {
        workspace_id,
        event_type,
        target_url,
+       read_subject_user_id,
+       read_subject_scopes,
+       read_context_source,
+       read_context_version,
        signing_secret_hash,
        signing_secret_ciphertext,
        signing_secret_iv,
        signing_secret_tag
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING id, app_id, workspace_id, event_type, target_url,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, $9, $10, $11)
+     RETURNING id, app_id, NULL::text AS client_id, TRUE AS app_is_active,
+               workspace_id, event_type, target_url, read_subject_user_id,
+               read_subject_scopes, read_context_source, read_context_version,
                signing_secret_ciphertext, signing_secret_iv, signing_secret_tag,
                active, created_at, updated_at`,
     [
@@ -166,6 +216,9 @@ export async function createWebhookSubscription(input: {
       input.workspaceId,
       input.event,
       input.targetUrl,
+      input.readSubjectUserId,
+      [...input.readSubjectScopes],
+      input.readContextSource,
       hashWebhookSigningSecret(signingSecret),
       encrypted.ciphertext,
       encrypted.iv,
@@ -188,8 +241,8 @@ export async function listWebhookSubscriptions(input: {
   const values: Array<string | number> = [input.appId, input.workspaceId];
   const cursorClause = input.cursor
     ? `AND (
-         created_at < $3::timestamptz
-         OR (created_at = $3::timestamptz AND id::text < $4)
+         s.created_at < $3::timestamptz
+         OR (s.created_at = $3::timestamptz AND s.id::text < $4)
        )`
     : '';
   if (input.cursor) values.push(input.cursor.timestamp, input.cursor.id);
@@ -197,14 +250,18 @@ export async function listWebhookSubscriptions(input: {
   const limitParam = values.length;
 
   const result = await webhookDb().query<WebhookSubscriptionRow>(
-    `SELECT id, app_id, workspace_id, event_type, target_url,
+    `SELECT s.id, s.app_id, a.client_id, a.is_active AS app_is_active,
+            s.workspace_id, s.event_type, s.target_url,
+            s.read_subject_user_id, s.read_subject_scopes,
+            s.read_context_source, s.read_context_version,
             signing_secret_ciphertext, signing_secret_iv, signing_secret_tag,
-            active, created_at, updated_at
-       FROM webhook_subscriptions
-      WHERE app_id = $1
-        AND workspace_id = $2
+            s.active, s.created_at, s.updated_at
+       FROM webhook_subscriptions s
+       JOIN oauth_apps a ON a.id = s.app_id AND a.workspace_id = s.workspace_id
+      WHERE s.app_id = $1
+        AND s.workspace_id = $2
         ${cursorClause}
-      ORDER BY created_at DESC, id::text DESC
+      ORDER BY s.created_at DESC, s.id::text DESC
       LIMIT $${limitParam}`,
     values
   );
@@ -256,11 +313,28 @@ export async function enqueueWebhookEvent(
 ): Promise<{ eventId: string; deliveryIds: string[] }> {
   const parsed = parseWebhookEvent(event);
   const eventResult = await db.query<WebhookEventRow>(
-    `INSERT INTO webhook_events (workspace_id, event_type, idempotency_key, payload)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO webhook_events (
+       workspace_id,
+       event_type,
+       idempotency_key,
+       payload,
+       resource_kind,
+       resource_id,
+       resource_document_type
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      ON CONFLICT (idempotency_key) DO NOTHING
-     RETURNING id, workspace_id, event_type, idempotency_key, payload, created_at`,
-    [parsed.workspace_id, parsed.type, parsed.idempotency_key, parsed.payload]
+     RETURNING id, workspace_id, event_type, idempotency_key, payload,
+               resource_kind, resource_id, resource_document_type, created_at`,
+    [
+      parsed.workspace_id,
+      parsed.type,
+      parsed.idempotency_key,
+      parsed.payload,
+      parsed.resource.kind,
+      parsed.resource.id,
+      parsed.resource.document_type,
+    ]
   );
   const eventRow = eventResult.rows[0];
   if (!eventRow) {
@@ -275,18 +349,29 @@ export async function enqueueWebhookEvent(
   }
 
   const subscriptions = await db.query<WebhookSubscriptionRow>(
-    `SELECT id, app_id, workspace_id, event_type, target_url,
-            signing_secret_ciphertext, signing_secret_iv, signing_secret_tag,
-            active, created_at, updated_at
-       FROM webhook_subscriptions
-      WHERE workspace_id = $1
-        AND event_type = $2
-      AND active = TRUE`,
+    `SELECT s.id, s.app_id, a.client_id, a.is_active AS app_is_active,
+            s.workspace_id, s.event_type, s.target_url,
+            s.read_subject_user_id, s.read_subject_scopes,
+            s.read_context_source, s.read_context_version,
+            s.signing_secret_ciphertext, s.signing_secret_iv, s.signing_secret_tag,
+            s.active, s.created_at, s.updated_at
+       FROM webhook_subscriptions s
+       JOIN oauth_apps a ON a.id = s.app_id AND a.workspace_id = s.workspace_id
+      WHERE s.workspace_id = $1
+        AND s.event_type = $2
+        AND s.active = TRUE`,
     [eventRow.workspace_id, eventRow.event_type]
   );
 
   const deliveryIds: string[] = [];
   for (const subscription of subscriptions.rows) {
+    if (!(await shouldEnqueueWebhookForSubscription({
+      db,
+      event: eventRow,
+      subscription,
+    }))) {
+      continue;
+    }
     const delivery = await createDeliveryAttempt({
       subscriptionId: subscription.id,
       eventId: eventRow.id,
@@ -800,6 +885,64 @@ function publicDeliveryFromRow(row: WebhookDeliveryRow): PublicWebhookDelivery {
 function requireRow<T>(row: T | undefined, message: string): T {
   if (!row) throw new Error(message);
   return row;
+}
+
+async function shouldEnqueueWebhookForSubscription(input: {
+  db: QueryRunner;
+  event: WebhookEventRow;
+  subscription: WebhookSubscriptionRow;
+}): Promise<boolean> {
+  if (!input.subscription.app_is_active) return false;
+  if (
+    input.event.resource_kind !== 'document' ||
+    !input.event.resource_id ||
+    !input.event.resource_document_type ||
+    !input.subscription.read_subject_user_id
+  ) {
+    return false;
+  }
+
+  const requiredScope = readScopeForWebhookEvent(input.event.event_type);
+  if (!input.subscription.read_subject_scopes.includes(requiredScope)) return false;
+
+  const actor = {
+    userId: input.subscription.read_subject_user_id,
+    workspaceId: input.event.workspace_id,
+    isSuperAdmin: false,
+  };
+  if (!(await requireWorkspaceMembership(actor, input.db))) return false;
+
+  const principal = webhookSubscriptionPrincipal(input.subscription, input.event.workspace_id);
+  const expectedType = expectedDocumentTypeForWebhookEvent(
+    input.event.event_type,
+    input.event.resource_document_type
+  );
+  const decision = await authorize(input.db, principal, {
+    resource: 'document',
+    action: 'read',
+    documentId: input.event.resource_id,
+    expectedType,
+    includeDeleted: input.event.event_type === 'document.deleted',
+  });
+  return decision.allowed;
+}
+
+function webhookSubscriptionPrincipal(
+  subscription: WebhookSubscriptionRow,
+  workspaceId: string
+): Principal {
+  const userId = subscription.read_subject_user_id;
+  if (!userId) throw new Error('Webhook subscription subject missing');
+  return {
+    kind: 'oauth_access_token',
+    tokenId: `webhook_subscription:${subscription.id}`,
+    appId: subscription.app_id,
+    clientId: subscription.client_id,
+    userId,
+    workspaceId,
+    isSuperAdmin: false,
+    scopes: subscription.read_subject_scopes,
+  };
 }
 
 webhookEventBus.subscribe(async (event) => {

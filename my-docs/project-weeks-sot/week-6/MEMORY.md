@@ -13,6 +13,7 @@ As of 2026-06-02, active memory should bias toward durable invariants, current r
 Current placed anchors:
 
 - `pnpm drill ttfe` root script and `scripts/drill.mjs`, now a packed-artifact drill that starts API, approves Device Grant through local test DB state, creates a document, and verifies a signed webhook through `ship webhooks tail`.
+- `scripts/drill.mjs` builds and packs `@ship/shared`, `@ship/sdk`, and `@ship/cli`, installs the tarballs into a fresh temp project, and then runs the real CLI against the local API. That packed-install path is the proof; workspace symlinks are not.
 - `api/src/platform/scopes/registry.ts` with exact initial public scopes.
 - `api/src/platform/webhooks/events.ts` with exact initial event names.
 - `api/src/platform/webhooks/retry-schedule.ts` with exact retry delays and max attempts.
@@ -40,7 +41,7 @@ Current placed anchors:
 - `sdk/` workspace package `@ship/sdk` with fetch-based `ShipClient`, token stores, documents/issues/sprints/webhooks clients, `deviceLogin()`, `authorizationCodeFlow()`, refresh locking, typed `ShipError`, async iterators, and `verifyWebhook(...)`.
 - `sdk/src/index.ts` is dependency-light but exports Node `FileTokenStore`; browser builds may warn about optional `node:*` dynamic imports if they import the root SDK bundle.
 - `sdk/src/errors.ts` with typed SDK error class/kinds.
-- `docs/architecture.md` is now an honest current-state PlugForge architecture artifact: implemented spine, pre-1.0 gaps, and failure modes are labeled instead of left as placeholders.
+- `docs/architecture.md` is intentionally deferred for this group; do not spend agent-cycle on it until the final architecture/docs pass.
 - `integrations/README.md` with the external integration import boundary.
 - `integrations/cli` workspace package `@ship/cli` with bin `ship`; it imports only `@ship/sdk`, keeps SDK as a peer dependency for packed installs, and implements login/docs/webhooks tail.
 - `web/src/pages/DeveloperSettingsTab.tsx` under workspace settings with the minimum ops UI: app selector, shown-once secret panel, rotation/revoke, subscriptions, delivery log with DLQ filter/replay, and public audit table.
@@ -77,7 +78,7 @@ Webhook `document.created` is enqueued inside the `createDocumentMutation` trans
 
 Webhook `issue.created`, `issue.assigned`, and `issue.status_changed` are enqueued inside issue mutation services, not public route handlers. Future Slack/GitLab integrations should consume these domain events or public SDK/API methods, not duplicate issue mutation logic.
 
-Private issue rows do not fan out public issue webhooks until subscriptions store a subject/scope snapshot. Workspace-visible issue events still use the webhook system, but private titles/IDs must not leave through workspace-level subscription matching.
+Webhook subscriptions carry read context: `read_subject_user_id`, `read_subject_scopes`, `read_context_source`, and resource metadata on `webhook_events`. Private issue/document events may enqueue; only subscriptions whose stored subject can currently read the resource get delivery rows.
 
 Webhook retry semantics are deterministic-testable: delivery uses injected clock, deliverer, timeout, validation, and DB runner dependencies. Do not reintroduce real sleeps in webhook tests; prove retry/DLQ by advancing fake time over the canon schedule.
 
@@ -103,6 +104,16 @@ OAuth grants/tokens are service-owned. Keep app/user/workspace consent, code exc
 
 Refresh-token reuse must durably invalidate the whole family and revoke linked access tokens before returning `invalid_grant`. Do not throw inside a transaction before committing the invalidation.
 
+Ship Agent public access is delegated, not Client Credentials. `api/src/platform/oauth/agent-token-broker.ts` mints short-lived real OAuth access tokens for the first-party `ship-agent` app, tied to the initiating user/session, so public audit rows retain both app and user identity.
+
+The Ship Agent token broker must fail closed on scopes: caller-requested scopes are allowed only when they are both in the canonical Ship Agent read set and the app's requested scopes. Do not let a convenience caller mint write scopes through the broker.
+
+`FLEETGRAPH_USE_PUBLIC_API` is user-initiated only. FleetGraph chat/source reads can receive a `ShipClient` and call public documents/attention-context APIs; scheduled workers and FleetGraph-owned finding/run persistence stay internal.
+
+`GET /api/v1/fleetgraph/attention-contexts` is the narrow public read model for detector-critical issue/sprint context. It requires `documents:read`, `issues:read`, and `sprints:read`; do not add FleetGraph write scopes or public finding/run mutation endpoints for convenience.
+
+Type-contract audit for the Agent-as-Citizen slice found the new public FleetGraph route/SDK path correctly derives from shared Zod types. Keep it that way: no hand-rolled attention-context response types in SDK/API tests, and no ghost aliases for shared enums.
+
 ## Counterfeit Progress
 
 Plugforge anchor files must say whether they are exact canon, intentionally partial, or an inert boundary. A narrow type such as `GET | POST` is acceptable only if the comment prevents future agents from treating it as a closed-world contract. No more fake-green placeholders: inert SDK/API methods throw or remain type-only until wired.
@@ -117,11 +128,13 @@ After the developer ops slice on 2026-06-02, targeted reliability/control-plane 
 
 After the public work API + browser SDK demo slice on 2026-06-02, targeted proof is `scripts/run-api-tests.sh -- src/platform/api/v1/route-metadata.test.ts src/platform/api/v1/issues.test.ts src/platform/api/v1/sprints.test.ts src/services/issue-mutations/webhook-events.test.ts src/platform/webhooks/service.test.ts src/platform/api/v1/webhooks.test.ts`, `pnpm --filter @ship/sdk test`, `pnpm --filter @ship/web exec vitest run src/pages/SdkDemo.test.tsx`, `pnpm openapi:check:strict`, and then full local gates.
 
-The final correctness pass for that slice also proved visibility-aware related-document reads, private issue webhook suppression, dual-scope route metadata, SDK/OpenAPI parity, `pnpm type-check`, `pnpm lint`, and `pnpm build`.
+The final correctness pass for that earlier public work API slice proved visibility-aware related-document reads, the then-temporary private issue webhook suppression, dual-scope route metadata, SDK/OpenAPI parity, `pnpm type-check`, `pnpm lint`, and `pnpm build`. The suppression is superseded by webhook read-context filtering in the Agent-as-Citizen slice.
+
+After the Agent-as-Citizen read-context foundation slice on 2026-06-02, targeted proof is `scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts src/services/issue-mutations/webhook-events.test.ts src/platform/api/v1/webhooks.test.ts src/platform/apps/routes.test.ts src/platform/oauth/agent-token-broker.test.ts src/platform/api/v1/route-metadata.test.ts src/platform/api/v1/fleetgraph.test.ts src/config/fleetgraph.test.ts src/routes/fleetgraph.test.ts src/fleetgraph/core.test.ts`, plus `pnpm --filter @ship/sdk test`, `pnpm --filter @ship/cli check`, `pnpm openapi:check:strict`, `pnpm drill ttfe`, `pnpm type-check`, `pnpm lint`, `pnpm test:api`, and `pnpm build`.
 
 ## Leverage Points
 
-The TTFE developer spine is now real enough to compose: Device Grant login -> OAuth token -> public documents -> generated public OpenAPI -> SDK/CLI -> signed `document.created` webhook -> `pnpm drill ttfe`. Public work APIs add issues/sprints and issue webhooks, so the next leverage is Slack/GitLab/Agent-as-Citizen through the public API and SDK, not new internal integration shortcuts.
+The TTFE developer spine is now real enough to compose: Device Grant login -> OAuth token -> public documents -> generated public OpenAPI -> SDK/CLI -> signed `document.created` webhook -> `pnpm drill ttfe`. Public work APIs add issues/sprints and issue webhooks, and FleetGraph now has delegated public source-read access. The next leverage is Slack/GitLab through the public API and SDK, not new internal integration shortcuts.
 
 ## Sharp Edges
 

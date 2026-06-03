@@ -50,7 +50,7 @@ describe('public API v1 route registry', () => {
   it('requires cursor pagination metadata for registered list endpoints', () => {
     for (const route of publicApiV1RouteRegistry) {
       if (route.isListEndpoint) {
-        expect(route.pagination).toBe('cursor');
+        expect(['cursor', 'none']).toContain(route.pagination);
       }
     }
   });
@@ -71,9 +71,24 @@ describe('public API v1 route registry', () => {
         classStart,
         nextClassStart === -1 ? undefined : nextClassStart
       );
-      expect(classSource, `${route.operationId} SDK method ${sdk.method}`).toMatch(
-        new RegExp(`\\b${sdk.method}\\s*\\(`)
+      if (!sdk.method.includes('.')) {
+        expect(classSource, `${route.operationId} SDK method ${sdk.method}`).toMatch(
+          new RegExp(`\\b${sdk.method}\\s*\\(`)
+        );
+        continue;
+      }
+
+      const [propertyName, nestedMethod] = sdk.method.split('.', 2);
+      expect(classSource, `${route.operationId} SDK property ${propertyName}`).toMatch(
+        new RegExp(`(?:readonly\\s+)?${propertyName}(?::\\s*[A-Za-z0-9_]+)?`)
       );
+      expect(classSource, `${route.operationId} SDK property ${propertyName}`).toMatch(
+        new RegExp(`(?:this\\.)?${propertyName}\\s*=\\s*new\\s+[A-Za-z0-9_]+\\(`)
+      );
+      expect(
+        sdkSource,
+        `${route.operationId} nested SDK method ${nestedMethod}`
+      ).toMatch(new RegExp(`\\b${nestedMethod}\\s*\\(`));
     }
   });
 

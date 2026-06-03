@@ -2,6 +2,7 @@
 import type { PublicApiScope } from '@ship/shared';
 import {
   PUBLIC_OPENAPI_PATH,
+  PUBLIC_FLEETGRAPH_ATTENTION_CONTEXTS_PATH,
   PUBLIC_DOCUMENT_PATH,
   PUBLIC_DOCUMENTS_PATH,
   PUBLIC_ISSUE_PATH,
@@ -19,9 +20,8 @@ import {
 // needs another method; do not treat GET/POST as the whole platform contract.
 export type PublicHttpMethod = 'GET' | 'POST' | 'PATCH';
 export type PublicRouteAuth = 'oauth' | 'none';
-export type PublicRouteOperationId = string;
 export type PublicRouteSdkMetadata = {
-  client: 'root' | 'documents' | 'issues' | 'sprints' | 'webhooks';
+  client: 'root' | 'documents' | 'issues' | 'sprints' | 'fleetgraph' | 'webhooks';
   method: string;
 };
 export type PublicRouteExample = {
@@ -32,7 +32,7 @@ export type PublicRouteExample = {
 type PublicRouteMetadataBase = {
   method: PublicHttpMethod;
   path: string;
-  operationId: PublicRouteOperationId;
+  operationId: string;
   requiredScopes: readonly PublicApiScope[];
   auth: PublicRouteAuth;
   handlerMountPath: string;
@@ -46,7 +46,7 @@ export type PublicRouteMetadata =
     })
   | (PublicRouteMetadataBase & {
       isListEndpoint: true;
-      pagination: 'cursor';
+      pagination: 'cursor' | 'none';
     });
 
 export const publicMeRouteMetadata = {
@@ -71,6 +71,21 @@ export const publicOpenApiRouteMetadata = {
   auth: 'none',
   handlerMountPath: '/openapi.json',
   isListEndpoint: false,
+} satisfies PublicRouteMetadata;
+
+export const publicFleetGraphAttentionContextsListRouteMetadata = {
+  method: 'GET',
+  path: PUBLIC_FLEETGRAPH_ATTENTION_CONTEXTS_PATH,
+  operationId: 'fleetgraph.attentionContexts.list',
+  requiredScopes: ['documents:read', 'issues:read', 'sprints:read'],
+  auth: 'oauth',
+  handlerMountPath: '/fleetgraph/attention-contexts',
+  isListEndpoint: true,
+  pagination: 'none',
+  sdk: {
+    client: 'fleetgraph',
+    method: 'attentionContexts.list',
+  },
 } satisfies PublicRouteMetadata;
 
 export const publicDocumentsListRouteMetadata = {
@@ -277,6 +292,7 @@ export const publicWebhookDeliveryReplayRouteMetadata = {
 
 export const publicApiV1RouteRegistry = [
   publicOpenApiRouteMetadata,
+  publicFleetGraphAttentionContextsListRouteMetadata,
   publicMeRouteMetadata,
   publicDocumentsListRouteMetadata,
   publicDocumentsGetRouteMetadata,

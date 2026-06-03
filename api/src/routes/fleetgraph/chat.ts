@@ -1,7 +1,9 @@
+// FleetGraph chat routes run user-initiated agent turns and optional public-API source reads.
 import { Router, type Request, type Response, type Router as ExpressRouter } from 'express';
 import { authMiddleware } from '../../middleware/auth.js';
 import { defineRoute } from '../../openapi/define-route.js';
 import { fleetGraphConfig } from '../../config/fleetgraph.js';
+import { createShipAgentPublicClient } from '../../fleetgraph/public-api-client.js';
 import { principalFromRequest } from '../../security/principal.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { sendInternalError, sendLegacyError } from '../../utils/route-http.js';
@@ -20,6 +22,8 @@ import {
   sourceSnapshotForReviewerChat,
 } from '../../fleetgraph/reviewer-proof/index.js';
 import { ErrorResponseSchema, ApiErrorResponseSchema } from '../../openapi/schemas/common.js';
+import type { ShipClient } from '@ship/sdk';
+import type { FleetGraphChatContext } from '@ship/shared';
 import {
   manualRunBodySchema,
   requireWorkspaceAdminForFleetGraph,
@@ -43,8 +47,15 @@ router.post('/chat', authMiddleware, defineRoute({
   },
   async handler(req: Request, res: Response, parsed) {
     try {
-      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const { userId, workspaceId } = getAuthenticatedRouteContext(req);
       const principal = principalFromRequest(req);
+      const config = fleetGraphConfig();
+      const agentPublicClient = config.usePublicApi
+        ? await createShipAgentPublicClient({ workspaceId, userId })
+        : null;
+      if (agentPublicClient) {
+        await readAttentionContextViaPublicApi(agentPublicClient.client, parsed.body.context);
+      }
       const beforeMutation = await sourceSnapshotForReviewerChat({
         workspaceId,
         findingId: parsed.body.context.findingId,
@@ -61,7 +72,7 @@ router.post('/chat', authMiddleware, defineRoute({
           ...(parsed.body.history ? { history: parsed.body.history } : {}),
         },
         triggerReason: 'context-chat',
-      });
+      }, agentPublicClient ? { publicSourceClient: agentPublicClient.client } : undefined);
 
       if (result.visibleOutput?.noSafeOutput) {
         sendLegacyError(res, 404, 'FleetGraph context not found');
@@ -91,6 +102,32 @@ router.post('/chat', authMiddleware, defineRoute({
     }
   },
 }));
+
+async function readAttentionContextViaPublicApi(
+  client: ShipClient,
+  context: FleetGraphChatContext
+): Promise<void> {
+  const params = attentionContextParams(context);
+  if (!params) return;
+  await client.fleetgraph.attentionContexts.list({ limit: 25, ...params });
+}
+
+function attentionContextParams(
+  context: FleetGraphChatContext
+): { source_issue_id?: string; source_sprint_id?: string } | null {
+  for (const candidate of [context, ...(context.attachedContexts ?? [])]) {
+    const documentId = candidate.documentId ?? documentIdFromSourcePath(candidate.sourcePath);
+    if (!documentId) continue;
+    if (candidate.kind === 'issue') return { source_issue_id: documentId };
+    if (candidate.kind === 'sprint') return { source_sprint_id: documentId };
+  }
+  return null;
+}
+
+function documentIdFromSourcePath(sourcePath: string | undefined): string | null {
+  const match = sourcePath?.match(/^\/(?:documents|issues|projects|programs|sprints)\/([^/?#]+)/);
+  return match?.[1] ?? null;
+}
 
 router.post('/manual-run', authMiddleware, defineRoute({
   method: 'post',

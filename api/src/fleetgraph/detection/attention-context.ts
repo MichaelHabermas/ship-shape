@@ -1,5 +1,7 @@
 // FleetGraph issue attention context reads source issue facts without deciding signal policy.
+import type { DocumentVisibility, IssuePriority, IssueState } from '@ship/shared';
 import { pool } from '../../db/client.js';
+import { visibilityPredicate } from '../../services/document-access.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
 
@@ -8,11 +10,11 @@ export type FleetGraphIssueAttentionContext = {
   issue_id: string;
   issue_title: string;
   issue_ticket_number: number | null;
-  issue_state: string | null;
-  issue_priority: 'low' | 'medium' | 'high' | 'urgent';
+  issue_state: IssueState | null;
+  issue_priority: IssuePriority;
   issue_assignee_id: string | null;
   issue_assignee_name: string | null;
-  issue_visibility: string;
+  issue_visibility: DocumentVisibility;
   issue_created_at: Date;
   issue_updated_at: Date;
   sprint_id: string;
@@ -42,9 +44,14 @@ export async function listFleetGraphIssueAttentionContexts(input: {
   sourceSprintId?: string | null;
   includePrivate?: boolean;
   limit?: number;
+  viewerUserId?: string;
+  viewerIsAdmin?: boolean;
   db?: QueryRunner;
 }): Promise<FleetGraphIssueAttentionContext[]> {
   const db = input.db ?? pool;
+  const viewerFilterEnabled = Boolean(input.viewerUserId);
+  const viewerUserId = input.viewerUserId ?? null;
+  const viewerIsAdmin = input.viewerIsAdmin ?? false;
   const result = await db.query<FleetGraphIssueAttentionContext>(
     `SELECT
        i.workspace_id,
@@ -57,6 +64,7 @@ export async function listFleetGraphIssueAttentionContexts(input: {
          WHEN 'high' THEN 'high'
          WHEN 'medium' THEN 'medium'
          WHEN 'low' THEN 'low'
+         WHEN 'none' THEN 'none'
          ELSE 'medium'
        END AS issue_priority,
        NULLIF(i.properties->>'assignee_id', '') AS issue_assignee_id,
@@ -74,11 +82,19 @@ export async function listFleetGraphIssueAttentionContexts(input: {
        sprint_owner.name AS sprint_owner_name,
        project.id AS project_id,
        project.title AS project_title,
-       COALESCE(project_owner.id::text, project_owner_person_user.id::text, NULLIF(project.properties->>'owner_id', '')) AS project_owner_id,
+       COALESCE(
+         project_owner.id::text,
+         project_owner_person_user.id::text,
+         CASE WHEN $6::boolean = FALSE THEN NULLIF(project.properties->>'owner_id', '') ELSE NULL END
+       ) AS project_owner_id,
        COALESCE(project_owner.name, project_owner_person_user.name, project_owner_person.title) AS project_owner_name,
        program.id AS program_id,
        program.title AS program_title,
-       COALESCE(program_owner.id::text, program_owner_person_user.id::text, NULLIF(program.properties->>'owner_id', '')) AS program_owner_id,
+       COALESCE(
+         program_owner.id::text,
+         program_owner_person_user.id::text,
+         CASE WHEN $6::boolean = FALSE THEN NULLIF(program.properties->>'owner_id', '') ELSE NULL END
+       ) AS program_owner_id,
        COALESCE(program_owner.name, program_owner_person_user.name, program_owner_person.title) AS program_owner_name,
        COALESCE(latest_blocker_iteration.blockers_encountered, '') AS blocker_text,
        latest_blocker_iteration.id AS blocker_iteration_id,
@@ -96,6 +112,7 @@ export async function listFleetGraphIssueAttentionContexts(input: {
       AND s.document_type = 'sprint'
       AND s.deleted_at IS NULL
       AND s.archived_at IS NULL
+      AND ($6::boolean = FALSE OR ${visibilityPredicate('s', '$7', '$8')})
      LEFT JOIN LATERAL (
        SELECT iteration.id, iteration.created_at
          FROM issue_iterations iteration
@@ -134,6 +151,7 @@ export async function listFleetGraphIssueAttentionContexts(input: {
           AND p.document_type = 'project'
           AND p.deleted_at IS NULL
           AND p.archived_at IS NULL
+          AND ($6::boolean = FALSE OR ${visibilityPredicate('p', '$7', '$8')})
         WHERE project_assoc.document_id = i.id
           AND project_assoc.relationship_type = 'project'
         ORDER BY project_assoc.created_at DESC
@@ -152,9 +170,10 @@ export async function listFleetGraphIssueAttentionContexts(input: {
             ELSE NULL
           END
       AND project_owner_person.workspace_id = i.workspace_id
-      AND project_owner_person.document_type = 'person'
-      AND project_owner_person.deleted_at IS NULL
-      AND project_owner_person.archived_at IS NULL
+     AND project_owner_person.document_type = 'person'
+     AND project_owner_person.deleted_at IS NULL
+     AND project_owner_person.archived_at IS NULL
+      AND ($6::boolean = FALSE OR ${visibilityPredicate('project_owner_person', '$7', '$8')})
      LEFT JOIN users project_owner_person_user
        ON project_owner_person_user.id = CASE
             WHEN project_owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
@@ -170,6 +189,7 @@ export async function listFleetGraphIssueAttentionContexts(input: {
           AND p.document_type = 'program'
           AND p.deleted_at IS NULL
           AND p.archived_at IS NULL
+          AND ($6::boolean = FALSE OR ${visibilityPredicate('p', '$7', '$8')})
         WHERE program_assoc.relationship_type = 'program'
           AND program_assoc.document_id IN (i.id, project.id, s.id)
         ORDER BY
@@ -194,9 +214,10 @@ export async function listFleetGraphIssueAttentionContexts(input: {
             ELSE NULL
           END
       AND program_owner_person.workspace_id = i.workspace_id
-      AND program_owner_person.document_type = 'person'
-      AND program_owner_person.deleted_at IS NULL
-      AND program_owner_person.archived_at IS NULL
+     AND program_owner_person.document_type = 'person'
+     AND program_owner_person.deleted_at IS NULL
+     AND program_owner_person.archived_at IS NULL
+      AND ($6::boolean = FALSE OR ${visibilityPredicate('program_owner_person', '$7', '$8')})
      LEFT JOIN users program_owner_person_user
        ON program_owner_person_user.id = CASE
             WHEN program_owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
@@ -209,7 +230,10 @@ export async function listFleetGraphIssueAttentionContexts(input: {
        AND i.archived_at IS NULL
        AND ($2::uuid IS NULL OR i.id = $2::uuid)
        AND ($3::uuid IS NULL OR s.id = $3::uuid)
-       AND ($4::boolean OR COALESCE(i.visibility, 'workspace') <> 'private')
+       AND (
+         ($6::boolean = TRUE AND ${visibilityPredicate('i', '$7', '$8')})
+         OR ($6::boolean = FALSE AND ($4::boolean OR COALESCE(i.visibility, 'workspace') <> 'private'))
+       )
      ORDER BY
        CASE i.properties->>'priority'
          WHEN 'urgent' THEN 1
@@ -227,6 +251,9 @@ export async function listFleetGraphIssueAttentionContexts(input: {
       input.sourceSprintId ?? null,
       input.includePrivate === true,
       input.limit ?? 250,
+      viewerFilterEnabled,
+      viewerUserId,
+      viewerIsAdmin,
     ]
   );
 

@@ -8,6 +8,7 @@ import { authorizeRequest } from '../security/route-capability.js';
 import { getFleetGraphBlastRadius } from '../fleetgraph/blast-radius.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
+import { createShipAgentPublicClient } from '../fleetgraph/public-api-client.js';
 import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
 import { runFleetGraphWorkerTick } from '../fleetgraph/execution/worker.js';
 import {
@@ -43,6 +44,13 @@ const USER_ID = '55555555-5555-4555-8555-555555555555';
 const CHAT_RUN_ID = '66666666-6666-4666-8666-666666666666';
 const attentionEventId = '77777777-7777-4777-8777-777777777777';
 const authMock = vi.hoisted(() => ({ useApiToken: false }));
+const publicApiMock = vi.hoisted(() => {
+  const attentionContexts = { list: vi.fn() };
+  return {
+    attentionContexts,
+    client: { fleetgraph: { attentionContexts } },
+  };
+});
 
 vi.mock('../middleware/auth.js', () => ({
   authMiddleware: (req: express.Request, _res: express.Response, next: express.NextFunction) => {
@@ -78,7 +86,23 @@ vi.mock('../fleetgraph/core.js', () => ({
 }));
 
 vi.mock('../config/fleetgraph.js', () => ({
-  fleetGraphConfig: vi.fn(() => ({ manualRunApiEnabled: true })),
+  fleetGraphConfig: vi.fn(() => ({ manualRunApiEnabled: true, usePublicApi: false })),
+}));
+
+vi.mock('../fleetgraph/public-api-client.js', () => ({
+  createShipAgentPublicClient: vi.fn(async () => ({
+    client: publicApiMock.client,
+    token: {
+      id: 'agent-token-1',
+      token: 'ship_oat_test',
+      appId: 'agent-app-1',
+      clientId: 'ship_agent_test',
+      userId: USER_ID,
+      workspaceId,
+      scopes: ['documents:read', 'issues:read', 'sprints:read'],
+      expires_at: new Date(),
+    },
+  })),
 }));
 
 vi.mock('../security/route-capability.js', () => ({
@@ -368,6 +392,9 @@ describe('FleetGraph routes', () => {
     vi.mocked(getFleetGraphBlastRadius).mockReset();
     vi.mocked(visibleOutputForFinding).mockReset();
     vi.mocked(runFleetGraph).mockReset();
+    vi.mocked(createShipAgentPublicClient).mockClear();
+    publicApiMock.attentionContexts.list.mockReset();
+    publicApiMock.attentionContexts.list.mockResolvedValue({ data: [] });
     vi.mocked(runFleetGraphManualTick).mockReset();
     vi.mocked(runFleetGraphWorkerTick).mockReset();
     vi.mocked(fleetGraphReviewerProofEnabled).mockReset();
@@ -378,6 +405,7 @@ describe('FleetGraph routes', () => {
     vi.mocked(repairFleetGraphReviewerProof).mockReset();
     vi.mocked(runFleetGraphReviewerWeekBlockerScenario).mockReset();
     vi.mocked(runFleetGraphReviewerWorkerTick).mockReset();
+    vi.mocked(fleetGraphConfig).mockReturnValue({ manualRunApiEnabled: true, usePublicApi: false } as ReturnType<typeof fleetGraphConfig>);
     vi.mocked(sourceSnapshotForReviewerChat).mockReset();
     authMock.useApiToken = false;
     process.env.NODE_ENV = 'test';
@@ -817,23 +845,54 @@ describe('FleetGraph routes', () => {
       })
       .expect(200);
 
-    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
-      workspaceId,
-      mode: 'on_demand',
-      trigger: {
-        type: 'context_chat',
-        prompt: 'Make that simpler',
-        context: {
-          kind: 'notification',
-          findingId,
-          sourcePath: `/documents/${issueId}`,
-          pageContext,
-          attachedContexts,
+    expect(runFleetGraph).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId,
+        mode: 'on_demand',
+        trigger: {
+          type: 'context_chat',
+          prompt: 'Make that simpler',
+          context: {
+            kind: 'notification',
+            findingId,
+            sourcePath: `/documents/${issueId}`,
+            pageContext,
+            attachedContexts,
+          },
+          history,
         },
-        history,
-      },
-      triggerReason: 'context-chat',
+        triggerReason: 'context-chat',
+      }),
+      undefined
+    );
+  });
+
+  it('routes user-initiated chat source reads through the public SDK when enabled', async () => {
+    vi.mocked(fleetGraphConfig).mockReturnValue({ manualRunApiEnabled: true, usePublicApi: true } as ReturnType<typeof fleetGraphConfig>);
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
+      decision: 'explain',
+      traceMetadata: { mode: 'on_demand', decision: 'explain', nodePath: ['contextChat'] },
     }));
+
+    await request(app())
+      .post('/api/fleetgraph/chat')
+      .send({
+        prompt: 'What needs attention?',
+        context: { kind: 'issue', documentId: issueId, sourcePath: `/issues/${issueId}` },
+      })
+      .expect(200);
+
+    expect(createShipAgentPublicClient).toHaveBeenCalledWith({ workspaceId, userId: USER_ID });
+    expect(publicApiMock.attentionContexts.list).toHaveBeenCalledWith({
+      limit: 25,
+      source_issue_id: issueId,
+    });
+    const graphCall = vi.mocked(runFleetGraph).mock.calls.at(-1);
+    expect(graphCall).toBeDefined();
+    const [graphInput, graphOptions] = graphCall ?? [];
+    expect(graphInput).toMatchObject({ workspaceId, mode: 'on_demand' });
+    expect(graphInput?.trigger.type).toBe('context_chat');
+    expect(graphOptions).toEqual({ publicSourceClient: publicApiMock.client });
   });
 
   it('rejects context chat history beyond the bounded request limit', async () => {

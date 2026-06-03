@@ -7,7 +7,6 @@ import {
   ISSUE_PRIORITY_VALUES,
   ISSUE_SOURCE_VALUES,
   ISSUE_STATE_VALUES,
-  type DocumentVisibility,
 } from './enums/document-enums.js';
 
 export const PUBLIC_API_SCOPES = [
@@ -205,6 +204,49 @@ export const PublicIssueSchema = z.object({
 export const PublicIssuesListResponseSchema = z.object({
   data: z.array(PublicIssueSchema.omit({ content: true })),
   next_cursor: z.string().nullable(),
+});
+
+export const PublicFleetGraphAttentionContextListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(250).optional(),
+  source_issue_id: z.string().uuid().optional(),
+  source_sprint_id: z.string().uuid().optional(),
+});
+
+export const PublicFleetGraphAttentionContextSchema = z.object({
+  workspace_id: z.string().uuid(),
+  issue_id: z.string().uuid(),
+  issue_title: z.string(),
+  issue_ticket_number: z.number().int().nullable(),
+  issue_state: z.enum(ISSUE_STATE_VALUES).nullable(),
+  issue_priority: z.enum(ISSUE_PRIORITY_VALUES),
+  issue_assignee_id: z.string().uuid().nullable(),
+  issue_assignee_name: z.string().nullable(),
+  issue_visibility: z.enum(DOCUMENT_VISIBILITY_VALUES),
+  issue_created_at: z.string(),
+  issue_updated_at: z.string(),
+  sprint_id: z.string().uuid(),
+  sprint_title: z.string(),
+  sprint_number: z.number().int().nullable(),
+  sprint_owner_id: z.string().uuid().nullable(),
+  sprint_owner_name: z.string().nullable(),
+  project_id: z.string().uuid().nullable(),
+  project_title: z.string().nullable(),
+  project_owner_id: z.string().uuid().nullable(),
+  project_owner_name: z.string().nullable(),
+  program_id: z.string().uuid().nullable(),
+  program_title: z.string().nullable(),
+  program_owner_id: z.string().uuid().nullable(),
+  program_owner_name: z.string().nullable(),
+  blocker_text: z.string(),
+  blocker_iteration_id: z.string().uuid().nullable(),
+  blocker_iteration_created_at: z.string().nullable(),
+  latest_iteration_id: z.string().uuid().nullable(),
+  latest_iteration_created_at: z.string().nullable(),
+  meaningful_updated_at: z.string(),
+});
+
+export const PublicFleetGraphAttentionContextsListResponseSchema = z.object({
+  data: z.array(PublicFleetGraphAttentionContextSchema),
 });
 
 export const PublicSprintListQuerySchema = z.object({
@@ -411,6 +453,12 @@ export const IssueStatusChangedWebhookPayloadSchema = z.object({
   actor: WebhookActorSchema.optional(),
 });
 
+export const WebhookEventResourceSchema = z.object({
+  kind: z.literal('document'),
+  id: z.string().uuid(),
+  document_type: z.enum(DOCUMENT_TYPE_VALUES),
+});
+
 export type PublicApiScope = z.infer<typeof PublicApiScopeSchema>;
 export type PublicApiErrorCode = (typeof PUBLIC_API_ERROR_CODES)[number];
 export type PublicApiError = z.infer<typeof PublicApiErrorSchema>;
@@ -418,12 +466,16 @@ export type PublicMe = z.infer<typeof PublicMeResponseSchema>;
 export type PublicDocument = z.infer<typeof PublicDocumentSchema>;
 export type PublicDocumentCreateInput = z.input<typeof PublicDocumentCreateSchema>;
 export type PublicDocumentListParams = z.infer<typeof PublicDocumentListQuerySchema>;
-export type PublicDocumentVisibility = DocumentVisibility;
 export type PublicBelongsTo = z.infer<typeof PublicBelongsToSchema>;
 export type PublicIssue = z.infer<typeof PublicIssueSchema>;
 export type PublicIssueCreateInput = z.input<typeof PublicIssueCreateSchema>;
 export type PublicIssueUpdateInput = z.input<typeof PublicIssueUpdateSchema>;
 export type PublicIssueListParams = z.infer<typeof PublicIssueListQuerySchema>;
+export type PublicFleetGraphAttentionContext = z.infer<typeof PublicFleetGraphAttentionContextSchema>;
+export type PublicFleetGraphAttentionContextListParams = z.infer<typeof PublicFleetGraphAttentionContextListQuerySchema>;
+export type PublicFleetGraphAttentionContextsListResponse = z.infer<
+  typeof PublicFleetGraphAttentionContextsListResponseSchema
+>;
 export type PublicSprint = z.infer<typeof PublicSprintSchema>;
 export type PublicSprintListParams = z.infer<typeof PublicSprintListQuerySchema>;
 export type PublicSprintIssueListParams = z.infer<typeof PublicSprintIssueListQuerySchema>;
@@ -451,9 +503,11 @@ export type DocumentCreatedWebhookPayload = z.infer<typeof DocumentCreatedWebhoo
 export type IssueCreatedWebhookPayload = z.infer<typeof IssueCreatedWebhookPayloadSchema>;
 export type IssueAssignedWebhookPayload = z.infer<typeof IssueAssignedWebhookPayloadSchema>;
 export type IssueStatusChangedWebhookPayload = z.infer<typeof IssueStatusChangedWebhookPayloadSchema>;
+export type WebhookEventResource = z.infer<typeof WebhookEventResourceSchema>;
 export type WebhookEvent = {
   type: WebhookEventType;
   workspace_id: string;
   idempotency_key: string;
+  resource: WebhookEventResource;
   payload: Record<string, unknown>;
 };

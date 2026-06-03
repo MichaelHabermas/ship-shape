@@ -37,6 +37,504 @@
         }
       }
     },
+    "/fleetgraph/attention-contexts": {
+      "get": {
+        "tags": [
+          "Public API"
+        ],
+        "summary": "fleetgraph.attentionContexts.list",
+        "operationId": "fleetgraph.attentionContexts.list",
+        "security": [
+          {
+            "oauthBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 250
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "source_issue_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "source_sprint_id",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "FleetGraph attention contexts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "issue_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "issue_title": {
+                            "type": "string"
+                          },
+                          "issue_ticket_number": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "issue_state": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "issue_priority": {
+                            "type": "string",
+                            "enum": [
+                              "urgent",
+                              "high",
+                              "medium",
+                              "low",
+                              "none"
+                            ]
+                          },
+                          "issue_assignee_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "issue_assignee_name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "issue_visibility": {
+                            "type": "string",
+                            "enum": [
+                              "private",
+                              "workspace"
+                            ]
+                          },
+                          "issue_created_at": {
+                            "type": "string"
+                          },
+                          "issue_updated_at": {
+                            "type": "string"
+                          },
+                          "sprint_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "sprint_title": {
+                            "type": "string"
+                          },
+                          "sprint_number": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "sprint_owner_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "sprint_owner_name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "project_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "project_title": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "project_owner_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "project_owner_name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "program_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "program_title": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "program_owner_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "program_owner_name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "blocker_text": {
+                            "type": "string"
+                          },
+                          "blocker_iteration_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "blocker_iteration_created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "latest_iteration_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "latest_iteration_created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "meaningful_updated_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "workspace_id",
+                          "issue_id",
+                          "issue_title",
+                          "issue_ticket_number",
+                          "issue_state",
+                          "issue_priority",
+                          "issue_assignee_id",
+                          "issue_assignee_name",
+                          "issue_visibility",
+                          "issue_created_at",
+                          "issue_updated_at",
+                          "sprint_id",
+                          "sprint_title",
+                          "sprint_number",
+                          "sprint_owner_id",
+                          "sprint_owner_name",
+                          "project_id",
+                          "project_title",
+                          "project_owner_id",
+                          "project_owner_name",
+                          "program_id",
+                          "program_title",
+                          "program_owner_id",
+                          "program_owner_name",
+                          "blocker_text",
+                          "blocker_iteration_id",
+                          "blocker_iteration_created_at",
+                          "latest_iteration_id",
+                          "latest_iteration_created_at",
+                          "meaningful_updated_at"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "unauthorized",
+                        "forbidden",
+                        "not_found",
+                        "validation_failed",
+                        "rate_limited",
+                        "server_error"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "request_id"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked, or expired bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "unauthorized",
+                        "forbidden",
+                        "not_found",
+                        "validation_failed",
+                        "rate_limited",
+                        "server_error"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "request_id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient OAuth scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "unauthorized",
+                        "forbidden",
+                        "not_found",
+                        "validation_failed",
+                        "rate_limited",
+                        "server_error"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "request_id"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "unauthorized",
+                        "forbidden",
+                        "not_found",
+                        "validation_failed",
+                        "rate_limited",
+                        "server_error"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "request_id"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "unauthorized",
+                        "forbidden",
+                        "not_found",
+                        "validation_failed",
+                        "rate_limited",
+                        "server_error"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "request_id"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "unauthorized",
+                        "forbidden",
+                        "not_found",
+                        "validation_failed",
+                        "rate_limited",
+                        "server_error"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "request_id"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/me": {
       "get": {
         "tags": [

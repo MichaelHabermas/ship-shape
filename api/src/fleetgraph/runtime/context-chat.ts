@@ -3,23 +3,22 @@ import { pool } from '../../db/client.js';
 import { resolveInitialContent } from '../../db/document-content-codec.js';
 import { authorize } from '../../security/capabilities.js';
 import type { Principal } from '../../security/principal.js';
+import type { ShipClient } from '@ship/sdk';
 import { visibleOutputForFinding } from '../evidence.js';
 import type { FleetGraphFinding } from '../persistence.js';
 import type { FleetGraphInput, FleetGraphVisibleOutput } from '../types.js';
-import type { FleetGraphEvidenceItem, FleetGraphPageContext } from '@ship/shared';
+import type { DocumentType, FleetGraphEvidenceItem, FleetGraphPageContext, PublicBelongsTo, PublicDocument } from '@ship/shared';
 import type { FleetGraphChatAnswerPayload } from './chat.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
 
 export type ContextChatContext = Extract<FleetGraphInput['trigger'], { type: 'context_chat' }>['context'];
 
-export type ContextChatDocument = {
-  id: string;
-  document_type: string;
-  title: string;
-  properties: Record<string, unknown>;
-  content: unknown;
-  belongsTo: Array<{ type: string; title: string }>;
+export type ContextChatBelongsTo = Pick<PublicBelongsTo, 'type' | 'title'>;
+
+export type ContextChatDocument = Pick<PublicDocument, 'id' | 'title' | 'properties' | 'content'> & {
+  document_type: DocumentType;
+  belongsTo: ContextChatBelongsTo[];
 };
 
 export type ContextChatSignal = {
@@ -48,6 +47,7 @@ export type ContextChatPersistencePort = {
 export type ContextChatResolveOptions = {
   db?: QueryRunner;
   principal?: Principal;
+  publicSourceClient?: ShipClient;
 };
 
 export async function resolveContextChatBundle(
@@ -78,12 +78,14 @@ export async function resolveContextChatBundle(
   const queueDocumentLoad = (documentId: string | null | undefined) => {
     if (!documentId || documentIds.has(documentId)) return;
     documentIds.add(documentId);
-    documentLoads.push(loadContextChatDocument({
-      db: options.db,
-      principal: input.principal,
-      workspaceId: input.workspaceId,
-      documentId,
-    }));
+    documentLoads.push(options.publicSourceClient
+      ? loadContextChatPublicDocument(options.publicSourceClient, documentId)
+      : loadContextChatDocument({
+          db: options.db,
+          principal: input.principal,
+          workspaceId: input.workspaceId,
+          documentId,
+        }));
   };
 
   for (let index = 0; index < contexts.length; index += 1) {
@@ -193,7 +195,7 @@ export async function loadContextChatDocument(input: {
 
   const result = await db.query<{
     id: string;
-    document_type: string;
+    document_type: DocumentType;
     title: string;
     properties: Record<string, unknown> | null;
     content: unknown;
@@ -215,7 +217,7 @@ export async function loadContextChatDocument(input: {
     yjs_state: row.yjs_state,
   }).docJson ?? row.content;
 
-  const associations = await db.query<{ type: string; title: string }>(
+  const associations = await db.query<ContextChatBelongsTo>(
     `SELECT da.relationship_type AS type, d.title
        FROM document_associations da
        JOIN documents d ON d.id = da.related_id
@@ -236,6 +238,25 @@ export async function loadContextChatDocument(input: {
     content: resolvedContent,
     belongsTo: associations.rows,
   };
+}
+
+async function loadContextChatPublicDocument(
+  client: ShipClient,
+  documentId: string
+): Promise<ContextChatDocument | null> {
+  try {
+    const document = await client.documents.get(documentId);
+    return {
+      id: document.id,
+      document_type: document.document_type,
+      title: document.title,
+      properties: document.properties ?? {},
+      content: document.content ?? null,
+      belongsTo: [],
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function resolveFindingForChatContext(

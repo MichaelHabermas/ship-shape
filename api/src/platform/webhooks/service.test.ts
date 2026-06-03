@@ -69,6 +69,7 @@ describe('webhook delivery reliability', () => {
   const clientId = `ship_app_webhook_service_${testRunId}`;
   let workspaceId: string;
   let userId: string;
+  let viewerUserId: string;
   let appId: string;
   let clock: FakeWebhookClock;
   let deliverer: FakeWebhookDeliverer;
@@ -88,11 +89,18 @@ describe('webhook delivery reliability', () => {
       [email]
     );
     userId = requireFirstRow(userResult.rows).id;
+    const viewerResult = await pool.query<IdRow>(
+      `INSERT INTO users (email, password_hash, name)
+       VALUES ($1, 'test-hash', 'Webhook Service Viewer')
+       RETURNING id`,
+      [`webhook-service-viewer-${testRunId}@ship.local`]
+    );
+    viewerUserId = requireFirstRow(viewerResult.rows).id;
 
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
-       VALUES ($1, $2, 'admin')`,
-      [workspaceId, userId]
+       VALUES ($1, $2, 'admin'), ($1, $3, 'member')`,
+      [workspaceId, userId, viewerUserId]
     );
 
     const appResult = await pool.query<IdRow>(
@@ -122,6 +130,7 @@ describe('webhook delivery reliability', () => {
     await pool.query('DELETE FROM webhook_deliveries WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM webhook_events WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM webhook_subscriptions WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
     clock = new FakeWebhookClock();
     deliverer = new FakeWebhookDeliverer();
     restoreWebhookDependencies = configureWebhookServiceDependencies({
@@ -141,9 +150,10 @@ describe('webhook delivery reliability', () => {
     await pool.query('DELETE FROM webhook_deliveries WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM webhook_events WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM webhook_subscriptions WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM oauth_apps WHERE id = $1', [appId]);
     await pool.query('DELETE FROM workspace_memberships WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    await pool.query('DELETE FROM users WHERE id = ANY($1::uuid[])', [[userId, viewerUserId]]);
     await pool.query('DELETE FROM workspaces WHERE id = $1', [workspaceId]);
   });
 
@@ -162,9 +172,10 @@ describe('webhook delivery reliability', () => {
   it('marks 2xx delivery attempts succeeded', async () => {
     await createSubscription();
     const idempotencyKey = `document.created:success-${testRunId}`;
+    const documentId = await insertWebhookDocument();
     deliverer.queue({ responseStatus: 204, responseExcerpt: '{"ok":true}', error: null });
 
-    await publishAndDispatch(idempotencyKey);
+    await publishAndDispatch(idempotencyKey, documentId);
 
     const rows = await findDeliveries(idempotencyKey);
     expect(rows).toHaveLength(1);
@@ -190,9 +201,10 @@ describe('webhook delivery reliability', () => {
     async (_label, result) => {
       await createSubscription();
       const idempotencyKey = `document.created:retry-${_label}-${testRunId}`;
+      const documentId = await insertWebhookDocument();
       deliverer.queue(result);
 
-      await publishAndDispatch(idempotencyKey);
+      await publishAndDispatch(idempotencyKey, documentId);
 
       const rows = await findDeliveries(idempotencyKey);
       expect(rows).toHaveLength(2);
@@ -214,11 +226,13 @@ describe('webhook delivery reliability', () => {
   it('claims a pending delivery once under concurrent dispatch', async () => {
     await createSubscription();
     const idempotencyKey = `document.created:claim-once-${testRunId}`;
+    const documentId = await insertWebhookDocument();
     const enqueued = await enqueueWebhookEvent({
       type: 'document.created',
       workspace_id: workspaceId,
       idempotency_key: idempotencyKey,
-      payload: eventPayload(),
+      payload: eventPayload(documentId),
+      resource: eventResource(documentId, 'wiki'),
     });
     expect(enqueued.deliveryIds).toHaveLength(1);
     const deliveryId = enqueued.deliveryIds[0];
@@ -235,11 +249,13 @@ describe('webhook delivery reliability', () => {
   it('recovers stale sending attempts through the due processor', async () => {
     await createSubscription();
     const idempotencyKey = `document.created:stale-sending-${testRunId}`;
+    const documentId = await insertWebhookDocument();
     const enqueued = await enqueueWebhookEvent({
       type: 'document.created',
       workspace_id: workspaceId,
       idempotency_key: idempotencyKey,
-      payload: eventPayload(),
+      payload: eventPayload(documentId),
+      resource: eventResource(documentId, 'wiki'),
     });
     const deliveryId = enqueued.deliveryIds[0];
     if (!deliveryId) throw new Error('Expected queued delivery');
@@ -262,9 +278,10 @@ describe('webhook delivery reliability', () => {
   it('moves non-429 4xx failures directly to the DLQ', async () => {
     await createSubscription();
     const idempotencyKey = `document.created:terminal-${testRunId}`;
+    const documentId = await insertWebhookDocument();
     deliverer.queue({ responseStatus: 400, responseExcerpt: 'bad request', error: null });
 
-    await publishAndDispatch(idempotencyKey);
+    await publishAndDispatch(idempotencyKey, documentId);
 
     const rows = await findDeliveries(idempotencyKey);
     expect(rows).toHaveLength(1);
@@ -281,11 +298,12 @@ describe('webhook delivery reliability', () => {
   it('moves the sixth failed attempt to the DLQ', async () => {
     await createSubscription();
     const idempotencyKey = `document.created:six-failures-${testRunId}`;
+    const documentId = await insertWebhookDocument();
     for (let attempt = 0; attempt < WEBHOOK_MAX_FAILED_ATTEMPTS; attempt += 1) {
       deliverer.queue({ responseStatus: 500, responseExcerpt: `failure ${attempt + 1}`, error: null });
     }
 
-    await publishAndDispatch(idempotencyKey);
+    await publishAndDispatch(idempotencyKey, documentId);
 
     for (let attempt = 2; attempt <= WEBHOOK_MAX_FAILED_ATTEMPTS; attempt += 1) {
       const rows = await findDeliveries(idempotencyKey);
@@ -315,21 +333,45 @@ describe('webhook delivery reliability', () => {
     expect(deliverer.requests).toHaveLength(WEBHOOK_MAX_FAILED_ATTEMPTS);
   });
 
-  async function createSubscription(): Promise<void> {
+  it('filters private document deliveries by subscription subject at enqueue time', async () => {
+    await createSubscription(viewerUserId);
+    await createSubscription(userId);
+    const documentId = await insertWebhookDocument('private');
+    const idempotencyKey = `document.created:private-${testRunId}`;
+
+    const enqueued = await enqueueWebhookEvent({
+      type: 'document.created',
+      workspace_id: workspaceId,
+      idempotency_key: idempotencyKey,
+      payload: eventPayload(documentId),
+      resource: eventResource(documentId, 'wiki'),
+    });
+
+    expect(enqueued.deliveryIds).toHaveLength(1);
+    await dispatchWebhookDeliveries(enqueued.deliveryIds);
+    expect(deliverer.requests).toHaveLength(1);
+    expect(deliverer.requests[0]?.headers['Idempotency-Key']).toBe(idempotencyKey);
+  });
+
+  async function createSubscription(readSubjectUserId = userId): Promise<void> {
     await createWebhookSubscription({
       appId,
       workspaceId,
       event: 'document.created',
       targetUrl: `https://hooks.example.test/${crypto.randomUUID()}`,
+      readSubjectUserId,
+      readSubjectScopes: ['documents:read', 'webhooks:manage'],
+      readContextSource: 'portal_session',
     });
   }
 
-  async function publishAndDispatch(idempotencyKey: string): Promise<void> {
+  async function publishAndDispatch(idempotencyKey: string, documentId: string): Promise<void> {
     const enqueued = await enqueueWebhookEvent({
       type: 'document.created',
       workspace_id: workspaceId,
       idempotency_key: idempotencyKey,
-      payload: eventPayload(),
+      payload: eventPayload(documentId),
+      resource: eventResource(documentId, 'wiki'),
     });
     expect(enqueued.deliveryIds).toHaveLength(1);
     await dispatchWebhookDeliveries(enqueued.deliveryIds);
@@ -348,16 +390,42 @@ describe('webhook delivery reliability', () => {
     return result.rows;
   }
 
-  function eventPayload() {
+  async function insertWebhookDocument(visibility: 'private' | 'workspace' = 'workspace'): Promise<string> {
+    const result = await pool.query<IdRow>(
+      `INSERT INTO documents (
+         workspace_id, document_type, title, properties, created_by, visibility
+       )
+       VALUES ($1, 'wiki', $2, $3, $4, $5)
+       RETURNING id`,
+      [
+        workspaceId,
+        `webhook service proof ${crypto.randomUUID()}`,
+        {},
+        userId,
+        visibility,
+      ]
+    );
+    return requireFirstRow(result.rows).id;
+  }
+
+  function eventPayload(documentId: string) {
     return {
       document: {
-        id: crypto.randomUUID(),
+        id: documentId,
         title: 'webhook service proof',
         document_type: 'wiki',
-        api_url: '/api/v1/documents/webhook-service-proof',
-        ui_url: '/documents/webhook-service-proof',
+        api_url: `/api/v1/documents/${documentId}`,
+        ui_url: `/documents/${documentId}`,
       },
       actor: { id: userId },
+    };
+  }
+
+  function eventResource(documentId: string, documentType: 'wiki' | 'issue') {
+    return {
+      kind: 'document' as const,
+      id: documentId,
+      document_type: documentType,
     };
   }
 });

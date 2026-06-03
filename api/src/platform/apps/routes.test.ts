@@ -211,6 +211,7 @@ describe('OAuth app control plane', () => {
     await pool.query('DELETE FROM webhook_deliveries WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM webhook_events WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM webhook_subscriptions WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM public_api_audit_logs WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM audit_logs WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM oauth_app_secrets WHERE workspace_id = $1', [workspaceId]);
@@ -504,7 +505,7 @@ describe('OAuth app control plane', () => {
       .send({
         event: 'document.created',
         target_url: 'https://hooks.example.test/ops',
-      });
+    });
     const subscription = expectJsonBody(subscriptionResponse, 201, PortalWebhookCreatedSchema);
     expect(subscription.data.signing_secret).toMatch(/^ship_whsec_/);
 
@@ -518,19 +519,32 @@ describe('OAuth app control plane', () => {
     }));
 
     const idempotencyKey = `document.created:portal-${testRunId}`;
+    const documentId = requireFirstRow((await pool.query<IdRow>(
+      `INSERT INTO documents (
+         workspace_id, document_type, title, properties, created_by, visibility
+       )
+       VALUES ($1, 'wiki', $2, $3, $4, 'workspace')
+       RETURNING id`,
+      [workspaceId, `portal dlq proof ${testRunId}`, {}, adminUserId]
+    )).rows).id;
     deliverer.queue({ responseStatus: 400, responseExcerpt: 'bad request', error: null });
     const deliveryStart = deliverer.deliveries.length;
     const enqueued = await enqueueWebhookEvent({
       type: 'document.created',
       workspace_id: workspaceId,
       idempotency_key: idempotencyKey,
+      resource: {
+        kind: 'document',
+        id: documentId,
+        document_type: 'wiki',
+      },
       payload: {
         document: {
-          id: crypto.randomUUID(),
+          id: documentId,
           title: 'portal dlq proof',
           document_type: 'wiki',
-          api_url: '/api/v1/documents/portal-dlq-proof',
-          ui_url: '/documents/portal-dlq-proof',
+          api_url: `/api/v1/documents/${documentId}`,
+          ui_url: `/documents/${documentId}`,
         },
         actor: { id: adminUserId },
       },

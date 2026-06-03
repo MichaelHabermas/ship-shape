@@ -13,6 +13,7 @@ import {
   type RecordFleetGraphRunInput,
 } from './persistence.js';
 import type { Principal } from '../security/principal.js';
+import type { ShipClient } from '@ship/sdk';
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
 const issueId = '22222222-2222-4222-8222-222222222222';
@@ -786,6 +787,50 @@ describe('FleetGraph shared core', () => {
         title: 'Blocked issue',
       },
     });
+  });
+
+  it('keeps one model call when chat source reads use the public SDK', async () => {
+    const port = persistence();
+    vi.mocked(port.listFindingsForSource).mockResolvedValue([]);
+    const db = contextChatDb();
+    const publicDocumentGet = vi.fn(async () => ({
+      id: issueId,
+      workspace_id: workspaceId,
+      document_type: 'issue' as const,
+      title: 'Blocked issue',
+      parent_id: null,
+      ticket_number: 101,
+      properties: { priority: 'urgent', state: 'in_progress' },
+      content: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_by: userId,
+      visibility: 'workspace' as const,
+    }));
+    const publicSourceClient = {
+      documents: {
+        get: publicDocumentGet,
+      },
+    } as unknown as ShipClient;
+
+    await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'What should I do next?',
+        context: {
+          kind: 'document',
+          documentId: issueId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    }, { persistence: port, db, publicSourceClient });
+
+    expect(publicDocumentGet).toHaveBeenCalledWith(issueId);
+    expect(vi.mocked(db.query).mock.calls.map(([sql]) => String(sql)).join('\n')).not.toContain('FROM documents');
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 1 });
   });
 
   it('enriches page context through authorized visible item ids only', async () => {

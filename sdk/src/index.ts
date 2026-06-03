@@ -16,7 +16,13 @@ import {
   parseOAuthTokenResponse,
   trimTrailingSlash,
 } from './http.js';
-import { DocumentsClient, IssuesClient, SprintsClient, WebhooksClient } from './resources.js';
+import {
+  DocumentsClient,
+  FleetgraphClient,
+  IssuesClient,
+  SprintsClient,
+  WebhooksClient,
+} from './resources.js';
 import {
   BrowserTokenStore,
   MemoryTokenStore,
@@ -26,7 +32,14 @@ import {
 export type { ShipErrorData, ShipErrorKind } from './errors.js';
 export { ShipError } from './errors.js';
 export type { FetchLike } from './http.js';
-export { DocumentsClient, IssuesClient, SprintsClient, WebhooksClient } from './resources.js';
+export {
+  DocumentsClient,
+  FleetGraphAttentionContextsClient,
+  FleetgraphClient,
+  IssuesClient,
+  SprintsClient,
+  WebhooksClient,
+} from './resources.js';
 export {
   BrowserTokenStore,
   FileTokenStore,
@@ -39,6 +52,9 @@ export type {
   PublicDocument,
   PublicDocumentCreateInput as DocumentCreateInput,
   PublicDocumentListParams as DocumentListParams,
+  PublicFleetGraphAttentionContext,
+  PublicFleetGraphAttentionContextListParams as FleetGraphAttentionContextListParams,
+  PublicFleetGraphAttentionContextsListResponse,
   PublicIssue,
   PublicIssueCreateInput as IssueCreateInput,
   PublicIssueListParams as IssueListParams,
@@ -103,6 +119,7 @@ type BrowserSessionStorage = {
 
 export class ShipClient {
   readonly documents: DocumentsClient;
+  readonly fleetgraph: FleetgraphClient;
   readonly issues: IssuesClient;
   readonly sprints: SprintsClient;
   readonly webhooks: WebhooksClient;
@@ -123,6 +140,7 @@ export class ShipClient {
       opts.token ? { accessToken: opts.token } : null
     );
     this.documents = new DocumentsClient(this);
+    this.fleetgraph = new FleetgraphClient(this);
     this.issues = new IssuesClient(this);
     this.sprints = new SprintsClient(this);
     this.webhooks = new WebhooksClient(this);

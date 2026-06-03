@@ -173,21 +173,37 @@ describe('issue mutation webhook events', () => {
     expect(statusData.status).toBe('in_progress');
   });
 
-  it('does not fan out private issue webhook payloads', async () => {
+  it('does not fan out private issue webhook payloads to unreadable subscription subjects', async () => {
     const privateIssueId = await insertPrivateIssue('Private webhook issue');
-    await createSubscription('issue.status_changed');
+    await createSubscription('issue.status_changed', assigneeUserId);
 
     await updateIssue(privateIssueId, { state: 'in_progress' });
 
     expect(deliverer.requests).toHaveLength(0);
   });
 
-  async function createSubscription(event: 'issue.created' | 'issue.assigned' | 'issue.status_changed'): Promise<void> {
+  it('fans out private issue webhook payloads to readable subscription subjects', async () => {
+    const privateIssueId = await insertPrivateIssue('Private webhook issue for actor');
+    await createSubscription('issue.status_changed', userId);
+
+    await updateIssue(privateIssueId, { state: 'in_progress' });
+    await waitForDeliveries(1);
+
+    expect(deliverer.requests[0]?.headers['Ship-Event-Type']).toBe('issue.status_changed');
+  });
+
+  async function createSubscription(
+    event: 'issue.created' | 'issue.assigned' | 'issue.status_changed',
+    readSubjectUserId = userId
+  ): Promise<void> {
     await createWebhookSubscription({
       appId,
       workspaceId,
       event,
       targetUrl: `https://hooks.example.test/${event}/${testRunId}`,
+      readSubjectUserId,
+      readSubjectScopes: ['issues:read', 'webhooks:manage'],
+      readContextSource: 'portal_session',
     });
   }
 

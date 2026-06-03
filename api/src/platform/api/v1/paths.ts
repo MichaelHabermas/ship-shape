@@ -2,6 +2,7 @@
 // string literals. This is not the complete future route inventory.
 export const PUBLIC_API_V1_BASE_PATH = '/api/v1';
 export const PUBLIC_OPENAPI_PATH = '/api/v1/openapi.json';
+export const PUBLIC_FLEETGRAPH_ATTENTION_CONTEXTS_PATH = '/api/v1/fleetgraph/attention-contexts';
 export const PUBLIC_ME_PATH = '/api/v1/me';
 export const PUBLIC_DOCUMENTS_PATH = '/api/v1/documents';
 export const PUBLIC_DOCUMENT_PATH = '/api/v1/documents/:id';
