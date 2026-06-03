@@ -1,5 +1,5 @@
 // Issue update mutation owns document-backed issue patches, audit changes, and side effects.
-import type { BelongsTo, IssueProperties, IssueState } from '@ship/shared';
+import type { BelongsTo, IssueProperties, IssueState, WebhookEvent } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import { extractIssueFromRow, type IssueDocumentRow } from '../../db/documents-repository.js';
 import { guardIssueMutation } from '../issue-mutation-guards.js';
@@ -18,7 +18,10 @@ import {
 import { VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { requireFirstRow } from '../../utils/query-rows.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../../fleetgraph/events.js';
-import { dispatchWebhookDeliveries } from '../../platform/webhooks/service.js';
+import {
+  publishWebhookEvent,
+  scheduleWebhookDeliveryDispatch,
+} from '../../platform/webhooks/event-bus.js';
 import {
   type CountRow,
   type IncompleteChildRow,
@@ -29,8 +32,8 @@ import {
   toCount,
 } from './types.js';
 import {
-  enqueueIssueAssignedWebhook,
-  enqueueIssueStatusChangedWebhook,
+  buildIssueAssignedWebhookEvent,
+  buildIssueStatusChangedWebhookEvent,
 } from './webhook-events.js';
 
 export async function updateIssueMutation(
@@ -306,10 +309,9 @@ export async function updateIssueMutation(
   );
   const row = requireFirstRow(result.rows);
 
-  const webhookDeliveryIds: string[] = [];
+  const webhookEvents: WebhookEvent[] = [];
   if (assignedWebhookAssigneeId) {
-    webhookDeliveryIds.push(...await enqueueIssueAssignedWebhook({
-      client,
+    webhookEvents.push(buildIssueAssignedWebhookEvent({
       workspaceId,
       actorUserId: userId,
       row,
@@ -317,8 +319,7 @@ export async function updateIssueMutation(
     }));
   }
   if (statusChangedWebhook) {
-    webhookDeliveryIds.push(...await enqueueIssueStatusChangedWebhook({
-      client,
+    webhookEvents.push(buildIssueStatusChangedWebhookEvent({
       workspaceId,
       actorUserId: userId,
       row,
@@ -327,8 +328,18 @@ export async function updateIssueMutation(
     }));
   }
 
+  const webhookDeliveryIds: string[] = [];
+  for (const webhookEvent of webhookEvents) {
+    const webhook = await publishWebhookEvent(webhookEvent, {
+      db: client,
+      dispatch: 'none',
+      errorMode: 'throw',
+    });
+    webhookDeliveryIds.push(...webhook.deliveryIds);
+  }
+
   await client.query('COMMIT');
-  void dispatchWebhookDeliveries(webhookDeliveryIds);
+  scheduleWebhookDeliveryDispatch(webhookDeliveryIds);
 
   await enqueueFleetGraphIssueAttentionEvents({
     workspaceId,

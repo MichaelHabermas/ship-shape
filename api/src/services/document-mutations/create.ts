@@ -1,4 +1,5 @@
 // Document creation service owns generic document inserts and post-create side effects.
+import type { WebhookEvent } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import { broadcastToUser } from '../../collaboration/index.js';
 import {
@@ -23,9 +24,9 @@ import {
   type MutationResult,
 } from './types.js';
 import {
-  dispatchWebhookDeliveries,
-  enqueueWebhookEvent,
-} from '../../platform/webhooks/service.js';
+  publishWebhookEvent,
+  scheduleWebhookDeliveryDispatch,
+} from '../../platform/webhooks/event-bus.js';
 
 export async function createDocumentMutation({
   actor,
@@ -132,7 +133,7 @@ export async function createDocumentMutation({
       await addBelongsToAssociation(newDoc.id, program_id, 'program', client);
     }
 
-    const webhook = await enqueueWebhookEvent({
+    const webhookEvent: WebhookEvent = {
       type: 'document.created',
       workspace_id: actor.workspaceId,
       idempotency_key: `document.created:${newDoc.id}`,
@@ -153,11 +154,16 @@ export async function createDocumentMutation({
           id: actor.userId,
         },
       },
-    }, client);
+    };
+    const webhook = await publishWebhookEvent(webhookEvent, {
+      db: client,
+      dispatch: 'none',
+      errorMode: 'throw',
+    });
 
     await client.query('COMMIT');
+    scheduleWebhookDeliveryDispatch(webhook.deliveryIds);
     await upsertDocumentSearchIndex(newDoc.id);
-    void dispatchWebhookDeliveries(webhook.deliveryIds);
 
     if (document_type === 'weekly_plan' || (properties && 'outcome' in properties)) {
       broadcastToUser(actor.userId, 'accountability:updated', { documentId: newDoc.id, documentType: document_type });

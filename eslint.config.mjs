@@ -64,6 +64,24 @@ const integrationBoundaryRule = [
   },
 ];
 
+const serviceWebhookBoundaryRule = [
+  'error',
+  {
+    patterns: [
+      {
+        group: [
+          '../platform/webhooks/service.js',
+          '../../platform/webhooks/service.js',
+          '../../../platform/webhooks/service.js',
+          'api/src/platform/webhooks/service.js',
+          '**/platform/webhooks/service.js',
+        ],
+        message: 'Domain services must publish webhook events through the webhook event bus, not enqueue or dispatch deliveries directly.',
+      },
+    ],
+  },
+];
+
 const typeSafetyRules = {
   '@typescript-eslint/no-explicit-any': 'error',
   '@typescript-eslint/no-non-null-assertion': 'error',
@@ -160,6 +178,13 @@ export default [
     files: ['api/src/platform/api/v1/**/*.ts'],
     rules: {
       'no-restricted-imports': publicApiV1BoundaryRule,
+    },
+  },
+  {
+    files: ['api/src/services/**/*.ts'],
+    ignores: ['api/src/services/**/*.test.ts', 'api/src/services/**/*.spec.ts'],
+    rules: {
+      'no-restricted-imports': serviceWebhookBoundaryRule,
     },
   },
   {

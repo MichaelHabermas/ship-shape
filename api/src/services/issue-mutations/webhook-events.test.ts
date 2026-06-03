@@ -43,6 +43,11 @@ type DeliveryRow = {
   status: string;
 };
 
+type WebhookEventRow = {
+  id: string;
+  idempotency_key: string;
+};
+
 describe('issue mutation webhook events', () => {
   const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const clientId = `ship_app_issue_webhooks_${testRunId}`;
@@ -179,6 +184,9 @@ describe('issue mutation webhook events', () => {
 
     await updateIssue(privateIssueId, { state: 'in_progress' });
 
+    const event = await findWebhookEvent('issue.status_changed', privateIssueId);
+    const deliveries = await findDeliveriesForEvent(event.id);
+    expect(deliveries).toHaveLength(0);
     expect(deliverer.requests).toHaveLength(0);
   });
 
@@ -275,11 +283,21 @@ describe('issue mutation webhook events', () => {
   }
 
   async function waitForDeliveries(count: number): Promise<void> {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
+    const deadline = Date.now() + 1_000;
+    while (Date.now() < deadline) {
       if (deliverer.requests.length >= count) return;
-      await new Promise<void>(resolve => setImmediate(resolve));
+      await new Promise<void>(resolve => setTimeout(resolve, 10));
     }
-    throw new Error(`Expected ${count} webhook deliveries, saw ${deliverer.requests.length}`);
+    const rows = await pool.query<DeliveryRow>(
+      `SELECT id, idempotency_key, status
+       FROM webhook_deliveries
+       WHERE workspace_id = $1
+       ORDER BY created_at DESC`,
+      [workspaceId]
+    );
+    throw new Error(
+      `Expected ${count} webhook deliveries, saw ${deliverer.requests.length}; rows=${JSON.stringify(rows.rows)}`
+    );
   }
 
   async function findDelivery(idempotencyKey: string): Promise<DeliveryRow> {
@@ -293,6 +311,34 @@ describe('issue mutation webhook events', () => {
       [workspaceId, idempotencyKey]
     );
     return requireFirstRow(result.rows);
+  }
+
+  async function findWebhookEvent(
+    eventType: 'issue.created' | 'issue.assigned' | 'issue.status_changed',
+    resourceId: string
+  ): Promise<WebhookEventRow> {
+    const result = await pool.query<WebhookEventRow>(
+      `SELECT id, idempotency_key
+       FROM webhook_events
+       WHERE workspace_id = $1
+         AND event_type = $2
+         AND resource_id = $3
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [workspaceId, eventType, resourceId]
+    );
+    return requireFirstRow(result.rows);
+  }
+
+  async function findDeliveriesForEvent(eventId: string): Promise<DeliveryRow[]> {
+    return (await pool.query<DeliveryRow>(
+      `SELECT id, idempotency_key, status
+       FROM webhook_deliveries
+       WHERE workspace_id = $1
+         AND event_id = $2
+       ORDER BY created_at DESC`,
+      [workspaceId, eventId]
+    )).rows;
   }
 
   function webhookData(rawBody: string | undefined): Record<string, unknown> {

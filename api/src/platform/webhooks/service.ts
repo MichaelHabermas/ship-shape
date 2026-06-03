@@ -23,7 +23,7 @@ import {
   FetchWebhookDeliverer,
   type IWebhookDeliverer,
 } from './deliverer.js';
-import { webhookEventBus } from './event-bus.js';
+import { registerWebhookDeliveryDispatchHandler, webhookEventBus } from './event-bus.js';
 import {
   expectedDocumentTypeForWebhookEvent,
   parseWebhookEvent,
@@ -945,13 +945,13 @@ function webhookSubscriptionPrincipal(
   };
 }
 
-webhookEventBus.subscribe(async (event) => {
-  try {
-    await persistAndDispatchWebhookEvent(event);
-  } catch (error) {
-    logHotError('webhooks.dispatch', 'Failed to persist and dispatch webhook event', error, {
-      eventType: event.type,
-      workspaceId: event.workspace_id,
-    });
+registerWebhookDeliveryDispatchHandler(dispatchWebhookDeliveries);
+
+webhookEventBus.subscribe(async (event, options) => {
+  const enqueued = await enqueueWebhookEvent(event, options.db);
+  if (options.dispatch === 'none') {
+    return { deliveryIds: enqueued.deliveryIds };
   }
+  await dispatchWebhookDeliveries(enqueued.deliveryIds);
+  return { deliveryIds: enqueued.deliveryIds };
 });

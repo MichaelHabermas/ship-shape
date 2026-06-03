@@ -13,7 +13,10 @@ import {
 } from '../document-access.js';
 import { requireFirstRow } from '../../utils/query-rows.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../../fleetgraph/events.js';
-import { dispatchWebhookDeliveries } from '../../platform/webhooks/service.js';
+import {
+  publishWebhookEvent,
+  scheduleWebhookDeliveryDispatch,
+} from '../../platform/webhooks/event-bus.js';
 import {
   type CreateIssueInput,
   type CountRow,
@@ -22,7 +25,7 @@ import {
   toCount,
   workspaceAdvisoryLock,
 } from './types.js';
-import { enqueueIssueCreatedWebhook } from './webhook-events.js';
+import { buildIssueCreatedWebhookEvent } from './webhook-events.js';
 
 export async function createIssueMutation(
   input: CreateIssueInput
@@ -100,16 +103,20 @@ export async function createIssueMutation(
     client
   );
 
-  const webhookDeliveryIds = await enqueueIssueCreatedWebhook({
-    client,
+  const webhookEvent = buildIssueCreatedWebhookEvent({
     workspaceId,
     actorUserId: userId,
     row,
   });
+  const webhook = await publishWebhookEvent(webhookEvent, {
+    db: client,
+    dispatch: 'none',
+    errorMode: 'throw',
+  });
 
   const sprintAssociations = belongs_to.filter((bt) => bt.type === 'sprint');
   await client.query('COMMIT');
-  void dispatchWebhookDeliveries(webhookDeliveryIds);
+  scheduleWebhookDeliveryDispatch(webhook.deliveryIds);
 
   await enqueueFleetGraphIssueAttentionEvents({
     workspaceId,

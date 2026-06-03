@@ -402,6 +402,14 @@ function collectOutput(stream) {
 
 function onceExit(child, timeoutMs) {
   return new Promise((resolve, reject) => {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      if (child.exitCode && child.exitCode !== 0) {
+        reject(new Error(`Process ${child.pid} exited with ${child.exitCode}`));
+        return;
+      }
+      resolve();
+      return;
+    }
     const timeout = setTimeout(() => {
       reject(new Error(`Timed out waiting for process ${child.pid} to exit`));
     }, timeoutMs);

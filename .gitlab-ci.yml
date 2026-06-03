@@ -1,0 +1,74 @@
+image: node:20-bookworm
+
+stages:
+  - verify
+  - ttfe
+
+variables:
+  CI: "true"
+  POSTGRES_DB: ship_test_audit
+  POSTGRES_USER: ship
+  POSTGRES_PASSWORD: ship_dev_password
+  DATABASE_URL: postgresql://ship:ship_dev_password@postgres:5432/ship_test_audit
+  TTFE_DATABASE_URL: postgresql://ship:ship_dev_password@postgres:5432/ship_test_audit
+
+.default_node_job:
+  services:
+    - name: postgres:16
+      alias: postgres
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - .pnpm-store/
+      - .pnpm/
+  before_script:
+    - export PNPM_HOME="$CI_PROJECT_DIR/.pnpm"
+    - export PATH="$PNPM_HOME:$PATH"
+    - corepack enable
+    - corepack prepare pnpm@10.27.0 --activate
+    - pnpm config set store-dir .pnpm-store
+    - apt-get update
+    - apt-get install -y --no-install-recommends postgresql-client
+    - rm -rf /var/lib/apt/lists/*
+    - |
+      for attempt in $(seq 1 30); do
+        if pg_isready -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB"; then
+          break
+        fi
+        if [ "$attempt" = "30" ]; then
+          echo "Postgres service did not become ready after 30 attempts"
+          exit 1
+        fi
+        sleep 1
+      done
+    - pnpm install --frozen-lockfile
+
+verify:
+  extends: .default_node_job
+  stage: verify
+  script:
+    - pnpm lint
+    - pnpm type-check
+    - pnpm openapi:check:strict
+    - >
+      pnpm test:api --
+      src/platform/oauth/provider.test.ts
+      src/platform/api/v1/route-metadata.test.ts
+      src/platform/api/v1/me.test.ts
+      src/platform/api/v1/documents.test.ts
+      src/platform/api/v1/webhooks.test.ts
+      src/platform/webhooks/event-bus.test.ts
+      src/platform/webhooks/service.test.ts
+      src/services/issue-mutations/webhook-events.test.ts
+      src/platform/apps/routes.test.ts
+      src/platform/oauth/agent-token-broker.test.ts
+    - pnpm --filter @ship/sdk test
+    - pnpm --filter @ship/cli check
+
+ttfe:
+  extends: .default_node_job
+  stage: ttfe
+  script:
+    - pnpm drill ttfe

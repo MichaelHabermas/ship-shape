@@ -204,3 +204,17 @@ The transferable rules:
 - Do not fan out private resource webhooks through workspace-level subscriptions unless the subscription stores the read subject and scopes it was authorized with.
 
 ShipShape example (2026-06): public issue/sprint routes correctly authorized the primary document-backed resource, but related programs, weekly plans, retros, and accountability targets needed the same visibility predicates. The fix filtered those joins and suppressed private issue webhook fanout until webhook subscriptions can carry an explicit read-context snapshot.
+
+## 17. Event Buses Must Not Weaken Durability Boundaries
+
+Decoupling a domain service from a delivery service is good architecture only if it preserves the old persistence guarantee. Moving from "enqueue inside the transaction, dispatch after commit" to "publish in the background after commit" silently turns a durable outbox into a best-effort notification.
+
+The transferable rules:
+
+- Keep durable event/outbox writes inside the transaction that creates the domain fact when callers need at-least-once delivery.
+- Dispatch external side effects after commit, but persist the retryable work before commit.
+- Make the event-bus API express that distinction: publish/enqueue durably, then schedule dispatch.
+- Test both positive fanout and negative fanout after the event path has settled.
+- Treat post-commit side effects like search indexing as independent; they must not be able to suppress webhook/event publication.
+
+ShipShape example (2026-06): hardening the webhook event-bus boundary initially removed direct service imports from issue/document mutations but also moved webhook persistence into fire-and-forget publication after commit. Review caught that committed documents could lose webhooks if the process exited or search indexing threw. The fix kept the domain boundary on the event bus while publishing durable webhook rows inside the existing transaction and scheduling delivery dispatch after commit.

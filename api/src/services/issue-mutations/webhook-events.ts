@@ -1,18 +1,15 @@
-// Issue webhook helpers build public event payloads from committed issue rows.
-import type { IssueState, WebhookEventResource } from '@ship/shared';
-import type { PoolClient } from 'pg';
+// Issue webhook helpers build public event payloads from issue rows.
+import type { IssueState, WebhookEvent, WebhookEventResource } from '@ship/shared';
 import type { IssueDocumentRow } from '../../db/documents-repository.js';
-import { enqueueWebhookEvent } from '../../platform/webhooks/service.js';
 
 type IssueWebhookInput = {
-  client: PoolClient;
   workspaceId: string;
   actorUserId: string;
   row: IssueDocumentRow;
 };
 
-export async function enqueueIssueCreatedWebhook(input: IssueWebhookInput): Promise<string[]> {
-  const enqueued = await enqueueWebhookEvent({
+export function buildIssueCreatedWebhookEvent(input: IssueWebhookInput): WebhookEvent {
+  return {
     type: 'issue.created',
     workspace_id: input.workspaceId,
     idempotency_key: `issue.created:${input.row.id}`,
@@ -21,14 +18,13 @@ export async function enqueueIssueCreatedWebhook(input: IssueWebhookInput): Prom
       issue: issueWebhookResource(input.row),
       actor: { id: input.actorUserId },
     },
-  }, input.client);
-  return enqueued.deliveryIds;
+  };
 }
 
-export async function enqueueIssueAssignedWebhook(
+export function buildIssueAssignedWebhookEvent(
   input: IssueWebhookInput & { assigneeId: string }
-): Promise<string[]> {
-  const enqueued = await enqueueWebhookEvent({
+): WebhookEvent {
+  return {
     type: 'issue.assigned',
     workspace_id: input.workspaceId,
     idempotency_key: `issue.assigned:${input.row.id}:${input.row.updated_at.toISOString()}`,
@@ -38,14 +34,13 @@ export async function enqueueIssueAssignedWebhook(
       assignee: { id: input.assigneeId },
       actor: { id: input.actorUserId },
     },
-  }, input.client);
-  return enqueued.deliveryIds;
+  };
 }
 
-export async function enqueueIssueStatusChangedWebhook(
+export function buildIssueStatusChangedWebhookEvent(
   input: IssueWebhookInput & { previousStatus: IssueState | null; status: IssueState }
-): Promise<string[]> {
-  const enqueued = await enqueueWebhookEvent({
+): WebhookEvent {
+  return {
     type: 'issue.status_changed',
     workspace_id: input.workspaceId,
     idempotency_key: `issue.status_changed:${input.row.id}:${input.row.updated_at.toISOString()}`,
@@ -56,8 +51,7 @@ export async function enqueueIssueStatusChangedWebhook(
       status: input.status,
       actor: { id: input.actorUserId },
     },
-  }, input.client);
-  return enqueued.deliveryIds;
+  };
 }
 
 function issueWebhookResource(row: IssueDocumentRow) {
