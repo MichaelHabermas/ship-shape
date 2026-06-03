@@ -94,7 +94,7 @@
           <div class="card">
             <h3>Public API Contract</h3>
             <p class="small"><a href="http://localhost:3000/api/v1/openapi.json" target="_blank">/api/v1/openapi.json</a> (live, generated from Zod + route metadata in <code>api/src/platform/api/v1/</code>)</p>
-            <p class="small"><a href="http://localhost:5173/platform-docs.html" target="_blank">/platform-docs.html</a> — clean Redoc viewer for the exact public surface only (paste full API URL if cross-port).</p>
+            <p class="small"><a href="http://localhost:5173/platform-docs.html" target="_blank">/platform-docs.html</a> (Redoc viewer). If opened via static preview (Live Server 5501, file://, etc.) it now defaults to a full local API URL + has <strong>Local</strong>, <strong>Deployed</strong>, and <strong>Via proxy</strong> buttons. Paste a full URL (e.g. <code>http://localhost:3000/api/v1/openapi.json</code>) + Load if your API port differs. Relative only works behind the real Vite web server (proxy).</p>
             <p class="small muted">Also committed at <code>docs/openapi.json</code>. Validates against OpenAPI 3.1 schema in CI.</p>
           </div>
           <div class="card">

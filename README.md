@@ -259,7 +259,7 @@ Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-do
 | Surface | Local path |
 |---------|------------|
 | Public OpenAPI route | http://localhost:3000/api/v1/openapi.json |
-| Nice API reference UI (Redoc) | http://localhost:5173/platform-docs.html (paste full API URL) |
+| Nice API reference UI (Redoc) | http://localhost:5173/platform-docs.html (or open the raw file; use "Local" button or paste full URL like http://localhost:3000/api/v1/openapi.json + Load if using Live Server / static preview) |
 | Generated public OpenAPI artifact | [`docs/openapi.json`](./docs/openapi.json) |
 | Browser SDK demo (PKCE) | http://localhost:5173/sdk-demo |
 | Developer portal (apps, webhooks, deliveries, replay) | Workspace Settings → Developer tab |

@@ -19,21 +19,33 @@
     <div class="header">
       <strong>Plugforge Public API</strong>
       <span style="opacity:.6">— generated from code, never hand-written</span>
-      <input id="spec-url" value="" placeholder="https://.../api/v1/openapi.json or /api/v1/openapi.json" />
+      <input id="spec-url" value="" placeholder="Full URL to openapi.json, e.g. http://localhost:3000/api/v1/openapi.json" />
       <button id="load">Load</button>
-      <a href="https://ship-shape-api.onrender.com/api/v1/openapi.json" target="_blank">deployed</a>
-      <span style="margin-left:auto; opacity:.5; font-size:11px;">Plugforge Week 6 • only /api/v1/* routes</span>
+      <button id="btn-local" title="Standard local dev (API on 3000)">Local</button>
+      <button id="btn-deployed" title="Render deployed API">Deployed</button>
+      <button id="btn-proxy" title="Relative /api path (works when page is served by Vite web server that proxies /api)">Via proxy</button>
+      <a href="https://ship-shape-api.onrender.com/api/v1/openapi.json" target="_blank">direct</a>
+      <span style="margin-left:auto; opacity:.5; font-size:11px;">Plugforge Week 6 • /api/v1 only • API server must be running separately</span>
     </div>
     <div id="redoc" style="padding-top:40px;"></div>
 
     <script>
-      const DEFAULT_LOCAL = window.location.origin.includes('5173')
-        ? 'http://localhost:3000/api/v1/openapi.json'
-        : '/api/v1/openapi.json';
+      function getSafeInitialUrl(raw) {
+        let u = (raw || '').trim();
+        if (!u) u = 'http://localhost:3000/api/v1/openapi.json';
+        // On first load (especially when this HTML is opened via Live Server on 5501,
+        // file://, another static server, etc.), a bare relative path would resolve against
+        // the *static preview* origin and 404. Force the conventional local API URL instead.
+        if (u.startsWith('/api') && !u.startsWith('http')) {
+          return 'http://localhost:3000' + u;
+        }
+        return u;
+      }
 
       function init(specUrl) {
         const el = document.getElementById('redoc');
         el.innerHTML = '';
+        // Redoc will show its own error UI on 404 / network failure; we just give it a good URL.
         Redoc.init(specUrl, {
           scrollYOffset: 40,
           hideDownloadButton: false,
@@ -45,27 +57,43 @@
 
       const input = document.getElementById('spec-url');
       const btn = document.getElementById('load');
+      const btnLocal = document.getElementById('btn-local');
+      const btnDeployed = document.getElementById('btn-deployed');
+      const btnProxy = document.getElementById('btn-proxy');
 
-      function loadFromInput() {
-        let u = input.value.trim();
-        if (!u) u = DEFAULT_LOCAL;
-        if (u.startsWith('/api') && !u.startsWith('http')) {
-          // best effort for same-origin dev; in practice use full URL or the deployed one
-          u = window.location.origin.replace(/:\d+$/, ':3000') + u;
-        }
+      function loadUrl(u) {
+        // Use exactly what the caller put in the box (supports explicit relative for proxy case).
+        input.value = u;
         init(u);
         try { history.replaceState(null, '', '?spec=' + encodeURIComponent(u)); } catch {}
+      }
+
+      function loadFromInput() {
+        const u = input.value.trim() || 'http://localhost:3000/api/v1/openapi.json';
+        loadUrl(u);
       }
 
       btn.addEventListener('click', loadFromInput);
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadFromInput(); });
 
-      // init
+      if (btnLocal) btnLocal.addEventListener('click', () => {
+        loadUrl('http://localhost:3000/api/v1/openapi.json');
+      });
+      if (btnDeployed) btnDeployed.addEventListener('click', () => {
+        loadUrl('https://ship-shape-api.onrender.com/api/v1/openapi.json');
+      });
+      if (btnProxy) btnProxy.addEventListener('click', () => {
+        loadUrl('/api/v1/openapi.json');
+      });
+
+      // init — use getSafeInitialUrl so Live Server / static / file:// previews don't
+      // auto-attempt a relative /api against the wrong origin (the classic 5501 404).
       const params = new URLSearchParams(location.search);
       const fromQuery = params.get('spec');
-      input.value = fromQuery || DEFAULT_LOCAL;
+      const initial = getSafeInitialUrl(fromQuery);
+      input.value = initial;
       // slight delay so Redoc script is ready
-      setTimeout(() => init(input.value), 120);
+      setTimeout(() => init(initial), 120);
     </script>
   </body>
 </html>
