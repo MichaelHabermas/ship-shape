@@ -1,4 +1,6 @@
-// Browser SDK demo uses Auth Code PKCE to call public documents and issues through @ship/sdk.
+// Browser SDK demo (Plugforge): full Authorization Code + PKCE flow using @ship/sdk against the public /api/v1 surface.
+// This is one of the required reference integrations for the platform sprint. Reviewers: create an app in
+// Workspace Settings → Developer tab first, then paste its client_id here.
 import { useEffect, useMemo, useState } from 'react';
 import { BrowserTokenStore, ShipClient, type PublicDocument, type PublicIssue } from '@ship/sdk';
 import { cn } from '@/lib/cn';
@@ -112,6 +114,9 @@ export function SdkDemoPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-8 text-foreground">
       <section className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        <div className="rounded-md border border-border bg-muted/5 p-3 text-sm">
+          <strong>Plugforge Browser SDK Demo</strong> — demonstrates Authorization Code + PKCE against the public <code>/api/v1</code> API using <code>@ship/sdk</code>. Create an OAuth app (with <code>documents:read documents:write</code> etc.) in Workspace Settings → Developer tab, then use its client ID here.
+        </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
             <label htmlFor="sdk-client-id" className="text-sm font-medium">Client ID</label>

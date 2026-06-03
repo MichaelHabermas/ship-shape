@@ -252,19 +252,21 @@ Start with [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md). The final Week 5 delivera
 
 ## Week 6 PlugForge Evidence
 
-Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-docs/project-weeks-sot/week-6/). Current public platform surfaces:
+**Start here for reviewers:** [`my-docs/project-weeks-sot/week-6/plugforge-reviewer-packet.html`](./my-docs/project-weeks-sot/week-6/plugforge-reviewer-packet.html) — focused, self-contained static packet with the five-line story, contract table, repro steps, proofs, and surfaces. It exists precisely so the platform work does not get buried in the general app or the Category 1-8 ledger.
+
+Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-docs/project-weeks-sot/week-6/). Canonical surfaces:
 
 | Surface | Local path |
 |---------|------------|
 | Public OpenAPI route | http://localhost:3000/api/v1/openapi.json |
+| Nice API reference UI (Redoc) | http://localhost:5173/platform-docs.html (paste full API URL) |
 | Generated public OpenAPI artifact | [`docs/openapi.json`](./docs/openapi.json) |
-| Browser SDK demo | http://localhost:5173/sdk-demo |
-| OAuth app registration | `POST /api/platform/apps` with session auth and workspace admin role |
-| OAuth authorize | `GET /oauth/authorize` |
+| Browser SDK demo (PKCE) | http://localhost:5173/sdk-demo |
+| Developer portal (apps, webhooks, deliveries, replay) | Workspace Settings → Developer tab |
 | Device verification | http://localhost:5173/oauth/device |
-| TTFE drill | `pnpm drill ttfe` |
+| TTFE drill (the signature proof) | `pnpm drill ttfe` |
 
-Demo login remains `dev@ship.local` / `admin123`. OAuth client IDs and shown-once client secrets are created through the app registration endpoint; this branch does not seed a fixed public demo client.
+Demo login remains `dev@ship.local` / `admin123`. Create OAuth apps (and capture the one-time secret) via the Developer tab; this branch does not seed a fixed public demo client. Run the drill live — it produces the verified signed webhook that is the actual acceptance bar.
 
 ---
 
