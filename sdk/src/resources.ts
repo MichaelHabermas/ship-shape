@@ -1,4 +1,5 @@
 // SDK resource clients map Ship public API namespaces to typed request helpers.
+import { PUBLIC_API_RELATIVE_PATHS } from '@ship/shared';
 import type {
   CursorPage as Page,
   PublicDocument,
@@ -22,19 +23,25 @@ import type {
 import { ShipError } from './errors.js';
 import type { ShipClient } from './index.js';
 
+const P = PUBLIC_API_RELATIVE_PATHS;
+
+function pathWithId(template: string, id: string): string {
+  return template.replace(':id', encodeURIComponent(id));
+}
+
 export class DocumentsClient {
   constructor(private readonly client: ShipClient) {}
 
   list(params: DocumentListParams = {}): Promise<Page<PublicDocument>> {
-    return this.client.request<Page<PublicDocument>>('GET', '/documents', { query: params });
+    return this.client.request<Page<PublicDocument>>('GET', P.documents, { query: params });
   }
 
   get(id: string): Promise<PublicDocument> {
-    return this.client.request<PublicDocument>('GET', `/documents/${encodeURIComponent(id)}`);
+    return this.client.request<PublicDocument>('GET', pathWithId(P.document, id));
   }
 
   create(input: DocumentCreateInput): Promise<PublicDocument> {
-    return this.client.request<PublicDocument>('POST', '/documents', { body: input });
+    return this.client.request<PublicDocument>('POST', P.documents, { body: input });
   }
 
   async *iterate(params: Omit<DocumentListParams, 'cursor'> = {}): AsyncIterable<PublicDocument> {
@@ -53,7 +60,7 @@ export class FleetGraphAttentionContextsClient {
   list(params: FleetGraphAttentionContextListParams = {}): Promise<PublicFleetGraphAttentionContextsListResponse> {
     return this.client.request<PublicFleetGraphAttentionContextsListResponse>(
       'GET',
-      '/fleetgraph/attention-contexts',
+      P.fleetgraphAttentionContexts,
       { query: params }
     );
   }
@@ -71,19 +78,19 @@ export class IssuesClient {
   constructor(private readonly client: ShipClient) {}
 
   list(params: IssueListParams = {}): Promise<Page<PublicIssue>> {
-    return this.client.request<Page<PublicIssue>>('GET', '/issues', { query: params });
+    return this.client.request<Page<PublicIssue>>('GET', P.issues, { query: params });
   }
 
   get(id: string): Promise<PublicIssue> {
-    return this.client.request<PublicIssue>('GET', `/issues/${encodeURIComponent(id)}`);
+    return this.client.request<PublicIssue>('GET', pathWithId(P.issue, id));
   }
 
   create(input: IssueCreateInput): Promise<PublicIssue> {
-    return this.client.request<PublicIssue>('POST', '/issues', { body: input });
+    return this.client.request<PublicIssue>('POST', P.issues, { body: input });
   }
 
   update(id: string, input: IssueUpdateInput): Promise<PublicIssue> {
-    return this.client.request<PublicIssue>('PATCH', `/issues/${encodeURIComponent(id)}`, {
+    return this.client.request<PublicIssue>('PATCH', pathWithId(P.issue, id), {
       body: input,
     });
   }
@@ -102,15 +109,15 @@ export class SprintsClient {
   constructor(private readonly client: ShipClient) {}
 
   list(params: SprintListParams = {}): Promise<Page<PublicSprint>> {
-    return this.client.request<Page<PublicSprint>>('GET', '/sprints', { query: params });
+    return this.client.request<Page<PublicSprint>>('GET', P.sprints, { query: params });
   }
 
   get(id: string): Promise<PublicSprint> {
-    return this.client.request<PublicSprint>('GET', `/sprints/${encodeURIComponent(id)}`);
+    return this.client.request<PublicSprint>('GET', pathWithId(P.sprint, id));
   }
 
   listIssues(id: string, params: SprintIssueListParams = {}): Promise<Page<PublicIssue>> {
-    return this.client.request<Page<PublicIssue>>('GET', `/sprints/${encodeURIComponent(id)}/issues`, {
+    return this.client.request<Page<PublicIssue>>('GET', pathWithId(P.sprintIssues, id), {
       query: params,
     });
   }
@@ -129,7 +136,7 @@ export class WebhooksClient {
   constructor(private readonly client: ShipClient) {}
 
   list(params: WebhookListParams = {}): Promise<Page<WebhookSubscription>> {
-    return this.client.request<Page<WebhookSubscription>>('GET', '/webhooks', { query: params });
+    return this.client.request<Page<WebhookSubscription>>('GET', P.webhooks, { query: params });
   }
 
   create(input: { event: WebhookEventType; targetUrl?: string; target_url?: string }): Promise<WebhookSubscriptionCreated> {
@@ -137,7 +144,7 @@ export class WebhooksClient {
     if (!targetUrl) {
       throw new ShipError({ kind: 'validation', message: 'Webhook targetUrl is required' });
     }
-    return this.client.request<WebhookSubscriptionCreated>('POST', '/webhooks', {
+    return this.client.request<WebhookSubscriptionCreated>('POST', P.webhooks, {
       body: {
         event: input.event,
         target_url: targetUrl,
@@ -148,11 +155,11 @@ export class WebhooksClient {
   replay(deliveryId: string): Promise<WebhookDelivery> {
     return this.client.request<WebhookDelivery>(
       'POST',
-      `/webhooks/deliveries/${encodeURIComponent(deliveryId)}/replay`
+      pathWithId(P.webhookDeliveryReplay, deliveryId)
     );
   }
 
   listDeliveries(params: WebhookListParams = {}): Promise<Page<WebhookDelivery>> {
-    return this.client.request<Page<WebhookDelivery>>('GET', '/webhooks/deliveries', { query: params });
+    return this.client.request<Page<WebhookDelivery>>('GET', P.webhookDeliveries, { query: params });
   }
 }

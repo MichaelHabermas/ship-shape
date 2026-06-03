@@ -1,4 +1,4 @@
-// OAuth provider facade re-exports grant flows from focused submodules for stable imports.
+// OAuth provider facade re-exports grant flows; implementation lives in authorization-code, device-grant, and refresh modules.
 export { OAuthProviderError } from './types.js';
 export type {
   AuthorizationRequestInput,

@@ -117,6 +117,9 @@ export function scheduleWebhookEvent(event: WebhookEvent): void {
 export function scheduleWebhookDeliveryDispatch(deliveryIds: string[]): void {
   if (deliveryIds.length === 0) return;
   if (!webhookDeliveryDispatchHandler) {
+    if (process.env.NODE_ENV === 'test') {
+      throw new Error('Webhook delivery dispatch handler missing');
+    }
     logHotError('webhooks.event_bus', 'Webhook delivery dispatch handler missing', null, {
       deliveryCount: deliveryIds.length,
     });

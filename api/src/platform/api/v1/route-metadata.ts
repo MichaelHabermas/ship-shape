@@ -15,6 +15,7 @@ import {
   PUBLIC_WEBHOOK_DELIVERY_REPLAY_PATH,
   PUBLIC_WEBHOOKS_PATH,
 } from './paths.js';
+import { SHIP_AGENT_READ_SCOPES } from '../../oauth/ship-agent-scopes.js';
 
 // Current edge-piece methods only. Extend this union when a real public route
 // needs another method; do not treat GET/POST as the whole platform contract.
@@ -77,7 +78,7 @@ export const publicFleetGraphAttentionContextsListRouteMetadata = {
   method: 'GET',
   path: PUBLIC_FLEETGRAPH_ATTENTION_CONTEXTS_PATH,
   operationId: 'fleetgraph.attentionContexts.list',
-  requiredScopes: ['documents:read', 'issues:read', 'sprints:read'],
+  requiredScopes: [...SHIP_AGENT_READ_SCOPES],
   auth: 'oauth',
   handlerMountPath: '/fleetgraph/attention-contexts',
   isListEndpoint: true,

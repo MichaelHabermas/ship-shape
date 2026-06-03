@@ -39,7 +39,11 @@ export type PublicRouteOpenApiContract = {
   responses: Record<string, { description: string; schema?: z.ZodTypeAny }>;
 };
 
-type RegistryOperationId = (typeof publicApiV1RouteRegistry)[number]['operationId'];
+export type RegistryOperationId = (typeof publicApiV1RouteRegistry)[number]['operationId'];
+
+export const PublicWebhookDeliveryParamsSchema = z.object({
+  id: z.string().uuid(),
+});
 
 const contracts = {
   'openapi.get': {
@@ -156,7 +160,7 @@ const contracts = {
     },
   },
   'webhooks.deliveries.replay': {
-    request: { params: z.object({ id: z.string().uuid() }) },
+    request: { params: PublicWebhookDeliveryParamsSchema },
     responses: {
       '202': { description: 'Webhook delivery replayed', schema: PublicWebhookDeliverySchema },
     },

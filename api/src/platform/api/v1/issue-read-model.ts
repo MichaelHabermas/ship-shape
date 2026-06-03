@@ -140,7 +140,7 @@ async function findPublicIssueRow(
   return result.rows[0] ?? null;
 }
 
-function publicIssueFromRow(
+export function publicIssueFromRow(
   row: PublicIssueRow,
   options: { includeContent: boolean; belongsTo: PublicIssue['belongs_to'] }
 ): PublicIssue {
@@ -151,13 +151,13 @@ function publicIssueFromRow(
     title: core.title,
     display_id: core.display_id,
     ticket_number: core.ticket_number,
-    state: schemaValueOr(PublicIssueSchema.shape.state, props.state, 'backlog'),
-    priority: schemaValueOr(PublicIssueSchema.shape.priority, props.priority, 'medium'),
-    assignee_id: uuidOrNull(props.assignee_id),
+    state: core.state,
+    priority: core.priority,
+    assignee_id: core.assignee_id,
     ...(row.assignee_name !== null ? { assignee_name: row.assignee_name } : {}),
     ...(row.assignee_archived ? { assignee_archived: true } : {}),
     ...(typeof props.estimate === 'number' ? { estimate: props.estimate } : core.estimate !== undefined ? { estimate: core.estimate } : {}),
-    source: schemaValueOr(PublicIssueSchema.shape.source, props.source, 'internal'),
+    source: core.source,
     ...(typeof props.due_date === 'string' ? { due_date: props.due_date } : {}),
     ...(typeof props.is_system_generated === 'boolean' ? { is_system_generated: props.is_system_generated } : {}),
     ...(uuidOrNull(props.accountability_target_id) ? { accountability_target_id: uuidOrNull(props.accountability_target_id) } : {}),
@@ -341,9 +341,4 @@ async function getPublicBelongsToAssociationsBatch(input: {
 function uuidOrNull(value: unknown): string | null {
   const parsed = z.string().uuid().safeParse(value);
   return parsed.success ? parsed.data : null;
-}
-
-function schemaValueOr<T>(schema: z.ZodType<T>, value: unknown, fallback: T): T {
-  const parsed = schema.safeParse(value);
-  return parsed.success ? parsed.data : fallback;
 }

@@ -1,6 +1,10 @@
 // Document webhook helpers build public event payloads from document rows.
 import type { WebhookEvent, WebhookEventResource } from '@ship/shared';
-import type { DocumentAccessRow } from '../document-mutations/types.js';
+import type { DocumentAccessRow } from './types.js';
+import {
+  documentCoreFromRow,
+  documentWebhookResourceFromCore,
+} from './document-core.js';
 
 type DocumentWebhookInput = {
   workspaceId: string;
@@ -22,13 +26,7 @@ export function buildDocumentCreatedWebhookEvent(input: DocumentWebhookInput): W
 }
 
 function documentWebhookResource(row: DocumentAccessRow) {
-  return {
-    id: row.id,
-    title: row.title,
-    document_type: row.document_type,
-    api_url: `/api/v1/documents/${row.id}`,
-    ui_url: `/documents/${row.id}`,
-  };
+  return documentWebhookResourceFromCore(documentCoreFromRow(row));
 }
 
 function documentWebhookResourceMetadata(row: DocumentAccessRow): WebhookEventResource {

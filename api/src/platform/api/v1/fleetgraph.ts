@@ -1,16 +1,15 @@
 // Public FleetGraph routes expose read-only attention contexts through OAuth read scopes.
 import { Router, type Request, type Response } from 'express';
 import { PublicFleetGraphAttentionContextListQuerySchema } from '@ship/shared';
-import { InProcessAttentionContextReader } from '../../../fleetgraph/attention-context-reader.js';
+import { createAttentionContextReader } from '../../../fleetgraph/attention-context-factory.js';
 import {
   markPublicApiRoute,
   publicApiAsyncHandler,
   requirePublicApiBearer,
 } from './middleware.js';
-import { sendMissingContext, sendValidationError } from './route-handlers.js';
+import { sendMissingContext, sendValidationError } from './public-sql-helpers.js';
 import { publicFleetGraphAttentionContextsListRouteMetadata } from './route-metadata.js';
-
-const inProcessAttentionContextReader = new InProcessAttentionContextReader();
+import { parsePublicRouteQuery } from './route-request.js';
 
 export const publicFleetGraphRouter = Router();
 
@@ -19,7 +18,11 @@ publicFleetGraphRouter.get(
   requirePublicApiBearer(publicFleetGraphAttentionContextsListRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicFleetGraphAttentionContextsListRouteMetadata.path);
-    const parsed = PublicFleetGraphAttentionContextListQuerySchema.safeParse(req.query);
+    const parsed = parsePublicRouteQuery(
+      publicFleetGraphAttentionContextsListRouteMetadata.operationId,
+      req.query,
+      PublicFleetGraphAttentionContextListQuerySchema
+    );
     if (!parsed.success) {
       sendValidationError(req, res, parsed.error);
       return;
@@ -29,7 +32,12 @@ publicFleetGraphRouter.get(
       return;
     }
 
-    const data = await inProcessAttentionContextReader.listAttentionContexts({
+    const reader = await createAttentionContextReader({
+      mode: 'in_process',
+      workspaceId: req.publicApi.workspaceId,
+      viewerUserId: req.publicApi.userId,
+    });
+    const data = await reader.listAttentionContexts({
       workspaceId: req.publicApi.workspaceId,
       viewerUserId: req.publicApi.userId,
       sourceIssueId: parsed.data.source_issue_id,

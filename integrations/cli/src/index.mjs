@@ -1,12 +1,21 @@
 #!/usr/bin/env node
-// Ship CLI uses the public SDK for login, documents, and webhook tailing.
+// Ship CLI uses the public SDK for login, public API resources, and webhook tailing.
 import http from 'node:http';
-import os from 'node:os';
-import path from 'node:path';
 import process from 'node:process';
-import { FileTokenStore, ShipClient, ShipError, verifyWebhook } from '@ship/sdk';
+import { ShipClient, ShipError, verifyWebhook } from '@ship/sdk';
+import {
+  numberFlag,
+  printJson,
+  printRows,
+  requireApiBaseUrl,
+  shipClientFromParsed,
+  stringFlag,
+  tokenStoreFromParsed,
+} from './public-api.mjs';
 
-const DEFAULT_SCOPE = 'documents:read documents:write webhooks:manage';
+// Align with Ship Agent read scopes plus write/manage flags used by CLI commands.
+const DEFAULT_LOGIN_SCOPE =
+  'documents:read documents:write issues:read sprints:read webhooks:manage';
 
 main().catch(error => {
   if (error instanceof ShipError) {
@@ -19,8 +28,9 @@ main().catch(error => {
 });
 
 async function main() {
+  const { parseArgs } = await import('./parse-args.mjs');
   const parsed = parseArgs(process.argv.slice(2));
-  const [group, command] = parsed.positionals;
+  const [group, sub, action] = parsed.positionals;
 
   if (!group || parsed.flags.help || parsed.flags.h) {
     printHelp();
@@ -32,23 +42,33 @@ async function main() {
     return;
   }
 
-  if (group === 'docs') {
-    if (command === 'ls' || command === 'list') {
-      await docsList(parsed);
-      return;
-    }
-    if (command === 'get') {
-      await docsGet(parsed);
-      return;
-    }
-    if (command === 'create') {
-      await docsCreate(parsed);
-      return;
-    }
+  if (group === 'me') {
+    await cmdMe(parsed);
+    return;
   }
 
-  if (group === 'webhooks' && command === 'tail') {
-    await webhooksTail(parsed);
+  if (group === 'documents' || group === 'docs') {
+    await routeDocuments(group, sub, action, parsed);
+    return;
+  }
+
+  if (group === 'issues') {
+    await routeIssues(sub, action, parsed);
+    return;
+  }
+
+  if (group === 'sprints') {
+    await routeSprints(sub, action, parsed);
+    return;
+  }
+
+  if (group === 'fleetgraph') {
+    await routeFleetgraph(sub, parsed);
+    return;
+  }
+
+  if (group === 'webhooks') {
+    await routeWebhooks(sub, action, parsed);
     return;
   }
 
@@ -56,14 +76,13 @@ async function main() {
 }
 
 async function login(parsed) {
-  const baseUrl = requireValue(parsed, 'api-url', process.env.SHIP_API_URL, 'SHIP_API_URL');
+  const baseUrl = requireApiBaseUrl(parsed);
   const clientId = requireValue(parsed, 'client-id', process.env.SHIP_CLIENT_ID, 'SHIP_CLIENT_ID');
-  const tokenStore = tokenStoreFrom(parsed);
   const client = await ShipClient.deviceLogin({
     baseUrl,
     clientId,
-    scope: String(parsed.flags.scope ?? DEFAULT_SCOPE),
-    tokenStore,
+    scope: String(parsed.flags.scope ?? DEFAULT_LOGIN_SCOPE),
+    tokenStore: tokenStoreFromParsed(parsed),
     onUserCode(code, verificationUrl, verificationUrlComplete) {
       console.log(`Open: ${verificationUrlComplete}`);
       console.log(`Code: ${code}`);
@@ -74,46 +93,166 @@ async function login(parsed) {
   console.log(`Logged in as ${me.user.email}`);
 }
 
-async function docsList(parsed) {
-  const client = clientFrom(parsed);
-  const page = await client.documents.list({
-    limit: numberFlag(parsed.flags.limit),
-    type: stringFlag(parsed.flags.type),
-  });
-  if (parsed.flags.json) {
-    printJson(page);
-    return;
-  }
-  printRows(page.data.map(document => ({
-    id: document.id,
-    type: document.document_type,
-    title: document.title,
-    updated: document.updated_at,
-  })));
+async function cmdMe(parsed) {
+  printJson(await shipClientFromParsed(parsed).me());
 }
 
-async function docsGet(parsed) {
-  const id = parsed.positionals[2];
-  if (!id) throw new ShipError({ kind: 'validation', message: 'Usage: ship docs get <id>' });
-  printJson(await clientFrom(parsed).documents.get(id));
-}
-
-async function docsCreate(parsed) {
-  const positionalTitle = parsed.positionals.slice(2).join(' ').trim() || undefined;
-  const title = stringFlag(parsed.flags.title) ?? positionalTitle;
-  const document = await clientFrom(parsed).documents.create({
-    title,
-    document_type: stringFlag(parsed.flags.type),
-  });
-  if (parsed.flags.json) {
-    printJson(document);
+async function routeDocuments(group, sub, action, parsed) {
+  const verb = sub ?? action;
+  if (verb === 'list' || verb === 'ls') {
+    const page = await shipClientFromParsed(parsed).documents.list({
+      limit: numberFlag(parsed.flags.limit),
+      type: stringFlag(parsed.flags.type),
+    });
+    if (parsed.flags.json) {
+      printJson(page);
+      return;
+    }
+    printRows(page.data.map(document => ({
+      id: document.id,
+      type: document.document_type,
+      title: document.title,
+      updated: document.updated_at,
+    })));
     return;
   }
-  console.log(`${document.id}\t${document.title}`);
+  if (verb === 'get') {
+    const id = parsed.positionals[group === 'docs' ? 2 : 2];
+    if (!id) throw usage(`ship ${group} get <id>`);
+    printJson(await shipClientFromParsed(parsed).documents.get(id));
+    return;
+  }
+  if (verb === 'create') {
+    const idIndex = group === 'docs' ? 2 : 2;
+    const positionalTitle = parsed.positionals.slice(idIndex).join(' ').trim() || undefined;
+    const title = stringFlag(parsed.flags.title) ?? positionalTitle;
+    const document = await shipClientFromParsed(parsed).documents.create({
+      title,
+      document_type: stringFlag(parsed.flags.type),
+    });
+    if (parsed.flags.json) {
+      printJson(document);
+      return;
+    }
+    console.log(`${document.id}\t${document.title}`);
+    return;
+  }
+  throw usage(`ship ${group} <list|get|create>`);
+}
+
+async function routeIssues(sub, action, parsed) {
+  const verb = sub;
+  const client = shipClientFromParsed(parsed);
+  if (verb === 'list' || verb === 'ls') {
+    printJson(await client.issues.list({
+      limit: numberFlag(parsed.flags.limit),
+      state: stringFlag(parsed.flags.state),
+      assignee_id: stringFlag(parsed.flags['assignee-id']),
+    }));
+    return;
+  }
+  if (verb === 'get') {
+    const id = parsed.positionals[2];
+    if (!id) throw usage('ship issues get <id>');
+    printJson(await client.issues.get(id));
+    return;
+  }
+  if (verb === 'create') {
+    printJson(await client.issues.create({
+      title: requireFlag(parsed, 'title'),
+      state: stringFlag(parsed.flags.state),
+      priority: stringFlag(parsed.flags.priority),
+    }));
+    return;
+  }
+  if (verb === 'update' || verb === 'patch') {
+    const id = parsed.positionals[2];
+    if (!id) throw usage('ship issues update <id>');
+    printJson(await client.issues.update(id, {
+      state: stringFlag(parsed.flags.state),
+      assignee_id: stringFlag(parsed.flags['assignee-id']),
+      confirm_orphan_children: parsed.flags['confirm-orphan-children'] === true
+        ? true
+        : stringFlag(parsed.flags['confirm-orphan-children']) === 'true'
+          ? true
+          : undefined,
+    }));
+    return;
+  }
+  throw usage('ship issues <list|get|create|update>');
+}
+
+async function routeSprints(sub, action, parsed) {
+  const client = shipClientFromParsed(parsed);
+  if (sub === 'list' || sub === 'ls') {
+    printJson(await client.sprints.list({ limit: numberFlag(parsed.flags.limit) }));
+    return;
+  }
+  if (sub === 'get') {
+    const id = parsed.positionals[2];
+    if (!id) throw usage('ship sprints get <id>');
+    printJson(await client.sprints.get(id));
+    return;
+  }
+  if (sub === 'issues') {
+    const sprintId = parsed.positionals[2];
+    if (!sprintId) throw usage('ship sprints issues <sprint-id>');
+    printJson(await client.sprints.listIssues(sprintId, { limit: numberFlag(parsed.flags.limit) }));
+    return;
+  }
+  throw usage('ship sprints <list|get|issues>');
+}
+
+async function routeFleetgraph(sub, parsed) {
+  if (sub === 'attention-contexts' || sub === 'contexts') {
+    printJson(await shipClientFromParsed(parsed).fleetgraph.attentionContexts.list({
+      limit: numberFlag(parsed.flags.limit),
+      source_issue_id: stringFlag(parsed.flags['source-issue-id']),
+      source_sprint_id: stringFlag(parsed.flags['source-sprint-id']),
+    }));
+    return;
+  }
+  throw usage('ship fleetgraph attention-contexts');
+}
+
+async function routeWebhooks(sub, action, parsed) {
+  const client = shipClientFromParsed(parsed);
+  if (sub === 'tail') {
+    await webhooksTail(parsed);
+    return;
+  }
+  if (sub === 'subscriptions') {
+    if (action === 'list' || action === 'ls') {
+      printJson(await client.webhooks.list({ limit: numberFlag(parsed.flags.limit) }));
+      return;
+    }
+    if (action === 'create') {
+      printJson(await client.webhooks.create({
+        event: requireFlag(parsed, 'event'),
+        target_url: requireFlag(parsed, 'target-url'),
+      }));
+      return;
+    }
+    throw usage('ship webhooks subscriptions <list|create>');
+  }
+  if (sub === 'deliveries') {
+    if (action === 'list' || action === 'ls') {
+      printJson(await client.webhooks.listDeliveries({ limit: numberFlag(parsed.flags.limit) }));
+      return;
+    }
+    if (action === 'replay') {
+      const id = parsed.positionals[3];
+      if (!id) throw usage('ship webhooks deliveries replay <delivery-id>');
+      printJson(await client.webhooks.replay(id));
+      return;
+    }
+    throw usage('ship webhooks deliveries <list|replay>');
+  }
+  throw usage('ship webhooks <tail|subscriptions|deliveries>');
 }
 
 async function webhooksTail(parsed) {
-  const client = clientFrom(parsed);
+  const client = shipClientFromParsed(parsed);
   const event = stringFlag(parsed.flags.event) ?? 'document.created';
   const once = Boolean(parsed.flags.once);
   const timeoutMs = numberFlag(parsed.flags['timeout-ms']) ?? 120_000;
@@ -184,47 +323,6 @@ async function webhooksTail(parsed) {
   return received;
 }
 
-function clientFrom(parsed) {
-  return new ShipClient({
-    baseUrl: requireValue(parsed, 'api-url', process.env.SHIP_API_URL, 'SHIP_API_URL'),
-    clientId: stringFlag(parsed.flags['client-id']) ?? process.env.SHIP_CLIENT_ID,
-    tokenStore: tokenStoreFrom(parsed),
-  });
-}
-
-function tokenStoreFrom(parsed) {
-  const tokenPath = stringFlag(parsed.flags['token-path'])
-    ?? process.env.SHIP_TOKEN_PATH
-    ?? path.join(os.homedir(), '.ship', 'tokens.json');
-  return new FileTokenStore(tokenPath);
-}
-
-function parseArgs(argv) {
-  const flags = {};
-  const positionals = [];
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-    if (!arg.startsWith('-')) {
-      positionals.push(arg);
-      continue;
-    }
-    const raw = arg.replace(/^-+/, '');
-    const [inlineKey, inlineValue] = raw.split('=', 2);
-    if (inlineValue !== undefined) {
-      flags[inlineKey] = inlineValue;
-      continue;
-    }
-    const next = argv[index + 1];
-    if (next && !next.startsWith('-')) {
-      flags[inlineKey] = next;
-      index += 1;
-    } else {
-      flags[inlineKey] = true;
-    }
-  }
-  return { flags, positionals };
-}
-
 function requireValue(parsed, flag, envValue, envName) {
   const value = stringFlag(parsed.flags[flag]) ?? envValue;
   if (!value) {
@@ -233,36 +331,29 @@ function requireValue(parsed, flag, envValue, envName) {
       message: `Pass --${flag} or set ${envName}`,
     });
   }
-  return value.replace(/\/+$/, '');
+  return value;
 }
 
-function stringFlag(value) {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
+function requireFlag(parsed, flag) {
+  const value = stringFlag(parsed.flags[flag]);
+  if (!value) throw usage(`--${flag} is required`);
+  return value;
 }
 
-function numberFlag(value) {
-  if (typeof value !== 'string') return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function printRows(rows) {
-  if (rows.length === 0) return;
-  for (const row of rows) {
-    console.log(Object.values(row).join('\t'));
-  }
-}
-
-function printJson(value) {
-  console.log(JSON.stringify(value, null, 2));
+function usage(message) {
+  return new ShipError({ kind: 'validation', message });
 }
 
 function printHelp() {
   console.log(`ship login --api-url <url> --client-id <id>
-ship docs ls
-ship docs get <id>
-ship docs create --title <title>
-ship webhooks tail --once`);
+ship me
+ship documents list|get <id>|create --title <title>
+ship issues list|get <id>|create --title <t>|update <id> --state <s>
+ship sprints list|get <id>|issues <sprint-id>
+ship fleetgraph attention-contexts
+ship webhooks tail --once
+ship webhooks subscriptions list|create --event <e> --target-url <url>
+ship webhooks deliveries list|replay <delivery-id>`);
 }
 
 function listen(server, port) {

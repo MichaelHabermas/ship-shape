@@ -1,10 +1,10 @@
 // Public webhook routes manage subscriptions, delivery logs, and replay through OAuth.
 import { Router, type Request, type Response } from 'express';
-import { z } from 'zod';
 import {
   PublicWebhookCreateSchema,
   PublicWebhookListQuerySchema,
 } from '@ship/shared';
+import type { z } from 'zod';
 import {
   createWebhookSubscription,
   isWebhookSubscriptionScopeError,
@@ -20,7 +20,7 @@ import {
   requirePublicApiBearer,
 } from './middleware.js';
 import { sendPublicApiError } from './errors.js';
-import { sendInvalidCursorError } from './route-handlers.js';
+import { sendInvalidCursorError } from './public-sql-helpers.js';
 import {
   decodePublicCursor,
   encodePublicCursor,
@@ -32,10 +32,8 @@ import {
   publicWebhooksCreateRouteMetadata,
   publicWebhooksListRouteMetadata,
 } from './route-metadata.js';
-
-const deliveryParamsSchema = z.object({
-  id: z.string().uuid(),
-});
+import { PublicWebhookDeliveryParamsSchema } from './route-openapi-contracts.js';
+import { parsePublicRouteBody, parsePublicRouteParams, parsePublicRouteQuery } from './route-request.js';
 
 export const publicWebhooksRouter = Router();
 
@@ -44,7 +42,11 @@ publicWebhooksRouter.get(
   requirePublicApiBearer(publicWebhooksListRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicWebhooksListRouteMetadata.path);
-    const parsed = PublicWebhookListQuerySchema.safeParse(req.query);
+    const parsed = parsePublicRouteQuery(
+      publicWebhooksListRouteMetadata.operationId,
+      req.query,
+      PublicWebhookListQuerySchema
+    );
     if (!parsed.success || !req.publicApi) {
       sendValidationOrContextError(req, res, parsed.success ? null : parsed.error);
       return;
@@ -70,7 +72,11 @@ publicWebhooksRouter.post(
   requirePublicApiBearer(publicWebhooksCreateRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicWebhooksCreateRouteMetadata.path);
-    const parsed = PublicWebhookCreateSchema.safeParse(req.body);
+    const parsed = parsePublicRouteBody(
+      publicWebhooksCreateRouteMetadata.operationId,
+      req.body,
+      PublicWebhookCreateSchema
+    );
     if (!parsed.success || !req.publicApi) {
       sendValidationOrContextError(req, res, parsed.success ? null : parsed.error);
       return;
@@ -113,7 +119,11 @@ publicWebhooksRouter.get(
   requirePublicApiBearer(publicWebhookDeliveriesListRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicWebhookDeliveriesListRouteMetadata.path);
-    const parsed = PublicWebhookListQuerySchema.safeParse(req.query);
+    const parsed = parsePublicRouteQuery(
+      publicWebhookDeliveriesListRouteMetadata.operationId,
+      req.query,
+      PublicWebhookListQuerySchema
+    );
     if (!parsed.success || !req.publicApi) {
       sendValidationOrContextError(req, res, parsed.success ? null : parsed.error);
       return;
@@ -139,7 +149,11 @@ publicWebhooksRouter.post(
   requirePublicApiBearer(publicWebhookDeliveryReplayRouteMetadata.requiredScopes),
   publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     markPublicApiRoute(req, publicWebhookDeliveryReplayRouteMetadata.path);
-    const parsed = deliveryParamsSchema.safeParse(req.params);
+    const parsed = parsePublicRouteParams(
+      publicWebhookDeliveryReplayRouteMetadata.operationId,
+      req.params,
+      PublicWebhookDeliveryParamsSchema
+    );
     if (!parsed.success || !req.publicApi) {
       sendValidationOrContextError(req, res, parsed.success ? null : parsed.error);
       return;

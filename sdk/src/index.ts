@@ -1,6 +1,6 @@
 // Public SDK client wraps Ship OAuth tokens, /api/v1 resources, and webhook verification.
 import { utf8ToBytes } from '@noble/hashes/utils.js';
-import type { PublicMe } from '@ship/shared';
+import { PUBLIC_API_RELATIVE_PATHS, type PublicMe } from '@ship/shared';
 import { ShipError } from './errors.js';
 import {
   absoluteOrRelativeUrl,
@@ -147,7 +147,7 @@ export class ShipClient {
   }
 
   async me(): Promise<PublicMe> {
-    return this.request<PublicMe>('GET', '/me');
+    return this.request<PublicMe>('GET', PUBLIC_API_RELATIVE_PATHS.me);
   }
 
   async request<T>(

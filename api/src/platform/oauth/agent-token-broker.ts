@@ -2,10 +2,8 @@
 import type { Pool, PoolClient } from 'pg';
 import type { PublicApiScope } from '@ship/shared';
 import { pool } from '../../db/client.js';
-import {
-  SHIP_AGENT_SCOPES,
-  ensureShipAgentOAuthApp,
-} from '../apps/service.js';
+import { ensureShipAgentOAuthApp } from '../apps/service.js';
+import { SHIP_AGENT_READ_SCOPES } from './ship-agent-scopes.js';
 import {
   createOAuthAccessToken,
   type CreatedOAuthAccessToken,
@@ -57,9 +55,9 @@ function boundedShipAgentScopes(
   requestedScopes: readonly PublicApiScope[] | undefined,
   appScopes: readonly PublicApiScope[]
 ): PublicApiScope[] {
-  const scopes = [...(requestedScopes ?? SHIP_AGENT_SCOPES)];
+  const scopes = [...(requestedScopes ?? SHIP_AGENT_READ_SCOPES)];
   const appAllowedScopes = new Set<PublicApiScope>(appScopes);
-  const canonicalAgentScopes = new Set<PublicApiScope>(SHIP_AGENT_SCOPES);
+  const canonicalAgentScopes = new Set<PublicApiScope>(SHIP_AGENT_READ_SCOPES);
   for (const scope of scopes) {
     if (!canonicalAgentScopes.has(scope) || !appAllowedScopes.has(scope)) {
       throw new Error(`SHIP_AGENT_SCOPE_NOT_ALLOWED:${scope}`);

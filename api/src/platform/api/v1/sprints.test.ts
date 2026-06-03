@@ -9,19 +9,16 @@ import {
 } from '@ship/shared';
 import { createApp } from '../../../app.js';
 import { pool } from '../../../db/client.js';
-import { createOAuthAccessToken } from '../../oauth/tokens.js';
+import { createPublicApiTestContext, type PublicApiTestContext } from '../../../test/public-api-fixtures.js';
 import { expectJsonBody } from '../../../test/expect-json-body.js';
 import { type IdRow, requireFirstRow } from '../../../test/pg-result.js';
 
 describe('/api/v1/sprints', () => {
   const app = createApp();
-  const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const clientId = `ship_app_sprints_${testRunId}`;
-
+  let ctx: PublicApiTestContext;
   let workspaceId: string;
   let userId: string;
   let memberUserId: string;
-  let appId: string;
   let sprintReadToken: string;
   let sprintAndIssueReadToken: string;
   let issueOnlyToken: string;
@@ -31,78 +28,21 @@ describe('/api/v1/sprints', () => {
   let issueId: string;
 
   beforeAll(async () => {
-    workspaceId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO workspaces (name, sprint_start_date)
-       VALUES ($1, '2026-01-05')
-       RETURNING id`,
-      [`Public Sprints ${testRunId}`]
-    )).rows).id;
-    userId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO users (email, password_hash, name)
-       VALUES ($1, 'test-hash', 'Public Sprints Admin')
-       RETURNING id`,
-      [`public-sprints-${testRunId}@ship.local`]
-    )).rows).id;
-    memberUserId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO users (email, password_hash, name)
-       VALUES ($1, 'test-hash', 'Public Sprints Member')
-       RETURNING id`,
-      [`public-sprints-member-${testRunId}@ship.local`]
-    )).rows).id;
-    await pool.query(
-      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
-       VALUES ($1, $2, 'admin'), ($1, $3, 'member')`,
-      [workspaceId, userId, memberUserId]
-    );
-    appId = requireFirstRow((await pool.query<IdRow>(
-      `INSERT INTO oauth_apps (
-         workspace_id,
-         owner_user_id,
-         name,
-         client_id,
-         client_secret_hash,
-         redirect_uris,
-         requested_scopes
-       )
-       VALUES ($1, $2, 'Public Sprints Test App', $3, 'test-secret-hash', $4, $5)
-       RETURNING id`,
-      [
-        workspaceId,
-        userId,
-        clientId,
-        ['https://example.test/callback'],
-        ['sprints:read', 'issues:read'],
-      ]
-    )).rows).id;
-
-    sprintReadToken = (await createOAuthAccessToken({
-      appId,
-      userId,
-      workspaceId,
-      grantedScopes: ['sprints:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
-    sprintAndIssueReadToken = (await createOAuthAccessToken({
-      appId,
-      userId,
-      workspaceId,
-      grantedScopes: ['sprints:read', 'issues:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
-    issueOnlyToken = (await createOAuthAccessToken({
-      appId,
-      userId,
-      workspaceId,
-      grantedScopes: ['issues:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
-    memberSprintReadToken = (await createOAuthAccessToken({
-      appId,
-      userId: memberUserId,
-      workspaceId,
-      grantedScopes: ['sprints:read'],
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    })).token;
+    ctx = await createPublicApiTestContext({
+      label: 'Public Sprints',
+      clientIdPrefix: 'ship_app_sprints',
+      requestedScopes: ['sprints:read', 'issues:read'],
+      includeMember: true,
+      workspaceExtras: { sprintStartDate: '2026-01-05' },
+    });
+    workspaceId = ctx.workspaceId;
+    userId = ctx.adminUserId;
+    if (!ctx.memberUserId) throw new Error('expected member user in sprint test fixture');
+    memberUserId = ctx.memberUserId;
+    sprintReadToken = await ctx.issueToken(['sprints:read']);
+    sprintAndIssueReadToken = await ctx.issueToken(['sprints:read', 'issues:read']);
+    issueOnlyToken = await ctx.issueToken(['issues:read']);
+    memberSprintReadToken = await ctx.issueToken(['sprints:read'], memberUserId);
 
     sprintId = await insertSprint('Public Sprint 1', 1, 'workspace');
     secondSprintId = await insertSprint('Public Sprint 2', 2, 'workspace');
@@ -122,13 +62,7 @@ describe('/api/v1/sprints', () => {
   });
 
   afterAll(async () => {
-    await pool.query('DELETE FROM public_api_audit_logs WHERE workspace_id = $1 OR client_id = $2', [workspaceId, clientId]);
-    await pool.query('DELETE FROM oauth_access_tokens WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM oauth_apps WHERE id = $1', [appId]);
-    await pool.query('DELETE FROM workspace_memberships WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM users WHERE id = ANY($1::uuid[])', [[userId, memberUserId]]);
-    await pool.query('DELETE FROM workspaces WHERE id = $1', [workspaceId]);
+    await ctx.cleanup();
   });
 
   it('lists and gets sprint documents with cursor pages', async () => {

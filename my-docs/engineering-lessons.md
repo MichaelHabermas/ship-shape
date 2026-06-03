@@ -290,3 +290,38 @@ The transferable rules:
 - Regenerate and diff the public spec in the Plugforge gate; validate operationId sets in the smoke script.
 
 ShipShape example (2026-06): `route-metadata.test.ts` asserts registry ↔ contracts parity; `plugforge-verify.sh` runs `public-openapi:generate` + `git diff docs/openapi.json`; `validate-public-openapi.mjs` checks operationId set equality.
+
+## 24. Public API Tests Need One OAuth Fixture Harness
+
+When every `/api/v1` route test seeds workspaces, users, apps, and tokens independently, setup drift causes false failures and hides the real contract under copy-paste.
+
+The transferable rules:
+
+- Centralize workspace + OAuth app + token helpers for public route tests.
+- Keep route-specific cleanup (webhooks, issue iterations) as small add-ons.
+- Reuse the harness across documents, issues, sprints, fleetgraph, and webhooks suites.
+
+ShipShape example (2026-06): `api/src/test/public-api-fixtures.ts` provides `createPublicApiTestContext` and `issueToken()`; Plugforge route tests import it instead of duplicating `INSERT INTO oauth_apps`.
+
+## 25. Webhook Delivery Belongs In Named Modules, Not One Service File
+
+A single 900+ line webhook service mixes subscription CRUD, read-context fanout, signing, retries, and replay. Agents cannot test or change one concern without reading everything.
+
+The transferable rules:
+
+- Split by responsibility (subscriptions, fanout, delivery, target URL validation, replay) behind a stable facade import path.
+- Give domain mutations one publisher API (`publish` in transaction + `commit` dispatch) so call sites cannot forget half the pair.
+- Add at least one integration test from mutation/enqueue through a mocked deliverer.
+
+ShipShape example (2026-06): `webhook-subscriptions.ts`, `webhook-fanout.ts`, `webhook-delivery.ts`, and `mutation-publisher.ts` sit behind `webhooks/service.ts` re-exports; `pipeline.integration.test.ts` proves enqueue → delivery attempt.
+
+## 26. CLI Default Login Scopes Must Cover Every Shipped Command
+
+Device-grant login scopes are easy to under-specify: documents-only tokens pass document CLI but 403 on routes that require the same read triple as the Ship Agent (`documents:read`, `issues:read`, `sprints:read`).
+
+The transferable rules:
+
+- Derive default CLI scopes from the union of registry `requiredScopes` for commands you ship, not from the first resource you built.
+- Reuse the same canonical read scope list as the agent (`ship-agent-scopes.ts`) wherever a public route requires that triple.
+
+ShipShape example (2026-06): `ship login` default scope string includes issues/sprints read so `ship fleetgraph attention-contexts` works after a vanilla login; FleetGraph route metadata imports `SHIP_AGENT_READ_SCOPES` instead of a third literal copy.

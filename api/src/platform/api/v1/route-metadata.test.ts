@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import request, { type Test } from 'supertest';
-import { PUBLIC_API_SCOPES, PublicApiErrorSchema } from '@ship/shared';
+import { PUBLIC_API_RELATIVE_PATHS, PUBLIC_API_SCOPES, PublicApiErrorSchema } from '@ship/shared';
 import { createApp } from '../../../app.js';
 import { pool } from '../../../db/client.js';
 import { expectJsonBody } from '../../../test/expect-json-body.js';
@@ -66,6 +66,33 @@ describe('public API v1 route registry', () => {
       expect(contract, operationId).toBeDefined();
       const statuses = Object.keys(contract.responses);
       expect(statuses.some(status => status.startsWith('2')), operationId).toBe(true);
+    }
+  });
+
+  it('keeps registry paths aligned with shared public API suffixes', () => {
+    const suffixByOperation: Record<string, string> = {
+      'openapi.get': PUBLIC_API_RELATIVE_PATHS.openapi,
+      'me.get': PUBLIC_API_RELATIVE_PATHS.me,
+      'documents.list': PUBLIC_API_RELATIVE_PATHS.documents,
+      'documents.get': PUBLIC_API_RELATIVE_PATHS.document,
+      'documents.create': PUBLIC_API_RELATIVE_PATHS.documents,
+      'fleetgraph.attentionContexts.list': PUBLIC_API_RELATIVE_PATHS.fleetgraphAttentionContexts,
+      'issues.list': PUBLIC_API_RELATIVE_PATHS.issues,
+      'issues.get': PUBLIC_API_RELATIVE_PATHS.issue,
+      'issues.create': PUBLIC_API_RELATIVE_PATHS.issues,
+      'issues.update': PUBLIC_API_RELATIVE_PATHS.issue,
+      'sprints.list': PUBLIC_API_RELATIVE_PATHS.sprints,
+      'sprints.get': PUBLIC_API_RELATIVE_PATHS.sprint,
+      'sprints.issues.list': PUBLIC_API_RELATIVE_PATHS.sprintIssues,
+      'webhooks.list': PUBLIC_API_RELATIVE_PATHS.webhooks,
+      'webhooks.create': PUBLIC_API_RELATIVE_PATHS.webhooks,
+      'webhooks.deliveries.list': PUBLIC_API_RELATIVE_PATHS.webhookDeliveries,
+      'webhooks.deliveries.replay': PUBLIC_API_RELATIVE_PATHS.webhookDeliveryReplay,
+    };
+    for (const route of publicApiV1RouteRegistry) {
+      const suffix = suffixByOperation[route.operationId];
+      if (!suffix) continue;
+      expect(route.path).toBe(`/api/v1${suffix}`);
     }
   });
 

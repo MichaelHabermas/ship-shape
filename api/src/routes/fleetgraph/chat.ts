@@ -3,8 +3,9 @@ import { Router, type Request, type Response, type Router as ExpressRouter } fro
 import { authMiddleware } from '../../middleware/auth.js';
 import { defineRoute } from '../../openapi/define-route.js';
 import { fleetGraphConfig } from '../../config/fleetgraph.js';
+import { createAttentionContextReader } from '../../fleetgraph/attention-context-factory.js';
 import { createShipAgentPublicClient } from '../../fleetgraph/public-api-client.js';
-import { HttpAttentionContextReader } from '../../fleetgraph/attention-context-reader.js';
+import type { AttentionContextReader } from '../../fleetgraph/attention-context-reader.js';
 import { principalFromRequest } from '../../security/principal.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { sendInternalError, sendLegacyError } from '../../utils/route-http.js';
@@ -54,12 +55,13 @@ router.post('/chat', authMiddleware, defineRoute({
         ? await createShipAgentPublicClient({ workspaceId, userId })
         : null;
       if (agentPublicClient) {
-        await readAttentionContextViaPublicApi(
-          new HttpAttentionContextReader(agentPublicClient.client),
+        const reader = await createAttentionContextReader({
+          mode: 'http_loopback',
           workspaceId,
-          userId,
-          parsed.body.context
-        );
+          viewerUserId: userId,
+          shipClient: agentPublicClient.client,
+        });
+        await readAttentionContextViaPublicApi(reader, workspaceId, userId, parsed.body.context);
       }
       const beforeMutation = await sourceSnapshotForReviewerChat({
         workspaceId,
@@ -109,7 +111,7 @@ router.post('/chat', authMiddleware, defineRoute({
 }));
 
 async function readAttentionContextViaPublicApi(
-  reader: HttpAttentionContextReader,
+  reader: AttentionContextReader,
   workspaceId: string,
   viewerUserId: string,
   context: FleetGraphChatContext

@@ -1,4 +1,4 @@
-// Shared public API v1 route helpers for validation errors, cursors, and SQL predicates.
+// Shared SQL fragments and HTTP helpers for public /api/v1 routes (not route dispatch).
 import type { Request, Response } from 'express';
 import type { z } from 'zod';
 import { visibilityPredicate } from '../../../services/document-access.js';

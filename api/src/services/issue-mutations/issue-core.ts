@@ -7,6 +7,7 @@ import {
   type IssueSource,
   type IssueState,
 } from '@ship/shared';
+import { z } from 'zod';
 
 export type IssuePropertiesRow = Record<string, unknown> | null;
 
@@ -42,7 +43,7 @@ export function issueCoreFromDocumentRow(row: IssueCoreSourceRow): IssueCoreFiel
   const props = row.properties ?? {};
   const state = asIssueState(props.state);
   const priority = asIssuePriority(props.priority);
-  const assigneeId = typeof props.assignee_id === 'string' ? props.assignee_id : null;
+  const assigneeId = uuidOrNull(props.assignee_id);
   const source = asIssueSource(props.source);
 
   const core: IssueCoreFields = {
@@ -59,13 +60,19 @@ export function issueCoreFromDocumentRow(row: IssueCoreSourceRow): IssueCoreFiel
   if (typeof props.estimate === 'number') core.estimate = props.estimate;
   if (typeof props.due_date === 'string') core.due_date = props.due_date;
   if (typeof props.is_system_generated === 'boolean') core.is_system_generated = props.is_system_generated;
-  if (typeof props.accountability_target_id === 'string') {
-    core.accountability_target_id = props.accountability_target_id;
+  const accountabilityTargetId = uuidOrNull(props.accountability_target_id);
+  if (accountabilityTargetId) {
+    core.accountability_target_id = accountabilityTargetId;
   }
   if (typeof props.accountability_type === 'string') core.accountability_type = props.accountability_type;
   if (typeof props.rejection_reason === 'string') core.rejection_reason = props.rejection_reason;
 
   return core;
+}
+
+function uuidOrNull(value: unknown): string | null {
+  const parsed = z.string().uuid().safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
 function asIssueSource(value: unknown): IssueSource {
