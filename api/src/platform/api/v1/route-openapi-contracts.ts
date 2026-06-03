@@ -1,7 +1,6 @@
 // Public route OpenAPI contracts keyed by operationId for metadata-driven spec generation.
 import { z } from 'zod';
 import {
-  PublicApiErrorSchema,
   PublicDocumentCreateSchema,
   PublicDocumentListQuerySchema,
   PublicDocumentParamsSchema,
@@ -14,6 +13,7 @@ import {
   PublicIssueParamsSchema,
   PublicIssueSchema,
   PublicIssueUpdateSchema,
+  PublicIssueUpdateConflictErrorSchema,
   PublicIssuesListResponseSchema,
   PublicMeResponseSchema,
   PublicSprintIssueListQuerySchema,
@@ -28,6 +28,7 @@ import {
   PublicWebhookSubscriptionCreatedSchema,
   PublicWebhookSubscriptionsListResponseSchema,
 } from '@ship/shared';
+import { publicApiV1RouteRegistry } from './route-metadata.js';
 
 export type PublicRouteOpenApiContract = {
   request?: {
@@ -38,7 +39,9 @@ export type PublicRouteOpenApiContract = {
   responses: Record<string, { description: string; schema?: z.ZodTypeAny }>;
 };
 
-export const publicRouteOpenApiContracts: Record<string, PublicRouteOpenApiContract> = {
+type RegistryOperationId = (typeof publicApiV1RouteRegistry)[number]['operationId'];
+
+const contracts = {
   'openapi.get': {
     responses: {
       '200': { description: 'Public OpenAPI 3.1 document' },
@@ -101,7 +104,7 @@ export const publicRouteOpenApiContracts: Record<string, PublicRouteOpenApiContr
     },
     responses: {
       '200': { description: 'Issue updated', schema: PublicIssueSchema },
-      '409': { description: 'Issue update conflict', schema: PublicApiErrorSchema },
+      '409': { description: 'Issue update conflict', schema: PublicIssueUpdateConflictErrorSchema },
     },
   },
   'sprints.list': {
@@ -158,4 +161,17 @@ export const publicRouteOpenApiContracts: Record<string, PublicRouteOpenApiContr
       '202': { description: 'Webhook delivery replayed', schema: PublicWebhookDeliverySchema },
     },
   },
-};
+} satisfies Record<RegistryOperationId, PublicRouteOpenApiContract>;
+
+export const publicRouteOpenApiContracts: Record<RegistryOperationId, PublicRouteOpenApiContract> = contracts;
+
+function isRegistryOperationId(operationId: string): operationId is RegistryOperationId {
+  return Object.hasOwn(publicRouteOpenApiContracts, operationId);
+}
+
+export function publicOpenApiContractForOperation(
+  operationId: string
+): PublicRouteOpenApiContract | undefined {
+  if (!isRegistryOperationId(operationId)) return undefined;
+  return publicRouteOpenApiContracts[operationId];
+}

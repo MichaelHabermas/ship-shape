@@ -266,3 +266,27 @@ The transferable rules:
 - Skip or sanitize joined association types before array assembly, not only top-level fields.
 
 ShipShape example (2026-06): are-you-sure review found malformed `issue_state` could 500 FleetGraph lists, webhook updates could roll back on bad DB enums, and unknown `belongs_to.type` values could fail entire public issue responses. Fixes: `asIssueState` in `issue-core` and attention-context reader; skip invalid belongs_to rows in the public read model.
+
+## 22. Public Conflicts Belong In PublicApiError.details
+
+When internal mutations return rich 409 bodies (for example orphan sub-issues on close), public adapters must not collapse them to `validation_failed` with the machine reason as the message. Keep the standard error envelope and put actionable conflict data in typed `details`.
+
+The transferable rules:
+
+- Add a dedicated public error code when semantics differ (`conflict` vs malformed input).
+- Mirror internal warning shapes in shared Zod under `details`, not as a second top-level wire format.
+- Document non-2xx responses in the same OpenAPI contract map keyed by `operationId`.
+
+ShipShape example (2026-06): public `PATCH /api/v1/issues/:id` now returns `code: conflict` with `details.incomplete_children` and `confirm_action`, matching the internal cascade warning while keeping `PublicApiErrorSchema`.
+
+## 23. Registry And OpenAPI Contracts Must Be One Keyed Set
+
+Route metadata, OpenAPI contracts, and generated `docs/openapi.json` must share the same `operationId` keys. CI should fail when a registry route lacks a contract, when the committed spec drifts from the generator, or when operation counts diverge.
+
+The transferable rules:
+
+- Use `satisfies Record<RegistryOperationId, …>` on the contracts object.
+- Add Vitest parity between registry and contract keys.
+- Regenerate and diff the public spec in the Plugforge gate; validate operationId sets in the smoke script.
+
+ShipShape example (2026-06): `route-metadata.test.ts` asserts registry ↔ contracts parity; `plugforge-verify.sh` runs `public-openapi:generate` + `git diff docs/openapi.json`; `validate-public-openapi.mjs` checks operationId set equality.

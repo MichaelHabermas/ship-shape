@@ -10,7 +10,7 @@ import {
   publicApiV1RouteRegistry,
   type PublicRouteMetadata,
 } from './route-metadata.js';
-import { publicRouteOpenApiContracts } from './route-openapi-contracts.js';
+import { publicOpenApiContractForOperation } from './route-openapi-contracts.js';
 import { PUBLIC_API_V1_BASE_PATH } from './paths.js';
 
 extendZodWithOpenApi(z);
@@ -73,7 +73,7 @@ function registerRoute(registry: OpenAPIRegistry, route: PublicRouteMetadata): v
 }
 
 function requestForRoute(route: PublicRouteMetadata) {
-  const contract = publicRouteOpenApiContracts[route.operationId];
+  const contract = publicOpenApiContractForOperation(route.operationId);
   if (!contract?.request) return undefined;
 
   const request: NonNullable<PublicOpenApiPathConfig['request']> = {};
@@ -94,7 +94,7 @@ function requestForRoute(route: PublicRouteMetadata) {
 }
 
 function responsesForRoute(route: PublicRouteMetadata): PublicOpenApiResponses {
-  const contract = publicRouteOpenApiContracts[route.operationId];
+  const contract = publicOpenApiContractForOperation(route.operationId);
   if (!contract) {
     return route.operationId === 'openapi.get'
       ? { '200': { description: 'Public OpenAPI 3.1 document' } }

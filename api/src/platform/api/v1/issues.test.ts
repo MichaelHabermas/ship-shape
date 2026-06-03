@@ -4,6 +4,7 @@ import request from 'supertest';
 import {
   PublicApiErrorSchema,
   PublicIssueSchema,
+  PublicIssueUpdateConflictErrorSchema,
   PublicIssuesListResponseSchema,
 } from '@ship/shared';
 import { createApp } from '../../../app.js';
@@ -314,6 +315,47 @@ describe('/api/v1/issues', () => {
       source: 'internal',
       assignee_id: null,
     });
+  });
+
+  it('returns structured conflict details when closing a parent with incomplete children', async () => {
+    const parentId = requireFirstRow((await pool.query<IdRow>(
+      `INSERT INTO documents (
+         workspace_id, document_type, title, properties, ticket_number, created_by, visibility
+       )
+       VALUES ($1, 'issue', 'Parent issue', $2, 710, $3, 'workspace')
+       RETURNING id`,
+      [workspaceId, { state: 'in_progress', priority: 'medium', source: 'internal', assignee_id: null }, userId]
+    )).rows).id;
+    const childId = requireFirstRow((await pool.query<IdRow>(
+      `INSERT INTO documents (
+         workspace_id, document_type, title, properties, ticket_number, created_by, visibility
+       )
+       VALUES ($1, 'issue', 'Child issue', $2, 711, $3, 'workspace')
+       RETURNING id`,
+      [workspaceId, { state: 'backlog', priority: 'medium', source: 'internal', assignee_id: null }, userId]
+    )).rows).id;
+    await pool.query(
+      `INSERT INTO document_associations (document_id, related_id, relationship_type)
+       VALUES ($1, $2, 'parent')`,
+      [childId, parentId]
+    );
+
+    const conflictResponse = await request(app)
+      .patch(`/api/v1/issues/${parentId}`)
+      .set('Authorization', `Bearer ${readWriteToken}`)
+      .send({ state: 'done' });
+    const conflict = expectJsonBody(conflictResponse, 409, PublicIssueUpdateConflictErrorSchema);
+    expect(conflict.code).toBe('conflict');
+    expect(conflict.details?.reason).toBe('incomplete_children');
+    expect(conflict.details?.incomplete_children.length).toBeGreaterThanOrEqual(1);
+    expect(conflict.details?.incomplete_children[0]?.id).toBe(childId);
+
+    const confirmResponse = await request(app)
+      .patch(`/api/v1/issues/${parentId}`)
+      .set('Authorization', `Bearer ${readWriteToken}`)
+      .send({ state: 'done', confirm_orphan_children: true });
+    const updated = expectJsonBody(confirmResponse, 200, PublicIssueSchema);
+    expect(updated.state).toBe('done');
   });
 
   async function createIssue(title: string) {

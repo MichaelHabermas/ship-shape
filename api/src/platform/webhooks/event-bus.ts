@@ -59,6 +59,14 @@ export class InProcessWebhookEventBus implements IEventBus<
       deliveryIds: results.flatMap(result => result?.deliveryIds ?? []),
     };
   }
+
+  clearSubscribersForTests(): void {
+    this.handlers.length = 0;
+  }
+
+  subscriberCountForTests(): number {
+    return this.handlers.length;
+  }
 }
 
 export const webhookEventBus = new InProcessWebhookEventBus();
@@ -69,6 +77,10 @@ export function registerWebhookDeliveryDispatchHandler(
   handler: WebhookDeliveryDispatchHandler
 ): void {
   webhookDeliveryDispatchHandler = handler;
+}
+
+export function resetWebhookDeliveryDispatchHandlerForTests(): void {
+  webhookDeliveryDispatchHandler = null;
 }
 
 export async function publishWebhookEvent(

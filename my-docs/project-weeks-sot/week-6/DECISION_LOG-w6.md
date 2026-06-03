@@ -79,3 +79,12 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Public OpenAPI is metadata-driven through `route-openapi-contracts.ts` keyed by registry `operationId`.
 - FleetGraph attention contexts use an `AttentionContextReader` port; public routes use in-process reads, agent chat keeps HTTP loopback for audit proof.
 - Issue public/webhook wire shapes share `issue-core.ts` core field extraction.
+
+## 2026-06-03 — Public API Follow-Up Hardening
+
+- Public `PATCH /api/v1/issues/:id` returns `code: conflict` with typed `details.incomplete_children` when closing a parent with open sub-issues; `confirm_orphan_children: true` remains the retry path.
+- `conflict` is a first-class `PUBLIC_API_ERROR_CODES` value distinct from `validation_failed`.
+- `pnpm drill ttfe` always resolves `ship_test_audit` via `resolve-database-url.sh`; only `TTFE_DATABASE_URL` overrides. Shell `DATABASE_URL` is ignored so fixtures and API cannot diverge.
+- Plugforge CI regenerates `docs/openapi.json` and fails on drift; registry `operationId`s must match `route-openapi-contracts.ts` keys and the committed spec operation set.
+- `exchangeAuthorizationCode` is exported from `provider.ts` via `refresh-rotation.ts` (not re-exported through `authorization-code.ts`).
+- `resetWebhookBootstrapForTests()` clears event-bus subscribers and the dispatch handler before resetting the bootstrap flag.

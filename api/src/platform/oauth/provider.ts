@@ -20,7 +20,6 @@ export {
   createAuthorizationRequest,
   getConsentRequest,
   approveAuthorizationRequest,
-  exchangeAuthorizationCode,
 } from './authorization-code.js';
 
 export {
@@ -30,4 +29,4 @@ export {
   exchangeDeviceCode,
 } from './device-grant.js';
 
-export { rotateRefreshToken } from './refresh-rotation.js';
+export { exchangeAuthorizationCode, rotateRefreshToken } from './refresh-rotation.js';

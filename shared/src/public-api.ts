@@ -24,6 +24,7 @@ export const PUBLIC_API_ERROR_CODES = [
   'forbidden',
   'not_found',
   'validation_failed',
+  'conflict',
   'rate_limited',
   'server_error',
 ] as const;
@@ -66,6 +67,23 @@ export const PublicApiErrorSchema = z.object({
   message: z.string(),
   details: z.record(z.unknown()).optional(),
   request_id: z.string(),
+});
+
+export const PublicIncompleteChildSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  ticket_number: z.number().int().nullable(),
+  state: z.enum(ISSUE_STATE_VALUES).nullable(),
+});
+
+export const PublicIssueIncompleteChildrenDetailsSchema = z.object({
+  reason: z.literal('incomplete_children'),
+  incomplete_children: z.array(PublicIncompleteChildSchema),
+  confirm_action: z.string(),
+});
+
+export const PublicIssueUpdateConflictErrorSchema = PublicApiErrorSchema.extend({
+  details: PublicIssueIncompleteChildrenDetailsSchema,
 });
 
 export const PublicMeResponseSchema = z.object({
@@ -462,6 +480,8 @@ export const WebhookEventResourceSchema = z.object({
 export type PublicApiScope = z.infer<typeof PublicApiScopeSchema>;
 export type PublicApiErrorCode = (typeof PUBLIC_API_ERROR_CODES)[number];
 export type PublicApiError = z.infer<typeof PublicApiErrorSchema>;
+export type PublicIssueIncompleteChildrenDetails = z.infer<typeof PublicIssueIncompleteChildrenDetailsSchema>;
+export type PublicIssueUpdateConflictError = z.infer<typeof PublicIssueUpdateConflictErrorSchema>;
 export type PublicMe = z.infer<typeof PublicMeResponseSchema>;
 export type PublicDocument = z.infer<typeof PublicDocumentSchema>;
 export type PublicDocumentCreateInput = z.input<typeof PublicDocumentCreateSchema>;

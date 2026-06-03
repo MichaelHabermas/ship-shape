@@ -1,6 +1,7 @@
 // Webhook platform bootstrap wires the event bus subscriber and dispatch handler once at startup.
 import {
   registerWebhookDeliveryDispatchHandler,
+  resetWebhookDeliveryDispatchHandlerForTests,
   webhookEventBus,
 } from './event-bus.js';
 import { dispatchWebhookDeliveries, enqueueWebhookEvent } from './service.js';
@@ -25,4 +26,6 @@ export function bootstrapWebhooks(): void {
 
 export function resetWebhookBootstrapForTests(): void {
   bootstrapped = false;
+  webhookEventBus.clearSubscribersForTests();
+  resetWebhookDeliveryDispatchHandlerForTests();
 }

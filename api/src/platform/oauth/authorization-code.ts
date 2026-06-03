@@ -249,5 +249,3 @@ export async function approveAuthorizationRequest(
     client.release();
   }
 }
-
-export { exchangeAuthorizationCode } from './refresh-rotation.js';

@@ -146,7 +146,9 @@ The TTFE developer spine is now real enough to compose: Device Grant login -> OA
 
 ## Sharp Edges
 
-Do not add `docs/openapi.json` by hand; canon requires generated OpenAPI. Do not add `slow_down` as a canon literal from the main spec body alone; the body says slow-down responses, while exact wire spelling currently comes from appendix/supporting context.
+Do not add `docs/openapi.json` by hand; canon requires generated OpenAPI. `plugforge-verify.sh` now runs `public-openapi:generate` and fails if `docs/openapi.json` drifts. Do not rely on shell `DATABASE_URL` for `pnpm drill ttfe`; the drill resolves `ship_test_audit` unless `TTFE_DATABASE_URL` is set.
+
+Public issue close conflicts return `409` with `code: conflict` and `details.incomplete_children` (not a bare `validation_failed` message). Do not add `slow_down` as a canon literal from the main spec body alone; the body says slow-down responses, while exact wire spelling currently comes from appendix/supporting context.
 
 `client_secret` hashes use Argon2id via `argon2`; OAuth access tokens are high-entropy random bearer tokens stored by SHA-256 hash for lookup. Keep that split unless a later threat model changes it deliberately.
 

@@ -45,9 +45,8 @@ try {
 }
 
 async function runTtfeDrill() {
-  databaseUrl = process.env.TTFE_DATABASE_URL
-    ?? process.env.DATABASE_URL
-    ?? resolveDatabaseUrl('ship_test_audit');
+  // Always resolve ship_test_audit so shell DATABASE_URL cannot seed one DB and start the API on another.
+  databaseUrl = process.env.TTFE_DATABASE_URL ?? resolveDatabaseUrl('ship_test_audit');
   const apiPort = await freePort();
   const apiUrl = `http://127.0.0.1:${apiPort}`;
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ship-ttfe-'));

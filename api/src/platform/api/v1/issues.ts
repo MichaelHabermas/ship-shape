@@ -4,7 +4,10 @@ import {
   PublicIssueCreateSchema,
   PublicIssueListQuerySchema,
   PublicIssueParamsSchema,
+  PublicIssueIncompleteChildrenDetailsSchema,
   PublicIssueUpdateSchema,
+  asIssueState,
+  type PublicIssueIncompleteChildrenDetails,
 } from '@ship/shared';
 import { pool } from '../../../db/client.js';
 import {
@@ -220,10 +223,66 @@ function sendMutationError(
   status: number,
   body: Record<string, unknown>
 ): void {
-  req.publicApiErrorCode = status === 404 ? 'not_found' : status === 403 ? 'forbidden' : 'validation_failed';
+  const requestId = req.publicApi?.requestId ?? req.publicApiRequestId ?? publicApiRequestIdFromRequest(req);
+
+  if (status === 404) {
+    req.publicApiErrorCode = 'not_found';
+    sendPublicApiError(res, status, {
+      code: 'not_found',
+      message: typeof body.error === 'string' ? body.error : 'Issue not found',
+      request_id: requestId,
+    });
+    return;
+  }
+
+  if (status === 403) {
+    req.publicApiErrorCode = 'forbidden';
+    sendPublicApiError(res, status, {
+      code: 'forbidden',
+      message: typeof body.error === 'string' ? body.error : 'Forbidden',
+      request_id: requestId,
+    });
+    return;
+  }
+
+  if (status === 409 && body.error === 'incomplete_children') {
+    const details = buildIncompleteChildrenDetails(body);
+    req.publicApiErrorCode = 'conflict';
+    sendPublicApiError(res, status, {
+      code: 'conflict',
+      message: typeof body.message === 'string' ? body.message : 'Issue update conflict',
+      details,
+      request_id: requestId,
+    });
+    return;
+  }
+
+  req.publicApiErrorCode = 'validation_failed';
   sendPublicApiError(res, status, {
-    code: req.publicApiErrorCode,
+    code: 'validation_failed',
     message: typeof body.error === 'string' ? body.error : 'Issue mutation failed',
-    request_id: req.publicApi?.requestId ?? req.publicApiRequestId ?? publicApiRequestIdFromRequest(req),
+    request_id: requestId,
+  });
+}
+
+function buildIncompleteChildrenDetails(body: Record<string, unknown>): PublicIssueIncompleteChildrenDetails {
+  const rawChildren = Array.isArray(body.incomplete_children) ? body.incomplete_children : [];
+  const incompleteChildren = rawChildren.flatMap((child) => {
+    if (!child || typeof child !== 'object') return [];
+    const row = child as Record<string, unknown>;
+    if (typeof row.id !== 'string' || typeof row.title !== 'string') return [];
+    const ticketNumber = typeof row.ticket_number === 'number' ? row.ticket_number : null;
+    const state = row.state === null || row.state === undefined
+      ? null
+      : asIssueState(row.state);
+    return [{ id: row.id, title: row.title, ticket_number: ticketNumber, state }];
+  });
+
+  return PublicIssueIncompleteChildrenDetailsSchema.parse({
+    reason: 'incomplete_children',
+    incomplete_children: incompleteChildren,
+    confirm_action: typeof body.confirm_action === 'string'
+      ? body.confirm_action
+      : 'Set confirm_orphan_children: true to proceed',
   });
 }
