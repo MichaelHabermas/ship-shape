@@ -325,3 +325,9 @@ The transferable rules:
 - Reuse the same canonical read scope list as the agent (`ship-agent-scopes.ts`) wherever a public route requires that triple.
 
 ShipShape example (2026-06): `ship login` default scope string includes issues/sprints read so `ship fleetgraph attention-contexts` works after a vanilla login; FleetGraph route metadata imports `SHIP_AGENT_READ_SCOPES` instead of a third literal copy.
+
+## 27. Frontends Should Consume Generated Wire Contracts
+
+When a frontend hand-rolls DTOs for API responses that are already in OpenAPI, schema drift becomes a runtime surprise instead of a compile-time failure. Generated OpenAPI aliases should be the frontend source of truth for response contracts; local types should describe only UI-derived state that does not cross the wire.
+
+ShipShape example (2026-06): Team and Reviews screens had local response shapes that drifted from runtime Team endpoints. Moving those wire types to generated OpenAPI aliases made `TeamGridResponse`, assignments, review cells, people, weeks, and approval records compile against the same contract the API publishes.

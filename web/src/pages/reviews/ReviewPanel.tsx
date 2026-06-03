@@ -163,7 +163,7 @@ export function ReviewPanel({
         <div className="border-t border-border px-4 py-2 bg-purple-500/5">
           <div className="text-[10px] uppercase tracking-wider text-purple-400 mb-1">Previous Feedback</div>
           <p className="text-xs text-muted">
-            {(isRetroMode ? (selectedCell.cell.reviewApproval as { feedback?: string })?.feedback : (selectedCell.cell.planApproval as { feedback?: string })?.feedback) || 'No feedback provided'}
+            {(isRetroMode ? selectedCell.cell.reviewApproval?.feedback : selectedCell.cell.planApproval?.feedback) || 'No feedback provided'}
           </p>
         </div>
       )}

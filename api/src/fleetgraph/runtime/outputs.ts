@@ -1,7 +1,7 @@
 // Shapes FleetGraph decision packets, persisted runs, and deltas into visible output.
 import { proposedRecipientForVisibleOutput, recipientRationaleForRole } from '../evidence.js';
 import type { FleetGraphChangeSummary, FleetGraphEvidenceItem } from '@ship/shared';
-import type { FleetGraphRun } from '../persistence.js';
+import type { FleetGraphRunRow } from '../persistence.js';
 import type {
   FleetGraphDecisionPacket,
   FleetGraphVisibleOutput,
@@ -27,7 +27,7 @@ export function visibleOutputFromPacket(
   };
 }
 
-export function visibleOutputFromRun(run: FleetGraphRun | undefined): FleetGraphVisibleOutput | null {
+export function visibleOutputFromRun(run: FleetGraphRunRow | undefined): FleetGraphVisibleOutput | null {
   if (!run || !isJsonRecord(run.output_snapshot)) return null;
   const output = run.output_snapshot;
   if (typeof output.title !== 'string' || typeof output.summary !== 'string') return null;

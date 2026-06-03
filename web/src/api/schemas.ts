@@ -26,6 +26,17 @@ export type ActiveWeeksResponse = components['schemas']['ActiveWeeksResponse'];
 export type MyWeekResponse = components['schemas']['MyWeekResponse'];
 export type StandupSlot = components['schemas']['StandupSlot'];
 export type WeekProject = components['schemas']['WeekProject'];
+export type TeamAssignment = components['schemas']['TeamAssignment'];
+export type TeamAssignmentError = components['schemas']['TeamAssignmentError'];
+export type TeamAssignmentsResponse = components['schemas']['TeamAssignmentsResponse'];
+export type TeamAssignResponse = components['schemas']['TeamAssignResponse'];
+export type TeamGridResponse = components['schemas']['TeamGridResponse'];
+export type TeamUnassignResponse = components['schemas']['TeamUnassignResponse'];
+export type ReviewCell = components['schemas']['ReviewCell'];
+export type ReviewsResponse = components['schemas']['ReviewsResponse'];
+export type SprintPeriod = components['schemas']['SprintPeriod'];
+export type ApprovalTracking = components['schemas']['ApprovalTracking'];
+export type ApprovalState = ApprovalTracking['state'];
 
 /** Issue row from GET /weeks/:id/issues (sprint issue list). */
 export interface WeekSprintIssue {

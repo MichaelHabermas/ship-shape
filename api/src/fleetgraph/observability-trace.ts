@@ -1,3 +1,4 @@
+// FleetGraph observability facade exposes trace capture helpers and public trace types.
 export type {
   FleetGraphNodeRecorder,
   FleetGraphTraceCapture,

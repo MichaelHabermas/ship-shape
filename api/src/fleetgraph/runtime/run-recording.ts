@@ -1,7 +1,7 @@
 // Converts FleetGraph runtime decisions into persisted run inputs and public results.
 import type {
   FleetGraphFinding,
-  FleetGraphRun,
+  FleetGraphRunRow,
   JsonRecord,
   RecordFleetGraphRunInput,
   SaveBlockedImportantIssueFindingInput,
@@ -55,7 +55,7 @@ export function runInputFor(input: {
 export function resultFor(input: {
   decision: FleetGraphResult['decision'];
   finding?: FleetGraphFinding | null;
-  run: FleetGraphRun;
+  run: FleetGraphRunRow;
   findingInput?: SaveBlockedImportantIssueFindingInput;
   runInput: RecordFleetGraphRunInput;
   visibleOutput?: FleetGraphVisibleOutput;

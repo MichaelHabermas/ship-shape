@@ -7,7 +7,7 @@ import { runFleetGraph, type FleetGraphCoreOptions, type FleetGraphPersistencePo
 import {
   blockedImportantIssueDedupeKey,
   type FleetGraphFinding,
-  type FleetGraphRun,
+  type FleetGraphRunRow,
   type RecordFleetGraphRunInput,
 } from '../persistence.js';
 import type { Principal } from '../../security/principal.js';
@@ -78,7 +78,7 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
   };
 }
 
-function run(decision: FleetGraphRun['decision']): FleetGraphRun {
+function run(decision: FleetGraphRunRow['decision']): FleetGraphRunRow {
   return {
     id: '77777777-7777-4777-8777-777777777777',
     workspace_id: workspaceId,

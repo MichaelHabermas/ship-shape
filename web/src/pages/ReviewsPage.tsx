@@ -1,3 +1,4 @@
+// ReviewsPage coordinates Team review data loading and approval mutations.
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiPost, apiGet, readJson } from '@/lib/api';
@@ -75,6 +76,7 @@ export function ReviewsPage() {
           state: 'approved',
           approved_by: null,
           approved_at: new Date().toISOString(),
+          approved_version_id: null,
           comment: comment?.trim() || null,
         },
       };
@@ -104,7 +106,13 @@ export function ReviewsPage() {
       updated.reviews[personId] = { ...updated.reviews[personId] };
       updated.reviews[personId][weekNumber] = {
         ...updated.reviews[personId][weekNumber],
-        [approvalField]: { state: 'changes_requested', approved_by: null, approved_at: new Date().toISOString(), feedback },
+        [approvalField]: {
+          state: 'changes_requested',
+          approved_by: null,
+          approved_at: new Date().toISOString(),
+          approved_version_id: null,
+          feedback,
+        },
       };
       return updated;
     });
@@ -133,6 +141,7 @@ export function ReviewsPage() {
           state: 'approved',
           approved_by: null,
           approved_at: new Date().toISOString(),
+          approved_version_id: null,
           comment: comment?.trim() || null,
         },
         reviewRating: { value: rating, rated_by: '', rated_at: new Date().toISOString() },

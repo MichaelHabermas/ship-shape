@@ -1,9 +1,11 @@
+// FleetGraph demo DB helpers seed and refresh local demo fixtures safely.
 import { type FleetGraphSignalType } from '@ship/shared';
 import bcrypt from 'bcryptjs';
 import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import { STALE_ISSUE_DAYS } from '../../fleetgraph/detection/attention-policy.js';
 import { fleetGraphAttentionDedupeKey } from '../../fleetgraph/persistence.js';
+import type { IdRow } from '../../routes/route-query-rows.js';
 import { requireFirstRow } from '../../utils/query-rows.js';
 
 const FALLBACK_WORKSPACE_NAME = 'FleetGraph Demo Workspace';
@@ -12,7 +14,6 @@ const SEEDED_APP_WORKSPACE_NAME = 'Ship Workspace';
 export const DEMO_FIXTURE_VERSION = 1;
 export const STALE_DEMO_ISSUE_DAYS = STALE_ISSUE_DAYS + 1;
 
-type IdRow = { id: string };
 export type UserRow = { id: string; email: string; name: string };
 type WorkspaceRow = { id: string; sprint_start_date: Date | string };
 

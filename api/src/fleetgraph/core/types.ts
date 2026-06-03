@@ -1,3 +1,4 @@
+// FleetGraph core types define runtime ports, graph input, and execution results.
 import { pool } from '../../db/client.js';
 import type { generateProactiveCreateText } from '../model.js';
 import type { FleetGraphNodeRecorder } from '../observability-trace.js';
@@ -12,7 +13,7 @@ import {
   saveBlockedImportantIssueFinding,
   suppressFleetGraphFinding,
   type FleetGraphFinding,
-  type FleetGraphRun,
+  type FleetGraphRunRow,
   type JsonRecord,
   type RecordFleetGraphRunInput,
   type SaveBlockedImportantIssueFindingInput,
@@ -29,10 +30,10 @@ type QueryRunner = Pick<typeof pool, 'query'>;
 
 export type FleetGraphPersistencePort = {
   saveFinding(input: SaveBlockedImportantIssueFindingInput): Promise<FleetGraphFinding>;
-  recordRun(input: RecordFleetGraphRunInput): Promise<FleetGraphRun>;
+  recordRun(input: RecordFleetGraphRunInput): Promise<FleetGraphRunRow>;
   getFinding(workspaceId: string, findingId: string): Promise<FleetGraphFinding | null>;
   listFindingsForSource(input: { workspaceId: string; sourceIssueId?: string; sourceSprintId?: string }): Promise<FleetGraphFinding[]>;
-  listAnchorRuns(input: { workspaceId: string; findingId: string; limit?: number }): Promise<FleetGraphRun[]>;
+  listAnchorRuns(input: { workspaceId: string; findingId: string; limit?: number }): Promise<FleetGraphRunRow[]>;
   refineDraft(input: {
     workspaceId: string;
     findingId: string;

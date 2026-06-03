@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useReviewQueue } from '@/contexts/ReviewQueueContext';
 import { apiGetJson, apiPostJson } from '@/lib/api';
+import type { ApprovalState, ApprovalTracking } from '@ship/shared';
 import type { Document } from '@/api/schemas';
 
 export interface WeeklyReviewDocumentRef {
@@ -16,19 +17,16 @@ export interface WeeklyReviewDocumentRef {
 }
 
 interface ApprovalDetails {
-  state: string | null;
+  state: ApprovalState;
   approvedAt: string | null;
   comment: string | null;
   feedback: string | null;
   rating: number | null;
 }
 
-interface ApprovalData {
-  state?: string;
-  approved_by?: string;
-  approved_at?: string;
-  feedback?: string | null;
-  comment?: string | null;
+interface WeekApprovalResponse {
+  approval?: ApprovalTracking;
+  review_rating?: { value?: number };
 }
 
 export interface WeeklyReviewActionsState {
@@ -43,7 +41,7 @@ export interface WeeklyReviewActionsState {
   queueActive: boolean;
   queueIndex: number;
   queueLength: number;
-  approvalState: string | null;
+  approvalState: ApprovalState;
   approvedAt: string | null;
   approvalComment: string | null;
   requestChangesComment: string | null;
@@ -101,11 +99,6 @@ export function useWeeklyReviewActions(
     approverName?: string;
   }
 
-  interface WeekApprovalResponse {
-    approval?: ApprovalData;
-    review_rating?: { value?: number };
-  }
-
   // Fetch sprint data with approval state + approver name in a single query
   const { data: sprintData } = useQuery<SprintApprovalData>({
     queryKey: ['sprint-approval-v2', sprintIdFromQuery || `lookup-${projectId}-${weekNumber}`, isRetro],
@@ -124,7 +117,7 @@ export function useWeeklyReviewActions(
       const props = (data.properties && typeof data.properties === 'object'
         ? data.properties
         : {}) as Record<string, unknown>;
-      const approval = (isRetro ? props.review_approval : props.plan_approval) as ApprovalData | undefined;
+      const approval = (isRetro ? props.review_approval : props.plan_approval) as ApprovalTracking | undefined;
       const result: SprintApprovalData = {
         id: data.id,
         properties: props,
@@ -152,14 +145,14 @@ export function useWeeklyReviewActions(
 
   // Derive approval state from sprint data (or local override after action)
   const sprintProps = (sprintData?.properties || {});
-  const planApproval = (sprintProps.plan_approval as ApprovalData | null) ?? null;
-  const reviewApproval = (sprintProps.review_approval as ApprovalData | null) ?? null;
+  const planApproval = (sprintProps.plan_approval as ApprovalTracking | null) ?? null;
+  const reviewApproval = (sprintProps.review_approval as ApprovalTracking | null) ?? null;
   const reviewRating = (sprintProps.review_rating as { value?: number } | null) ?? null;
   const activeApproval = isRetro ? reviewApproval : planApproval;
 
-  const approvalState = localApprovalOverride !== null
+  const approvalState: ApprovalState = localApprovalOverride !== null
     ? localApprovalOverride.state
-    : activeApproval?.state || null;
+    : (activeApproval?.state ?? null);
   const approvedAt = localApprovalOverride !== null
     ? localApprovalOverride.approvedAt
     : activeApproval?.approved_at || null;

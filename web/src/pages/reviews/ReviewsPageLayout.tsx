@@ -1,3 +1,4 @@
+// ReviewsPageLayout renders the review grid, selection state, and side review panel.
 import { cn } from '@/lib/cn';
 import { formatDateRange } from '@/lib/date-utils';
 import { REVIEW_COLORS, REVIEW_STATUS_TEXT, type ReviewsData, type SelectedCell, type BatchMode } from './reviews-types.js';
@@ -364,6 +365,7 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
                     state: 'approved',
                     approved_by: null,
                     approved_at: new Date().toISOString(),
+                    approved_version_id: null,
                     comment: comment?.trim() || null,
                   },
                 },
@@ -381,6 +383,7 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
                     state: 'approved',
                     approved_by: null,
                     approved_at: new Date().toISOString(),
+                    approved_version_id: null,
                     comment: comment?.trim() || null,
                   },
                   reviewRating: { value: rating, rated_by: '', rated_at: new Date().toISOString() },
@@ -396,7 +399,13 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
                 ...prev,
                 cell: {
                   ...prev.cell,
-                  [approvalField]: { state: 'changes_requested', approved_by: null, approved_at: new Date().toISOString(), feedback },
+                  [approvalField]: {
+                    state: 'changes_requested',
+                    approved_by: null,
+                    approved_at: new Date().toISOString(),
+                    approved_version_id: null,
+                    feedback,
+                  },
                 },
               } : null);
               // Auto-advance in batch mode

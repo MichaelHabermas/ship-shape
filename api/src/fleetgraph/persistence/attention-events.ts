@@ -1,10 +1,10 @@
+// FleetGraph attention-event persistence claims, completes, retries, and fails queued events.
 import { pool } from '../../db/client.js';
 import {
   type ClaimFleetGraphAttentionEventsInput,
   type CompleteFleetGraphAttentionEventInput,
   type EnqueueFleetGraphAttentionEventInput,
   type FailFleetGraphAttentionEventInput,
-  type FleetGraphAttentionEvent,
   type FleetGraphAttentionEventRow,
   type QueryRunner,
   type RetryFleetGraphAttentionEventInput,
@@ -30,7 +30,7 @@ function boundedLastError(error: string): string {
 export async function enqueueFleetGraphAttentionEvent(
   input: EnqueueFleetGraphAttentionEventInput,
   db: QueryRunner = pool
-): Promise<FleetGraphAttentionEvent | null> {
+): Promise<FleetGraphAttentionEventRow | null> {
   const result = await db.query<FleetGraphAttentionEventRow>(
     `INSERT INTO fleetgraph_attention_events (
        workspace_id, source_issue_id, source_sprint_id, event_type, reason, available_at
@@ -63,7 +63,7 @@ export async function enqueueFleetGraphAttentionEvent(
 export async function claimFleetGraphAttentionEvents(
   input: ClaimFleetGraphAttentionEventsInput,
   db: QueryRunner = pool
-): Promise<FleetGraphAttentionEvent[]> {
+): Promise<FleetGraphAttentionEventRow[]> {
   const workspaceIds = input.workspaceIds && input.workspaceIds.length > 0 ? input.workspaceIds : null;
   const result = await db.query<FleetGraphAttentionEventRow>(
     `WITH claimed AS (
@@ -106,7 +106,7 @@ export async function claimFleetGraphAttentionEvents(
 export async function completeFleetGraphAttentionEvent(
   input: CompleteFleetGraphAttentionEventInput,
   db: QueryRunner = pool
-): Promise<FleetGraphAttentionEvent | null> {
+): Promise<FleetGraphAttentionEventRow | null> {
   const result = await db.query<FleetGraphAttentionEventRow>(
     `UPDATE fleetgraph_attention_events
         SET status = $2,
@@ -127,7 +127,7 @@ export async function completeFleetGraphAttentionEvent(
 export async function retryFleetGraphAttentionEvent(
   input: RetryFleetGraphAttentionEventInput,
   db: QueryRunner = pool
-): Promise<FleetGraphAttentionEvent | null> {
+): Promise<FleetGraphAttentionEventRow | null> {
   const result = await db.query<FleetGraphAttentionEventRow>(
     `UPDATE fleetgraph_attention_events
         SET status = 'pending',
@@ -148,7 +148,7 @@ export async function retryFleetGraphAttentionEvent(
 export async function failFleetGraphAttentionEvent(
   input: FailFleetGraphAttentionEventInput,
   db: QueryRunner = pool
-): Promise<FleetGraphAttentionEvent | null> {
+): Promise<FleetGraphAttentionEventRow | null> {
   const maxAttempts = input.maxAttempts ?? ATTENTION_EVENT_MAX_ATTEMPTS;
   const eventResult = await db.query<{ attempt_count: number }>(
     `SELECT attempt_count

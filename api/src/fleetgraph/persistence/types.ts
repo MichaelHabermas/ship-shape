@@ -1,3 +1,4 @@
+// FleetGraph persistence types separate database rows from mapped finding domain shapes.
 import type { FleetGraphRunMode, FleetGraphSeverity } from '@ship/shared';
 import type { Pool, PoolClient } from 'pg';
 
@@ -142,12 +143,7 @@ export type FleetGraphNotificationFinding = FleetGraphFinding & {
   read_at: Date | null;
 };
 
-export type FleetGraphRun = FleetGraphRunRow;
-export type FleetGraphAttentionEvent = FleetGraphAttentionEventRow;
-
 export type FleetGraphWorkerTickStatus = 'running' | 'completed' | 'failed' | 'skipped_lock';
-
-export type FleetGraphWorkerTick = FleetGraphWorkerTickRow;
 
 export type SaveBlockedImportantIssueFindingInput = {
   workspaceId: string;

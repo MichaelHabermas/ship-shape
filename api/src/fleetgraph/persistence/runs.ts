@@ -1,11 +1,10 @@
+// FleetGraph run persistence records graph runs and worker tick lifecycle rows.
 import { pool } from '../../db/client.js';
 import { requireFirstRow } from '../../utils/query-rows.js';
 import {
   jsonParam,
   type CompleteFleetGraphWorkerTickInput,
-  type FleetGraphRun,
   type FleetGraphRunRow,
-  type FleetGraphWorkerTick,
   type FleetGraphWorkerTickRow,
   type QueryRunner,
   type RecordFleetGraphRunInput,
@@ -14,7 +13,7 @@ import {
 export async function recordFleetGraphRun(
   input: RecordFleetGraphRunInput,
   db: QueryRunner = pool
-): Promise<FleetGraphRun> {
+): Promise<FleetGraphRunRow> {
   const result = await db.query<FleetGraphRunRow>(
     `INSERT INTO fleetgraph_runs (
        workspace_id, finding_id, source_issue_id, source_sprint_id,
@@ -55,7 +54,7 @@ export async function recordFleetGraphRun(
 export async function listFleetGraphAnchorRuns(
   input: { workspaceId: string; findingId: string; limit?: number },
   db: QueryRunner = pool
-): Promise<FleetGraphRun[]> {
+): Promise<FleetGraphRunRow[]> {
   const result = await db.query<FleetGraphRunRow>(
     `SELECT *
        FROM fleetgraph_runs
@@ -73,7 +72,7 @@ export async function listFleetGraphAnchorRuns(
 export async function startFleetGraphWorkerTick(
   input: { instanceId: string; deadlineAt: Date },
   db: QueryRunner = pool
-): Promise<FleetGraphWorkerTick> {
+): Promise<FleetGraphWorkerTickRow> {
   const result = await db.query<FleetGraphWorkerTickRow>(
     `INSERT INTO fleetgraph_worker_ticks (instance_id, status, deadline_at)
      VALUES ($1, 'running', $2)
@@ -87,7 +86,7 @@ export async function startFleetGraphWorkerTick(
 export async function heartbeatFleetGraphWorkerTick(
   tickId: string,
   db: QueryRunner = pool
-): Promise<FleetGraphWorkerTick | null> {
+): Promise<FleetGraphWorkerTickRow | null> {
   const result = await db.query<FleetGraphWorkerTickRow>(
     `UPDATE fleetgraph_worker_ticks
         SET heartbeat_at = NOW()
@@ -103,7 +102,7 @@ export async function heartbeatFleetGraphWorkerTick(
 export async function completeFleetGraphWorkerTick(
   input: CompleteFleetGraphWorkerTickInput,
   db: QueryRunner = pool
-): Promise<FleetGraphWorkerTick | null> {
+): Promise<FleetGraphWorkerTickRow | null> {
   const result = await db.query<FleetGraphWorkerTickRow>(
     `UPDATE fleetgraph_worker_ticks
         SET status = $2,

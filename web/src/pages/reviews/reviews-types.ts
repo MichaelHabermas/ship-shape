@@ -1,3 +1,6 @@
+// Reviews page types derive Team review wire contracts and keep local UI state shapes.
+import type { ReviewCell, ReviewsResponse, SprintPeriod } from '@/api/schemas';
+
 // OPM 5-level performance rating scale
 export const OPM_RATINGS = [
   { value: 5, label: 'Outstanding', color: 'text-green-500', bg: 'bg-green-500/10' },
@@ -27,55 +30,10 @@ export const REVIEW_STATUS_TEXT: Record<ReviewStatus, string> = {
   empty: 'no submission',
 };
 
-export interface Week {
-  number: number;
-  name: string;
-  startDate: string;
-  endDate: string;
-  isCurrent: boolean;
-}
-
-export interface ReviewPerson {
-  personId: string;
-  name: string;
-  programId: string | null;
-  programName: string | null;
-  programColor: string | null;
-  reportsTo?: string | null;
-}
-
-export interface ApprovalInfo {
-  state: string;
-  approved_by?: string | null;
-  approved_at?: string | null;
-  approved_version_id?: number | null;
-  feedback?: string | null;
-  comment?: string | null;
-}
-
-export interface RatingInfo {
-  value: number;
-  rated_by?: string;
-  rated_at?: string;
-}
-
-export interface ReviewCell {
-  planApproval: ApprovalInfo | null;
-  reviewApproval: ApprovalInfo | null;
-  reviewRating: RatingInfo | null;
-  hasPlan: boolean;
-  hasRetro: boolean;
-  sprintId: string | null;
-  planDocId: string | null;
-  retroDocId: string | null;
-}
-
-export interface ReviewsData {
-  people: ReviewPerson[];
-  weeks: Week[];
-  reviews: Record<string, Record<number, ReviewCell>>;
-  currentSprintNumber: number;
-}
+export type Week = SprintPeriod;
+export type ReviewPerson = ReviewsResponse['people'][number];
+export type ReviewsData = ReviewsResponse;
+export type { ReviewCell, ApprovalState, ApprovalTracking } from '@/api/schemas';
 
 export interface ProgramGroup {
   programId: string | null;

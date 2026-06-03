@@ -1,3 +1,4 @@
+// FleetGraph product-surface fixtures collect persisted and runtime cases for copy evals.
 import path from 'path';
 import { pool } from '../../db/client.js';
 import { fleetGraphProductSurfaceCases } from '../../fleetgraph/eval/product-surface.js';
@@ -5,7 +6,7 @@ import { runFleetGraph, type FleetGraphPersistencePort } from '../../fleetgraph/
 import {
   blockedImportantIssueDedupeKey,
   type FleetGraphFinding,
-  type FleetGraphRun,
+  type FleetGraphRunRow,
   type RecordFleetGraphRunInput,
 } from '../../fleetgraph/persistence.js';
 import type { FleetGraphAttentionCandidate } from '../../fleetgraph/detection/detector.js';
@@ -333,7 +334,7 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
   };
 }
 
-function run(decision: FleetGraphRun['decision']): FleetGraphRun {
+function run(decision: FleetGraphRunRow['decision']): FleetGraphRunRow {
   return {
     id: '77777777-7777-4777-8777-777777777777',
     workspace_id: workspaceId,

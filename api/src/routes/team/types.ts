@@ -1,4 +1,5 @@
-import type { SprintRouteProperties } from '@ship/shared';
+import type { ApprovalTracking, SprintRouteProperties } from '@ship/shared';
+import { asApprovalRecord } from '../../utils/approval-workflow.js';
 
 export type EmptyRow = Record<string, never>;
 
@@ -173,11 +174,28 @@ export type ReviewPersonResponse = {
   reportsTo: string | null;
 };
 
+export type ReviewRatingInfo = {
+  value: number;
+  rated_by: string;
+  rated_at: string;
+};
+
+export type ReviewCellData = {
+  planApproval: ApprovalTracking | null;
+  reviewApproval: ApprovalTracking | null;
+  reviewRating: ReviewRatingInfo | null;
+  hasPlan: boolean;
+  hasRetro: boolean;
+  sprintId: string | null;
+  planDocId: string | null;
+  retroDocId: string | null;
+};
+
 export type ReviewSprintMapEntry = {
   sprintId: string;
-  planApproval: unknown;
-  reviewApproval: unknown;
-  reviewRating: unknown;
+  planApproval: ApprovalTracking | null;
+  reviewApproval: ApprovalTracking | null;
+  reviewRating: ReviewRatingInfo | null;
   programId: string | null;
   programName: string | null;
   programColor: string | null;
@@ -220,6 +238,23 @@ export function toNumber(value: string | number | null | undefined): number {
   return typeof value === 'number' ? value : Number(value);
 }
 
+function asReviewRatingInfo(value: unknown): ReviewRatingInfo | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (
+    typeof record.value !== 'number'
+    || typeof record.rated_by !== 'string'
+    || typeof record.rated_at !== 'string'
+  ) {
+    return null;
+  }
+  return {
+    value: record.value,
+    rated_by: record.rated_by,
+    rated_at: record.rated_at,
+  };
+}
+
 export function mapReviewPersonResponse(
   person: ReviewPersonRow,
   currentSprintNumber: number,
@@ -244,9 +279,9 @@ export function mapReviewSprintMapEntry(
     key: `${row.person_id}_${row.sprint_number}`,
     entry: {
       sprintId: row.sprint_id,
-      planApproval: row.plan_approval || null,
-      reviewApproval: row.review_approval || null,
-      reviewRating: row.review_rating || null,
+      planApproval: asApprovalRecord(row.plan_approval),
+      reviewApproval: asApprovalRecord(row.review_approval),
+      reviewRating: asReviewRatingInfo(row.review_rating),
       programId: row.program_id || null,
       programName: row.program_name || null,
       programColor: row.program_color || null,
