@@ -29,6 +29,11 @@
         "scheme": "bearer",
         "description": "API token authentication. Get your token from Settings > API Tokens."
       },
+      "oauthBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "PlugForge OAuth access token authentication for /api/v1."
+      },
       "cookieAuth": {
         "type": "apiKey",
         "in": "cookie",
@@ -202,6 +207,9 @@
           },
           "message": {
             "type": "string"
+          },
+          "details": {
+            "nullable": true
           }
         },
         "required": [
@@ -294,6 +302,21 @@
             "description": "Parent document ID for hierarchical wiki pages",
             "example": "550e8400-e29b-41d4-a716-446655440000"
           },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "workspace"
+            ],
+            "description": "Document visibility scope"
+          },
+          "converted_from_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "Source document ID when this row was produced by type conversion",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -371,6 +394,14 @@
             "format": "uuid",
             "description": "UUID identifier",
             "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "workspace"
+            ],
+            "description": "Document visibility scope"
           },
           "created_at": {
             "type": "string",
@@ -504,6 +535,48 @@
             "description": "Type of document"
           }
         }
+      },
+      "DocumentNotFoundError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "Document not found"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ParentDocumentNotFoundError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "Parent document not found"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "DocumentConvertValidationError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "Cannot convert an archived document"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
       },
       "TipTapDocument": {
         "type": "object",
@@ -710,6 +783,32 @@
               "type"
             ]
           }
+        ]
+      },
+      "DocumentContentPayload": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "content"
         ]
       },
       "IssueState": {
@@ -2416,6 +2515,155 @@
           }
         }
       },
+      "ProjectRetroIssuesSummary": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "completed": {
+            "type": "integer"
+          },
+          "cancelled": {
+            "type": "integer"
+          },
+          "active": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "completed",
+          "cancelled",
+          "active"
+        ]
+      },
+      "ProjectRetroWeekItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string"
+          },
+          "sprint_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ]
+      },
+      "ProjectRetroGetResponse": {
+        "type": "object",
+        "properties": {
+          "is_draft": {
+            "type": "boolean"
+          },
+          "plan_validated": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "monetary_impact_expected": {
+            "type": "string",
+            "nullable": true
+          },
+          "monetary_impact_actual": {
+            "type": "string",
+            "nullable": true
+          },
+          "success_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_steps": {
+            "type": "string",
+            "nullable": true
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "weeks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectRetroWeekItem"
+            }
+          },
+          "issues_summary": {
+            "$ref": "#/components/schemas/ProjectRetroIssuesSummary"
+          }
+        },
+        "required": [
+          "is_draft",
+          "monetary_impact_expected",
+          "monetary_impact_actual",
+          "success_criteria",
+          "next_steps",
+          "content",
+          "weeks",
+          "issues_summary"
+        ]
+      },
+      "ProjectRetroSaveResponse": {
+        "type": "object",
+        "properties": {
+          "is_draft": {
+            "type": "boolean"
+          },
+          "plan_validated": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "monetary_impact_expected": {
+            "type": "string",
+            "nullable": true
+          },
+          "monetary_impact_actual": {
+            "type": "string",
+            "nullable": true
+          },
+          "success_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_steps": {
+            "type": "string",
+            "nullable": true
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          }
+        },
+        "required": [
+          "is_draft",
+          "content"
+        ]
+      },
       "Program": {
         "type": "object",
         "properties": {
@@ -3255,6 +3503,99 @@
           "updated_at"
         ]
       },
+      "SprintReviewResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "sprint_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "plan_validated": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "owner_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "owner_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "owner_email": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "is_draft": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "sprint_id",
+          "title",
+          "content",
+          "plan_validated",
+          "owner_id",
+          "created_at",
+          "updated_at",
+          "is_draft"
+        ]
+      },
+      "WeekPlanApprovalResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "approval": {
+            "$ref": "#/components/schemas/ApprovalTracking"
+          }
+        },
+        "required": [
+          "success",
+          "approval"
+        ]
+      },
       "ActiveWeeksResponse": {
         "type": "object",
         "properties": {
@@ -3532,6 +3873,57 @@
         "required": [
           "personId",
           "id",
+          "name",
+          "email",
+          "isArchived",
+          "isPending"
+        ]
+      },
+      "TeamPersonListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Person document ID",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "user_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "format": "email"
+          },
+          "isArchived": {
+            "type": "boolean"
+          },
+          "isPending": {
+            "type": "boolean"
+          },
+          "reportsTo": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
           "name",
           "email",
           "isArchived",
@@ -3971,6 +4363,64 @@
           "data"
         ]
       },
+      "WorkspaceCurrentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "workspace": {
+                "$ref": "#/components/schemas/Workspace"
+              }
+            },
+            "required": [
+              "workspace"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "WorkspaceSwitchData": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "workspaceId"
+        ]
+      },
+      "WorkspaceSwitchResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkspaceSwitchData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
       "CreateWorkspace": {
         "type": "object",
         "properties": {
@@ -4091,6 +4541,216 @@
           },
           "data": {
             "$ref": "#/components/schemas/WorkspaceMembersListData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "WorkspaceInvite": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "token": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "member"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "invitedByName": {
+            "type": "string"
+          },
+          "x509SubjectDn": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "token",
+          "role",
+          "expiresAt",
+          "createdAt"
+        ]
+      },
+      "WorkspaceInvitesListData": {
+        "type": "object",
+        "properties": {
+          "invites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceInvite"
+            }
+          }
+        },
+        "required": [
+          "invites"
+        ]
+      },
+      "WorkspaceInvitesListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkspaceInvitesListData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "WorkspaceInviteCreateData": {
+        "type": "object",
+        "properties": {
+          "invite": {
+            "$ref": "#/components/schemas/WorkspaceInvite"
+          }
+        },
+        "required": [
+          "invite"
+        ]
+      },
+      "WorkspaceInviteCreateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkspaceInviteCreateData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "WorkspaceAuditLog": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "action": {
+            "type": "string"
+          },
+          "resourceType": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "actorEmail": {
+            "type": "string"
+          },
+          "actorName": {
+            "type": "string"
+          },
+          "impersonatingEmail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "resourceType",
+          "resourceId",
+          "details",
+          "ipAddress",
+          "userAgent",
+          "createdAt",
+          "actorEmail",
+          "actorName",
+          "impersonatingEmail"
+        ]
+      },
+      "WorkspaceAuditLogsListData": {
+        "type": "object",
+        "properties": {
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceAuditLog"
+            }
+          }
+        },
+        "required": [
+          "logs"
+        ]
+      },
+      "WorkspaceAuditLogsListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkspaceAuditLogsListData"
           }
         },
         "required": [
@@ -8183,11 +8843,23 @@
             "type": "string"
           },
           "sprintStartDate": {
-            "type": "string",
-            "nullable": true,
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "ISO 8601 date string (YYYY-MM-DD)",
-            "example": "2025-01-30"
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "ISO 8601 date string (YYYY-MM-DD)",
+                "example": "2025-01-30"
+              },
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 datetime string",
+                "example": "2025-01-30T14:30:00.000Z"
+              },
+              {
+                "nullable": true
+              }
+            ]
           },
           "archivedAt": {
             "type": "string",
@@ -8242,6 +8914,35 @@
             "required": [
               "workspaces"
             ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "AdminCreateWorkspaceData": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "$ref": "#/components/schemas/AdminWorkspace"
+          }
+        },
+        "required": [
+          "workspace"
+        ]
+      },
+      "AdminCreateWorkspaceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminCreateWorkspaceData"
           }
         },
         "required": [
@@ -8371,7 +9072,74 @@
           "connected"
         ]
       },
-      "DocumentContentPayload": {
+      "PublicApiScope": {
+        "type": "string",
+        "enum": [
+          "documents:read",
+          "documents:write",
+          "issues:read",
+          "issues:write",
+          "sprints:read",
+          "sprints:write",
+          "webhooks:manage"
+        ]
+      },
+      "PlatformWebhookEventType": {
+        "type": "string",
+        "enum": [
+          "document.created",
+          "document.updated",
+          "document.deleted",
+          "issue.created",
+          "issue.assigned",
+          "issue.status_changed",
+          "sprint.started",
+          "sprint.completed"
+        ]
+      },
+      "PlatformWebhookDeliveryStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "sending",
+          "succeeded",
+          "retrying",
+          "failed",
+          "dlq"
+        ]
+      },
+      "CreateOAuthAppRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https:\\/\\/[^#]+$|^http:\\/\\/(?:localhost|127\\.0\\.0\\.1|\\[::1\\])(?::\\d+)?(?:[/?][^#]*)?$"
+            },
+            "minItems": 1
+          },
+          "requested_scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicApiScope"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "name",
+          "redirect_uris",
+          "requested_scopes"
+        ]
+      },
+      "OAuthAppCreated": {
         "type": "object",
         "properties": {
           "id": {
@@ -8380,38 +9148,177 @@
             "description": "UUID identifier",
             "example": "550e8400-e29b-41d4-a716-446655440000"
           },
-          "title": {
+          "name": {
             "type": "string"
           },
-          "content": {
-            "type": "object",
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "client_secret": {
+            "type": "string",
+            "description": "Raw client secret. Returned only once during app creation."
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "requested_scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicApiScope"
+            }
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "warning": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "client_id",
+          "client_secret_id",
+          "client_secret",
+          "redirect_uris",
+          "requested_scopes",
+          "is_active",
+          "created_at",
+          "updated_at",
+          "warning"
+        ]
+      },
+      "OAuthAppSecret": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "grace",
+              "revoked"
+            ]
+          },
+          "expires_at": {
+            "type": "string",
             "nullable": true,
-            "additionalProperties": {
-              "nullable": true
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "revoked_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "expires_at",
+          "revoked_at",
+          "created_at"
+        ]
+      },
+      "OAuthAppSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "requested_scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicApiScope"
+            }
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "secrets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OAuthAppSecret"
             }
           }
         },
         "required": [
           "id",
-          "title",
-          "content"
+          "name",
+          "client_id",
+          "redirect_uris",
+          "requested_scopes",
+          "is_active",
+          "created_at",
+          "updated_at",
+          "secrets"
         ]
       },
-      "WorkspaceSwitchData": {
-        "type": "object",
-        "properties": {
-          "workspaceId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "UUID identifier",
-            "example": "550e8400-e29b-41d4-a716-446655440000"
-          }
-        },
-        "required": [
-          "workspaceId"
-        ]
-      },
-      "WorkspaceSwitchResponse": {
+      "OAuthAppCreatedResponse": {
         "type": "object",
         "properties": {
           "success": {
@@ -8421,7 +9328,7 @@
             ]
           },
           "data": {
-            "$ref": "#/components/schemas/WorkspaceSwitchData"
+            "$ref": "#/components/schemas/OAuthAppCreated"
           }
         },
         "required": [
@@ -8429,18 +9336,7 @@
           "data"
         ]
       },
-      "AdminCreateWorkspaceData": {
-        "type": "object",
-        "properties": {
-          "workspace": {
-            "$ref": "#/components/schemas/AdminWorkspace"
-          }
-        },
-        "required": [
-          "workspace"
-        ]
-      },
-      "AdminCreateWorkspaceResponse": {
+      "OAuthAppsListResponse": {
         "type": "object",
         "properties": {
           "success": {
@@ -8450,7 +9346,451 @@
             ]
           },
           "data": {
-            "$ref": "#/components/schemas/AdminCreateWorkspaceData"
+            "type": "object",
+            "properties": {
+              "apps": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/OAuthAppSummary"
+                }
+              }
+            },
+            "required": [
+              "apps"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "RotateOAuthAppSecretRequest": {
+        "type": "object",
+        "properties": {
+          "revoke_previous_immediately": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OAuthSecretRotation": {
+        "type": "object",
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "client_secret_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "previous_secret_expires_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "warning": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "app_id",
+          "client_secret_id",
+          "client_secret",
+          "previous_secret_expires_at",
+          "warning"
+        ]
+      },
+      "OAuthSecretRotationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/OAuthSecretRotation"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "OAuthSecretSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/OAuthAppSecret"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlatformWebhookCreateRequest": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/PlatformWebhookEventType"
+          },
+          "target_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?:\\/\\/(?![^/?#]*@)[^#]+$"
+          }
+        },
+        "required": [
+          "event",
+          "target_url"
+        ]
+      },
+      "PlatformWebhookSubscription": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "event": {
+            "$ref": "#/components/schemas/PlatformWebhookEventType"
+          },
+          "target_url": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "event",
+          "target_url",
+          "active",
+          "created_at"
+        ]
+      },
+      "PlatformWebhookSubscriptionCreated": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PlatformWebhookSubscription"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "signing_secret": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "signing_secret"
+            ]
+          }
+        ]
+      },
+      "PlatformWebhookDelivery": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "subscription_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "attempt_number": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PlatformWebhookDeliveryStatus"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "response_status": {
+            "type": "integer",
+            "nullable": true
+          },
+          "response_excerpt": {
+            "type": "string",
+            "nullable": true
+          },
+          "latency_ms": {
+            "type": "integer",
+            "nullable": true
+          },
+          "next_attempt_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "replay_of_delivery_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "subscription_id",
+          "event_id",
+          "attempt_number",
+          "status",
+          "idempotency_key",
+          "response_status",
+          "response_excerpt",
+          "latency_ms",
+          "next_attempt_at",
+          "replay_of_delivery_id",
+          "created_at"
+        ]
+      },
+      "PlatformPublicApiAuditRow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "user_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "method": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "scope_used": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer"
+          },
+          "latency_ms": {
+            "type": "integer"
+          },
+          "error_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "rate_limited": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "request_id",
+          "client_id",
+          "user_id",
+          "method",
+          "route",
+          "scope_used",
+          "status",
+          "latency_ms",
+          "error_code",
+          "rate_limited",
+          "created_at"
+        ]
+      },
+      "PlatformWebhookSubscriptionsPageResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlatformWebhookSubscription"
+                }
+              },
+              "next_cursor": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "data",
+              "next_cursor"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlatformWebhookDeliveriesPageResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlatformWebhookDelivery"
+                }
+              },
+              "next_cursor": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "data",
+              "next_cursor"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlatformPublicApiAuditPageResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlatformPublicApiAuditRow"
+                }
+              },
+              "next_cursor": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "data",
+              "next_cursor"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlatformWebhookCreatedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/PlatformWebhookSubscriptionCreated"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlatformWebhookReplayResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/PlatformWebhookDelivery"
           }
         },
         "required": [
@@ -15028,6 +16368,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Parent document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParentDocumentNotFoundError"
+                }
+              }
+            }
           }
         }
       }
@@ -15068,18 +16418,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "enum": [
-                        "Document not found"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/DocumentNotFoundError"
                 }
               }
             }
@@ -15125,8 +16464,25 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Document not found"
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentNotFoundError"
+                }
+              }
+            }
           }
         }
       },
@@ -15153,8 +16509,25 @@
           "204": {
             "description": "Document deleted"
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Document not found"
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentNotFoundError"
+                }
+              }
+            }
           }
         }
       }
@@ -15220,7 +16593,25 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "token_scope_denied"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ]
+                    }
+                  ]
                 }
               }
             }
@@ -15299,7 +16690,35 @@
         },
         "responses": {
           "200": {
-            "description": "Content updated"
+            "description": "Content updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentContentPayload"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token scope denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "token_scope_denied"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
           },
           "404": {
             "description": "Document not found"
@@ -15433,6 +16852,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentConvertValidationError"
                 }
               }
             }
@@ -16579,119 +18008,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "UUID identifier",
-                      "example": "550e8400-e29b-41d4-a716-446655440000"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "plan": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "plan_validated": {
-                      "type": "boolean",
-                      "nullable": true
-                    },
-                    "monetary_impact_expected": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "monetary_impact_actual": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "success_criteria": {
-                      "type": "array",
-                      "nullable": true,
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "next_steps": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "content": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": {
-                        "nullable": true
-                      }
-                    },
-                    "sprints": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "description": "UUID identifier",
-                            "example": "550e8400-e29b-41d4-a716-446655440000"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "sprint_number": {
-                            "type": "integer"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "title",
-                          "sprint_number"
-                        ]
-                      }
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "description": "UUID identifier",
-                            "example": "550e8400-e29b-41d4-a716-446655440000"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "state": {
-                            "type": "string"
-                          },
-                          "ticket_number": {
-                            "type": "integer"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "title",
-                          "state",
-                          "ticket_number"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "title",
-                    "plan",
-                    "plan_validated",
-                    "monetary_impact_expected",
-                    "monetary_impact_actual",
-                    "success_criteria",
-                    "next_steps",
-                    "content",
-                    "sprints",
-                    "issues"
-                  ]
+                  "$ref": "#/components/schemas/ProjectRetroGetResponse"
                 }
               }
             }
@@ -16734,7 +18051,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Project"
+                  "$ref": "#/components/schemas/ProjectRetroSaveResponse"
                 }
               }
             }
@@ -16772,12 +18089,12 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Retro saved",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Project"
+                  "$ref": "#/components/schemas/ProjectRetroSaveResponse"
                 }
               }
             }
@@ -17741,78 +19058,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "UUID identifier",
-                      "example": "550e8400-e29b-41d4-a716-446655440000"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "sprint_number": {
-                      "type": "integer"
-                    },
-                    "plan": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "plan_validated": {
-                      "type": "boolean",
-                      "nullable": true
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "description": "UUID identifier",
-                            "example": "550e8400-e29b-41d4-a716-446655440000"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "state": {
-                            "type": "string"
-                          },
-                          "ticket_number": {
-                            "type": "integer"
-                          },
-                          "was_planned": {
-                            "type": "boolean"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "title",
-                          "state",
-                          "ticket_number",
-                          "was_planned"
-                        ]
-                      }
-                    },
-                    "content": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": {
-                        "nullable": true
-                      }
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "sprint_number",
-                    "plan",
-                    "plan_validated",
-                    "issues",
-                    "content"
-                  ]
+                  "$ref": "#/components/schemas/SprintReviewResponse"
                 }
               }
             }
@@ -17863,7 +19109,17 @@
         },
         "responses": {
           "200": {
-            "description": "Updated week review"
+            "description": "Updated week review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintReviewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the review owner"
           },
           "404": {
             "description": "Week not found"
@@ -17911,10 +19167,20 @@
         },
         "responses": {
           "201": {
-            "description": "Created week review"
+            "description": "Created week review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintReviewResponse"
+                }
+              }
+            }
           },
           "404": {
             "description": "Week not found"
+          },
+          "409": {
+            "description": "Review already exists"
           }
         }
       }
@@ -18379,7 +19645,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Week"
+                  "$ref": "#/components/schemas/WeekPlanApprovalResponse"
                 }
               }
             }
@@ -19177,7 +20443,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Person"
+                    "$ref": "#/components/schemas/TeamPersonListItem"
                   }
                 }
               }
@@ -19285,6 +20551,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -19302,36 +20578,20 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "workspace": {
-                          "$ref": "#/components/schemas/Workspace"
-                        }
-                      },
-                      "required": [
-                        "workspace"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
+                  "$ref": "#/components/schemas/WorkspaceCurrentResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "No workspace selected"
+            "description": "No workspace selected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -19368,10 +20628,24 @@
             }
           },
           "403": {
-            "description": "No access to workspace"
+            "description": "No access to workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Workspace not found"
+            "description": "Workspace not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -19416,7 +20690,14 @@
             }
           },
           "403": {
-            "description": "Workspace admin required"
+            "description": "Workspace admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -19663,13 +20944,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "nullable": true
-                    }
-                  }
+                  "$ref": "#/components/schemas/WorkspaceInvitesListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -19721,7 +21006,24 @@
         },
         "responses": {
           "201": {
-            "description": "Invite created"
+            "description": "Invite created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceInviteCreateResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -19763,6 +21065,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -19813,10 +21125,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "nullable": true
-                  }
+                  "$ref": "#/components/schemas/WorkspaceAuditLogsListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -19850,6 +21169,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MentionSearchResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -19913,6 +21242,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DocumentSearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -19992,7 +21341,24 @@
             }
           },
           "400": {
-            "description": "Invalid query"
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -20043,6 +21409,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LearningSearchResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -20391,6 +21767,16 @@
               }
             }
           },
+          "400": {
+            "description": "Missing email or password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Invalid credentials",
             "content": {
@@ -20421,6 +21807,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -20444,7 +21840,14 @@
             }
           },
           "401": {
-            "description": "Not authenticated"
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "404": {
             "description": "User not found",
@@ -20478,7 +21881,14 @@
             }
           },
           "401": {
-            "description": "Not authenticated"
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -20502,7 +21912,14 @@
             }
           },
           "401": {
-            "description": "Not authenticated"
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -20692,8 +22109,25 @@
               }
             }
           },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Document not found"
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -20752,8 +22186,35 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid input or target documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Document not found"
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -21578,6 +23039,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentNotFoundError"
+                }
+              }
+            }
           }
         }
       },
@@ -21883,10 +23354,24 @@
             }
           },
           "400": {
-            "description": "Invite used or expired"
+            "description": "Invite used or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Invalid invite"
+            "description": "Invalid invite",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
             "description": "Internal server error"
@@ -21933,10 +23418,24 @@
             }
           },
           "400": {
-            "description": "Validation error"
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Invalid invite"
+            "description": "Invalid invite",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "500": {
             "description": "Internal server error"
@@ -22137,7 +23636,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -22176,7 +23682,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -22212,7 +23725,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -22261,7 +23781,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -22333,7 +23860,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -22470,7 +24004,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -22551,7 +24092,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -22690,7 +24238,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -22732,7 +24287,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -22785,7 +24347,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -22850,7 +24419,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -22902,7 +24478,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -22948,7 +24531,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -22971,7 +24561,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -22994,7 +24591,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -23030,7 +24634,14 @@
             }
           },
           "403": {
-            "description": "Super admin required"
+            "description": "Super admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -23207,6 +24818,872 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DevDatabaseStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List OAuth apps",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth apps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAppsListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Create OAuth app",
+        "description": "Create a PlugForge OAuth app for the current workspace. The client secret is returned once.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOAuthAppRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OAuth app created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAppCreatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/secrets/rotate": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Rotate OAuth app secret",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RotateOAuthAppSecretRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth app secret rotated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthSecretRotationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/secrets/{secretId}/revoke": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Revoke OAuth app secret",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "secretId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth app secret revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthSecretSummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/webhooks": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List app webhook subscriptions",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook subscriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWebhookSubscriptionsPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Create app webhook subscription",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformWebhookCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Webhook subscription created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWebhookCreatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/webhooks/deliveries": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List app webhook deliveries",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook deliveries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWebhookDeliveriesPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/webhooks/deliveries/{deliveryId}/replay": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Replay app webhook delivery",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "deliveryId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Webhook delivery replayed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWebhookReplayResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/apps/{appId}/audit": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List public API audit rows for app",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "appId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public API audit rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformPublicApiAuditPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admin session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }

@@ -1,4 +1,4 @@
-import type { FleetGraphSignalType } from '@ship/shared';
+import type { FleetGraphSignalType, IssuePriority, IssueState } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import {
   blockedImportantIssueDedupeKey,
@@ -16,8 +16,8 @@ export type FleetGraphAttentionCandidateRow = {
   issue_id: string;
   issue_title: string;
   issue_ticket_number: number | null;
-  issue_state: string | null;
-  issue_priority: 'low' | 'medium' | 'high' | 'urgent';
+  issue_state: IssueState | null;
+  issue_priority: IssuePriority;
   issue_assignee_id: string | null;
   issue_assignee_name: string | null;
   sprint_id: string;

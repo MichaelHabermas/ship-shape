@@ -6,6 +6,7 @@ export interface ResolvedFleetGraphConfig {
   workerCandidateLimit: number;
   workerTickDeadlineMs: number;
   manualRunApiEnabled: boolean;
+  usePublicApi: boolean;
   modelName: string | null;
   tracingEnabled: boolean;
   traceProject: string | null;
@@ -40,6 +41,7 @@ export function fleetGraphConfig(env: NodeJS.ProcessEnv = process.env): Resolved
       DEFAULT_WORKER_TICK_DEADLINE_MS
     ),
     manualRunApiEnabled: env.NODE_ENV !== 'production' || envFlag(env.FLEETGRAPH_MANUAL_RUN_API_ENABLED),
+    usePublicApi: envFlag(env.FLEETGRAPH_USE_PUBLIC_API),
     modelName: env.FLEETGRAPH_MODEL?.trim() || null,
     tracingEnabled: envFlag(env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED) && (
       envFlag(env.LANGSMITH_TRACING) || envFlag(env.LANGCHAIN_TRACING_V2)

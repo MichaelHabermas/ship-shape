@@ -226,6 +226,7 @@ export type IssueExtractRow = {
 export type IssueDocumentRow = IssueExtractRow & {
   archived_at?: Date | null;
   deleted_at?: Date | null;
+  visibility?: 'private' | 'workspace';
 };
 
 export type IssueDetailRow = IssueExtractRow & {

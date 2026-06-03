@@ -1,3 +1,4 @@
+// Login page validates safe return targets before restoring browser navigation.
 import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,7 +12,7 @@ import type {
   SetupStatusData,
 } from '@/api/schemas';
 
-// Validate that returnTo URL is same-origin (security measure)
+// Validate that returnTo URL is same-origin, except the API-owned OAuth authorize entry.
 function isValidReturnTo(url: string): boolean {
   try {
     // If it starts with /, it's a relative path - safe
@@ -20,9 +21,35 @@ function isValidReturnTo(url: string): boolean {
     }
     // Otherwise check if it's same origin
     const parsed = new URL(url, window.location.origin);
-    return parsed.origin === window.location.origin;
+    return parsed.origin === window.location.origin || isApiOAuthAuthorizeReturn(parsed);
   } catch {
     return false;
+  }
+}
+
+function isApiOAuthAuthorizeReturn(url: URL): boolean {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (!apiUrl) return false;
+
+  try {
+    const apiOrigin = new URL(apiUrl, window.location.origin).origin;
+    return url.origin === apiOrigin && url.pathname === '/oauth/authorize';
+  } catch {
+    return false;
+  }
+}
+
+function navigateAfterLogin(target: string, navigate: ReturnType<typeof useNavigate>): void {
+  try {
+    const url = new URL(target);
+    if (url.origin === window.location.origin) {
+      navigate(`${url.pathname}${url.search}${url.hash}`, { replace: true });
+      return;
+    }
+    window.location.href = target;
+    return;
+  } catch {
+    navigate(target, { replace: true });
   }
 }
 
@@ -67,16 +94,20 @@ export function LoginPage() {
   const returnTo = useMemo(() => {
     const returnToParam = searchParams.get('returnTo');
     if (returnToParam) {
-      const decoded = decodeURIComponent(returnToParam);
-      if (isValidReturnTo(decoded)) {
-        return decoded;
+      if (isValidReturnTo(returnToParam)) {
+        return returnToParam;
       }
     }
     return null;
   }, [searchParams]);
 
-  // Default redirect path from location state or returnTo param
-  const from = returnTo || (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
+  const stateFrom = (location.state as {
+    from?: { pathname: string; search?: string; hash?: string };
+  })?.from;
+  const stateTarget = stateFrom
+    ? `${stateFrom.pathname}${stateFrom.search ?? ''}${stateFrom.hash ?? ''}`
+    : null;
+  const from = returnTo || stateTarget || '/';
 
   // Check if setup is needed and if PIV auth is available
   useEffect(() => {
@@ -157,7 +188,7 @@ export function LoginPage() {
     const result = await login(email, password);
 
     if (result.success) {
-      navigate(from, { replace: true });
+      navigateAfterLogin(from, navigate);
     } else {
       setError(result.error || 'Login failed');
       setErrorField('email'); // Associate general login errors with email field

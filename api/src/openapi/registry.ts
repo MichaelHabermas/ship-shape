@@ -29,6 +29,12 @@ registry.registerComponent('securitySchemes', 'bearerAuth', {
   description: 'API token authentication. Get your token from Settings > API Tokens.',
 });
 
+registry.registerComponent('securitySchemes', 'oauthBearerAuth', {
+  type: 'http',
+  scheme: 'bearer',
+  description: 'PlugForge OAuth access token authentication for /api/v1.',
+});
+
 registry.registerComponent('securitySchemes', 'cookieAuth', {
   type: 'apiKey',
   in: 'cookie',

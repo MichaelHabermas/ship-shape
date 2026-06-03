@@ -25,6 +25,19 @@ import { searchRouter } from './routes/search.js';
 import { filesRouter } from './routes/files.js';
 import caiaAuthRoutes from './routes/caia-auth.js';
 import apiTokensRoutes from './routes/api-tokens.js';
+import platformAppsRoutes from './platform/apps/routes.js';
+import oauthProviderRoutes from './platform/oauth/http-routes.js';
+import {
+  OAUTH_AUTHORIZE_PATH,
+  OAUTH_CONSENT_PAGE_PATH,
+  OAUTH_DEVICE_CODE_PATH,
+  OAUTH_DEVICE_VERIFY_PATH,
+  OAUTH_TOKEN_PATH,
+} from './platform/oauth/routes.js';
+import { publicApiV1Router } from './platform/api/v1/router.js';
+import { consumePublicApiPreAuthRateLimit } from './platform/api/v1/middleware.js';
+import { sendPublicApiError } from './platform/api/v1/errors.js';
+import { RATE_LIMIT_HEADER_RETRY_AFTER } from './platform/ratelimit/headers.js';
 import adminCredentialsRoutes from './routes/admin-credentials.js';
 import claudeRoutes from './routes/claude/context-route.js';
 import activityRoutes from './routes/activity.js';
@@ -179,6 +192,24 @@ function shouldBypassRateLimit(req: Request): boolean {
   return getHeaderValue(req.headers['x-benchmark-rate-limit-bypass']) === token;
 }
 
+function shouldSkipGeneralApiRateLimit(req: Request): boolean {
+  return shouldBypassRateLimit(req) || isPublicApiV1Request(req.originalUrl);
+}
+
+function isPublicApiV1Request(originalUrl: string): boolean {
+  return (
+    originalUrl === '/api/v1' ||
+    originalUrl.startsWith('/api/v1/') ||
+    originalUrl.startsWith('/api/v1?')
+  );
+}
+
+function oauthFrameProtectionHeaders(_req: Request, res: Response, next: NextFunction): void {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+  next();
+}
+
 export function openApiShouldRequireAuth(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.NODE_ENV !== 'production') return false;
   return env.OPENAPI_PUBLIC !== '1';
@@ -207,7 +238,7 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please slow down.' },
-  skip: shouldBypassRateLimit,
+  skip: shouldSkipGeneralApiRateLimit,
 });
 
 
@@ -311,6 +342,14 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
   app.use('/api/admin', conditionalCsrf, adminRoutes);
   app.use('/api/invites', conditionalCsrf, invitesRoutes);
   app.use('/api/api-tokens', conditionalCsrf, apiTokensRoutes);
+  app.use('/api/platform/apps', conditionalCsrf, platformAppsRoutes);
+  app.use('/api/v1', publicApiV1Router);
+  app.use(OAUTH_AUTHORIZE_PATH, oauthFrameProtectionHeaders);
+  app.use(OAUTH_DEVICE_CODE_PATH, apiLimiter);
+  app.use(OAUTH_DEVICE_VERIFY_PATH, oauthFrameProtectionHeaders, conditionalCsrf);
+  app.use(OAUTH_TOKEN_PATH, apiLimiter);
+  app.use(OAUTH_CONSENT_PAGE_PATH, oauthFrameProtectionHeaders, conditionalCsrf);
+  app.use('/oauth', oauthProviderRoutes);
 
   // Claude context routes - read-only GET endpoints for Claude skills
   app.use('/api/claude', claudeRoutes);
@@ -365,6 +404,27 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
 
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (isBodyParserSyntaxError(err)) {
+      if (isPublicApiV1Request(_req.originalUrl)) {
+        const { requestId, result } = consumePublicApiPreAuthRateLimit(_req, res);
+        if (!result.allowed) {
+          res.setHeader(RATE_LIMIT_HEADER_RETRY_AFTER, String(result.retryAfterSeconds));
+          sendPublicApiError(res, 429, {
+            code: 'rate_limited',
+            message: 'Too many requests. Please slow down.',
+            details: { retry_after_seconds: result.retryAfterSeconds },
+            request_id: requestId,
+          });
+          return;
+        }
+
+        sendPublicApiError(res, 400, {
+          code: 'validation_failed',
+          message: 'Malformed JSON request body',
+          request_id: requestId,
+        });
+        return;
+      }
+
       res.status(400).json({ error: 'Malformed JSON request body' });
       return;
     }

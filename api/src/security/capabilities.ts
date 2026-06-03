@@ -1,6 +1,6 @@
 // Capability authorization maps principals and scopes to workspace/document decisions.
 import type { Pool, PoolClient } from 'pg';
-import type { BelongsToType, DocumentType } from '@ship/shared';
+import type { BelongsToType, DocumentType, PublicApiScope } from '@ship/shared';
 import type { DocumentActor } from './document-actor.js';
 import { documentActorFromPrincipal } from './document-actor.js';
 import type { ApiTokenScope, Principal } from './principal.js';
@@ -117,47 +117,62 @@ function decision(
   return { principal, allowed, reason, ...(document ? { document } : {}) };
 }
 
-function scopeAllows(scopes: ApiTokenScope[], capability: Capability): boolean {
-  if (scopes.includes('legacy:full')) return true;
+function scopeAllows(scopes: ApiTokenScope[] | PublicApiScope[], capability: Capability): boolean {
+  const scopeValues: readonly string[] = scopes;
+  if (scopeValues.includes('legacy:full')) return true;
 
   if (capability.resource === 'workspace') {
-    return capability.action === 'read' || scopes.includes('admin:workspace');
+    return capability.action === 'read' || scopeValues.includes('admin:workspace');
   }
   if (capability.resource === 'api_token') return false;
   if (capability.resource === 'setup') return false;
 
   if (capability.resource === 'document_reference') {
-    return scopes.includes('documents:write');
+    return scopeValues.includes('documents:write');
   }
 
   if (capability.resource === 'collaboration') {
     if (capability.action === 'persist') {
-      return scopes.includes('documents:content') || scopes.includes('documents:write');
+      return scopeValues.includes('documents:content') || scopeValues.includes('documents:write');
     }
-    return scopes.includes('collaboration:join');
+    return scopeValues.includes('collaboration:join');
   }
 
   if (capability.resource === 'file') {
     return capability.action === 'read' || capability.action === 'serve'
-      ? scopes.includes('files:read')
-      : scopes.includes('files:write');
+      ? scopeValues.includes('files:read')
+      : scopeValues.includes('files:write');
   }
 
   if (capability.resource === 'document') {
+    if (capability.expectedType === 'issue') {
+      return capability.action === 'read' || capability.action === 'collaborate'
+        ? scopeValues.includes('issues:read') || scopeValues.includes('documents:read')
+        : scopeValues.includes('issues:write') ||
+            scopeValues.includes('documents:write') ||
+            scopeValues.includes('documents:content');
+    }
+    if (capability.expectedType === 'sprint') {
+      return capability.action === 'read' || capability.action === 'collaborate'
+        ? scopeValues.includes('sprints:read') || scopeValues.includes('documents:read')
+        : scopeValues.includes('sprints:write') ||
+            scopeValues.includes('documents:write') ||
+            scopeValues.includes('documents:content');
+    }
     if (capability.action === 'read' || capability.action === 'collaborate') {
-      return scopes.includes('documents:read');
+      return scopeValues.includes('documents:read');
     }
     if (capability.action === 'governance') {
-      return scopes.includes('documents:governance');
+      return scopeValues.includes('documents:governance');
     }
-    return scopes.includes('documents:write') || scopes.includes('documents:content');
+    return scopeValues.includes('documents:write') || scopeValues.includes('documents:content');
   }
 
   return false;
 }
 
 function ensureTokenScope(principal: Principal, capability: Capability): CapabilityDecision | null {
-  if (principal.kind !== 'api_token') return null;
+  if (principal.kind !== 'api_token' && principal.kind !== 'oauth_access_token') return null;
   if (scopeAllows(principal.scopes, capability)) return null;
   return decision(principal, false, 'token_scope_denied');
 }
@@ -303,8 +318,8 @@ export async function authorize(
     }
     const readDecision = await readableDocumentDecision(db, principal, actor, capability.documentId, {
       expectedType: capability.expectedType,
-    includeArchived: capability.includeArchived,
-    includeDeleted: capability.includeDeleted,
+      includeArchived: capability.includeArchived,
+      includeDeleted: capability.includeDeleted,
     });
     if (!readDecision.allowed || !readDecision.document) {
       return readDecision;

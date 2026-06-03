@@ -46,7 +46,8 @@ import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
 import { fleetGraphStableHash } from './trace-hash.js';
 import { noModelCostMetadata, noModelTokenMetadata } from './usage-metadata.js';
 import { resultFor, runInputFor } from './runtime/run-recording.js';
-import type { FleetGraphEvidenceItem, FleetGraphSignalType } from '@ship/shared';
+import type { FleetGraphEvidenceItem, FleetGraphSeverity, FleetGraphSignalType, IssuePriority } from '@ship/shared';
+import type { ShipClient } from '@ship/sdk';
 import type {
   FleetGraphDecisionPacket,
   FleetGraphInput,
@@ -83,6 +84,7 @@ export type FleetGraphCoreOptions = {
   traceRecorder?: FleetGraphNodeRecorder;
   observabilityError?: string;
   forceReviewerTrace?: boolean;
+  publicSourceClient?: ShipClient;
 };
 
 const FleetGraphState = Annotation.Root({
@@ -1064,7 +1066,7 @@ function decisionPacketFromCandidate(
   const audience = audienceForCandidate(candidate);
   const nextAction = nextActionForCandidate(candidate, audience);
   return {
-    severity: candidate.issue_priority,
+    severity: severityFromIssuePriority(candidate.issue_priority),
     confidence: 0.86,
     title: `${signalLabel}: ${issueTitle}`,
     summary,
@@ -1114,6 +1116,10 @@ function deterministicAttentionSummary(
     return `${candidate.issue_title} is at risk. ${reason}`;
   }
   return deterministicUpdateSummary(candidateTitle(candidate.issue_title));
+}
+
+function severityFromIssuePriority(priority: IssuePriority): FleetGraphSeverity {
+  return priority === 'none' ? 'low' : priority;
 }
 
 function attentionReasonTraceNode(

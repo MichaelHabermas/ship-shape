@@ -2,5 +2,7 @@ packages:
   - 'api'
   - 'web'
   - 'shared'
+  - 'sdk'
+  - 'integrations/cli'
   - 'packages/shipshape-security'
   - 'packages/shipshape-security/console-ui'

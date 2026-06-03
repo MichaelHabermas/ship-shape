@@ -4,7 +4,6 @@ import type { DocumentType } from '@ship/shared';
 import type { DocumentMutationCapability } from '../security/capabilities.js';
 import type { Principal } from '../security/principal.js';
 import {
-  guardDocumentCreate as sharedGuardDocumentCreate,
   guardDocumentMutation as sharedGuardDocumentMutation,
   type MutationGuardDenial,
 } from './mutation-capability-guard.js';
@@ -40,7 +39,12 @@ export async function guardIssueCreate(
   db: QueryRunner,
   principal: Principal
 ): Promise<IssueMutationDenial | null> {
-  const result = await sharedGuardDocumentCreate(db, principal);
+  const result = await sharedGuardDocumentMutation(db, principal, {
+    action: 'write',
+    expectedType: 'issue',
+  }, {
+    notFoundMessage: 'Issue not found',
+  });
   if (result.ok) return null;
   return mapGuardDenial(result);
 }

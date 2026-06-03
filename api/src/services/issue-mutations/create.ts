@@ -1,3 +1,4 @@
+// Issue creation mutation owns document-backed issue inserts, associations, and side effects.
 import { pool } from '../../db/client.js';
 import { extractIssueFromRow, type IssueDocumentRow } from '../../db/documents-repository.js';
 import { guardIssueCreate } from '../issue-mutation-guards.js';
@@ -13,6 +14,10 @@ import {
 import { requireFirstRow } from '../../utils/query-rows.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../../fleetgraph/events.js';
 import {
+  publishWebhookEvent,
+  scheduleWebhookDeliveryDispatch,
+} from '../../platform/webhooks/event-bus.js';
+import {
   type CreateIssueInput,
   type CountRow,
   type IssueMutationResult,
@@ -20,6 +25,7 @@ import {
   toCount,
   workspaceAdvisoryLock,
 } from './types.js';
+import { buildIssueCreatedWebhookEvent } from './webhook-events.js';
 
 export async function createIssueMutation(
   input: CreateIssueInput
@@ -71,7 +77,8 @@ export async function createIssueMutation(
     [workspaceId, title, JSON.stringify(properties), ticketNumber, userId]
   );
 
-  const newIssueId = requireFirstRow(result.rows).id;
+  const row = requireFirstRow(result.rows);
+  const newIssueId = row.id;
 
   for (const assoc of belongs_to) {
     try {
@@ -96,8 +103,20 @@ export async function createIssueMutation(
     client
   );
 
+  const webhookEvent = buildIssueCreatedWebhookEvent({
+    workspaceId,
+    actorUserId: userId,
+    row,
+  });
+  const webhook = await publishWebhookEvent(webhookEvent, {
+    db: client,
+    dispatch: 'none',
+    errorMode: 'throw',
+  });
+
   const sprintAssociations = belongs_to.filter((bt) => bt.type === 'sprint');
   await client.query('COMMIT');
+  scheduleWebhookDeliveryDispatch(webhook.deliveryIds);
 
   await enqueueFleetGraphIssueAttentionEvents({
     workspaceId,
@@ -119,7 +138,6 @@ export async function createIssueMutation(
   }
 
   const belongsToResult = await getBelongsToAssociations(newIssueId);
-  const row = requireFirstRow(result.rows);
   const issue = extractIssueFromRow(row);
   return {
     ok: true,

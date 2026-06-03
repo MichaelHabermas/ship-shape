@@ -70,7 +70,7 @@ describe('FleetGraph detector', () => {
     expect(db.query).toHaveBeenNthCalledWith(
       2,
       expect.any(String),
-      [workspaceId, null, null, false, 250]
+      [workspaceId, null, null, false, 250, false, null, false]
     );
   });
 
@@ -145,7 +145,11 @@ describe('FleetGraph detector', () => {
       limit: 10,
     });
 
-    expect(db.query).toHaveBeenCalledWith(expect.any(String), [workspaceId, null, null, false, 10]);
+    expect(db.query).toHaveBeenNthCalledWith(
+      2,
+      expect.any(String),
+      [workspaceId, null, null, false, 10, false, null, false]
+    );
     expect(db.query).toHaveBeenLastCalledWith(
       expect.stringContaining("status IN ('open', 'needs_confirmation', 'error')"),
       [workspaceId, [dedupeKey]]

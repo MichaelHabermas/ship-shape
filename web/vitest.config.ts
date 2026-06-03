@@ -1,3 +1,4 @@
+// Vitest config runs React unit tests with app and SDK source aliases.
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
@@ -43,6 +44,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@ship/sdk': path.resolve(__dirname, '../sdk/src/index.ts'),
     },
   },
 });

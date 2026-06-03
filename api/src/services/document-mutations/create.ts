@@ -1,3 +1,5 @@
+// Document creation service owns generic document inserts and post-create side effects.
+import type { WebhookEvent } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import { broadcastToUser } from '../../collaboration/index.js';
 import {
@@ -21,6 +23,10 @@ import {
   type DocumentAccessRow,
   type MutationResult,
 } from './types.js';
+import {
+  publishWebhookEvent,
+  scheduleWebhookDeliveryDispatch,
+} from '../../platform/webhooks/event-bus.js';
 
 export async function createDocumentMutation({
   actor,
@@ -99,7 +105,7 @@ export async function createDocumentMutation({
       [
         actor.workspaceId,
         document_type,
-        'Untitled',
+        principal.kind === 'oauth_access_token' ? input.title || 'Untitled' : 'Untitled',
         parent_id || null,
         JSON.stringify(properties || {}),
         actor.userId,
@@ -127,7 +133,36 @@ export async function createDocumentMutation({
       await addBelongsToAssociation(newDoc.id, program_id, 'program', client);
     }
 
+    const webhookEvent: WebhookEvent = {
+      type: 'document.created',
+      workspace_id: actor.workspaceId,
+      idempotency_key: `document.created:${newDoc.id}`,
+      resource: {
+        kind: 'document',
+        id: newDoc.id,
+        document_type: newDoc.document_type,
+      },
+      payload: {
+        document: {
+          id: newDoc.id,
+          title: newDoc.title,
+          document_type: newDoc.document_type,
+          api_url: `/api/v1/documents/${newDoc.id}`,
+          ui_url: `/documents/${newDoc.id}`,
+        },
+        actor: {
+          id: actor.userId,
+        },
+      },
+    };
+    const webhook = await publishWebhookEvent(webhookEvent, {
+      db: client,
+      dispatch: 'none',
+      errorMode: 'throw',
+    });
+
     await client.query('COMMIT');
+    scheduleWebhookDeliveryDispatch(webhook.deliveryIds);
     await upsertDocumentSearchIndex(newDoc.id);
 
     if (document_type === 'weekly_plan' || (properties && 'outcome' in properties)) {

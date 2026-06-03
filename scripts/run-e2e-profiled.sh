@@ -47,6 +47,7 @@ normal_specs=(
   e2e/context-menus.spec.ts
   e2e/critical-blockers.spec.ts
   e2e/debug-create.spec.ts
+  "${ROOT_DIR}/e2e/developer-ops.spec.ts"
   e2e/docs-mode.spec.ts
   e2e/document-isolation.spec.ts
   e2e/document-workflows.spec.ts

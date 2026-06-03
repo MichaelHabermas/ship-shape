@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Plugforge Public API Reference • ShipShape</title>
+    <style>
+      body { margin:0; font-family: system-ui, -apple-system, sans-serif; }
+      #redoc { height: 100vh; }
+      .header { position: fixed; top: 0; left: 0; right: 0; z-index: 10; background: #111; color: #ddd; padding: 8px 12px; font-size: 13px; display: flex; align-items: center; gap: 12px; }
+      .header input { flex: 1; max-width: 520px; font-family: monospace; padding: 4px 8px; border: 1px solid #444; background: #1a1a1a; color: #ddd; }
+      .header button { padding: 4px 10px; }
+      .header a { color: #8ec5ff; }
+    </style>
+    <!-- Redoc standalone (no build step) -->
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+  </head>
+  <body>
+    <div class="header">
+      <strong>Plugforge Public API</strong>
+      <span style="opacity:.6">— generated from code, never hand-written</span>
+      <input id="spec-url" value="" placeholder="https://.../api/v1/openapi.json or /api/v1/openapi.json" />
+      <button id="load">Load</button>
+      <a href="https://ship-shape-api.onrender.com/api/v1/openapi.json" target="_blank">deployed</a>
+      <span style="margin-left:auto; opacity:.5; font-size:11px;">Plugforge Week 6 • only /api/v1/* routes</span>
+    </div>
+    <div id="redoc" style="padding-top:40px;"></div>
+
+    <script>
+      const DEFAULT_LOCAL = window.location.origin.includes('5173')
+        ? 'http://localhost:3000/api/v1/openapi.json'
+        : '/api/v1/openapi.json';
+
+      function init(specUrl) {
+        const el = document.getElementById('redoc');
+        el.innerHTML = '';
+        Redoc.init(specUrl, {
+          scrollYOffset: 40,
+          hideDownloadButton: false,
+          expandResponses: '200,201',
+          pathInMiddlePanel: true,
+          theme: { colors: { primary: { main: '#20201d' } } }
+        }, el);
+      }
+
+      const input = document.getElementById('spec-url');
+      const btn = document.getElementById('load');
+
+      function loadFromInput() {
+        let u = input.value.trim();
+        if (!u) u = DEFAULT_LOCAL;
+        if (u.startsWith('/api') && !u.startsWith('http')) {
+          // best effort for same-origin dev; in practice use full URL or the deployed one
+          u = window.location.origin.replace(/:\d+$/, ':3000') + u;
+        }
+        init(u);
+        try { history.replaceState(null, '', '?spec=' + encodeURIComponent(u)); } catch {}
+      }
+
+      btn.addEventListener('click', loadFromInput);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadFromInput(); });
+
+      // init
+      const params = new URLSearchParams(location.search);
+      const fromQuery = params.get('spec');
+      input.value = fromQuery || DEFAULT_LOCAL;
+      // slight delay so Redoc script is ready
+      setTimeout(() => init(input.value), 120);
+    </script>
+  </body>
+</html>

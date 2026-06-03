@@ -1,3 +1,4 @@
+// Document actors are the workspace/user identity shape used by document services.
 import type { Principal } from './principal.js';
 
 export interface DocumentActor {

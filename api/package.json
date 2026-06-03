@@ -24,6 +24,7 @@
     "fleetgraph:eval:surface": "tsx src/scripts/fleetgraph-product-surface-eval.ts",
     "db:orphan-check": "tsx src/db/scripts/orphan-diagnostic.ts",
     "openapi:generate": "tsx src/scripts/generate-openapi.ts",
+    "public-openapi:generate": "tsx src/scripts/generate-public-openapi.ts",
     "mcp": "tsx src/mcp/server.ts",
     "trace:smoke": "tsx src/scripts/trace-smoke.ts"
   },
@@ -41,7 +42,9 @@
     "@langfuse/tracing": "^5.4.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@opentelemetry/sdk-node": "^0.218.0",
+    "@ship/sdk": "workspace:*",
     "@ship/shared": "workspace:*",
+    "argon2": "^0.44.0",
     "bcryptjs": "^3.0.3",
     "cookie": "^1.1.1",
     "cookie-parser": "^1.4.7",

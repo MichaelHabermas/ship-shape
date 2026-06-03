@@ -43,6 +43,9 @@ const StatusOverviewPage = React.lazy(() => import('@/pages/StatusOverviewPage')
 const ReviewsPage = React.lazy(() => import('@/pages/ReviewsPage').then((module) => ({ default: module.ReviewsPage })));
 const OrgChartPage = React.lazy(() => import('@/pages/OrgChartPage').then((module) => ({ default: module.OrgChartPage })));
 const InviteAcceptPage = React.lazy(() => import('@/pages/InviteAccept').then((module) => ({ default: module.InviteAcceptPage })));
+const OAuthConsentPage = React.lazy(() => import('@/pages/OAuthConsent').then((module) => ({ default: module.OAuthConsentPage })));
+const OAuthDevicePage = React.lazy(() => import('@/pages/OAuthDevice').then((module) => ({ default: module.OAuthDevicePage })));
+const SdkDemoPage = React.lazy(() => import('@/pages/SdkDemo').then((module) => ({ default: module.SdkDemoPage })));
 const SetupPage = React.lazy(() => import('@/pages/Setup').then((module) => ({ default: module.SetupPage })));
 const FleetGraphReviewerPage = React.lazy(() => import('@/pages/FleetGraphReviewerPage').then((module) => ({ default: module.FleetGraphReviewerPage })));
 
@@ -182,6 +185,26 @@ function AppRoutes() {
       <Route
         path="/invite/:token"
         element={<LazyRoute><InviteAcceptPage /></LazyRoute>}
+      />
+      <Route
+        path="/oauth/consent"
+        element={
+          <ProtectedRoute>
+            <LazyRoute><OAuthConsentPage /></LazyRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/oauth/device"
+        element={
+          <ProtectedRoute>
+            <LazyRoute><OAuthDevicePage /></LazyRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sdk-demo"
+        element={<LazyRoute><SdkDemoPage /></LazyRoute>}
       />
       <Route
         path="/admin"

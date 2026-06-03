@@ -1,4 +1,5 @@
-import type { BelongsTo, IssueProperties } from '@ship/shared';
+// Issue update mutation owns document-backed issue patches, audit changes, and side effects.
+import type { BelongsTo, IssueProperties, IssueState, WebhookEvent } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import { extractIssueFromRow, type IssueDocumentRow } from '../../db/documents-repository.js';
 import { guardIssueMutation } from '../issue-mutation-guards.js';
@@ -18,6 +19,10 @@ import { VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { requireFirstRow } from '../../utils/query-rows.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../../fleetgraph/events.js';
 import {
+  publishWebhookEvent,
+  scheduleWebhookDeliveryDispatch,
+} from '../../platform/webhooks/event-bus.js';
+import {
   type CountRow,
   type IncompleteChildRow,
   type IssueMutationResult,
@@ -26,6 +31,10 @@ import {
   type UpdateIssueInput,
   toCount,
 } from './types.js';
+import {
+  buildIssueAssignedWebhookEvent,
+  buildIssueStatusChangedWebhookEvent,
+} from './webhook-events.js';
 
 export async function updateIssueMutation(
   input: UpdateIssueInput
@@ -119,6 +128,8 @@ export async function updateIssueMutation(
   }
 
   const changes: Array<{ field: string; oldValue: string | null; newValue: string | null }> = [];
+  let assignedWebhookAssigneeId: string | null = null;
+  let statusChangedWebhook: { previousStatus: IssueState | null; status: IssueState } | null = null;
 
   if (data.title !== undefined && data.title !== existingIssue.title) {
     updates.push(`title = $${paramIndex++}`);
@@ -133,6 +144,10 @@ export async function updateIssueMutation(
     changes.push({ field: 'state', oldValue: currentProps.state || null, newValue: data.state });
     newProps.state = data.state;
     propsChanged = true;
+    statusChangedWebhook = {
+      previousStatus: issueStateOrNull(currentProps.state),
+      status: data.state,
+    };
     const timestampUpdates = getTimestampUpdates(currentProps.state || null, data.state);
     for (const [col, expr] of Object.entries(timestampUpdates)) {
       updates.push(`${col} = ${expr}`);
@@ -147,6 +162,7 @@ export async function updateIssueMutation(
     changes.push({ field: 'assignee_id', oldValue: currentProps.assignee_id || null, newValue: data.assignee_id });
     newProps.assignee_id = data.assignee_id;
     propsChanged = true;
+    assignedWebhookAssigneeId = data.assignee_id ?? null;
   }
   if (data.estimate !== undefined && data.estimate !== currentProps.estimate) {
     changes.push({
@@ -291,8 +307,39 @@ export async function updateIssueMutation(
     `SELECT * FROM documents WHERE id = $1 AND workspace_id = $2`,
     [id, workspaceId]
   );
+  const row = requireFirstRow(result.rows);
+
+  const webhookEvents: WebhookEvent[] = [];
+  if (assignedWebhookAssigneeId) {
+    webhookEvents.push(buildIssueAssignedWebhookEvent({
+      workspaceId,
+      actorUserId: userId,
+      row,
+      assigneeId: assignedWebhookAssigneeId,
+    }));
+  }
+  if (statusChangedWebhook) {
+    webhookEvents.push(buildIssueStatusChangedWebhookEvent({
+      workspaceId,
+      actorUserId: userId,
+      row,
+      previousStatus: statusChangedWebhook.previousStatus,
+      status: statusChangedWebhook.status,
+    }));
+  }
+
+  const webhookDeliveryIds: string[] = [];
+  for (const webhookEvent of webhookEvents) {
+    const webhook = await publishWebhookEvent(webhookEvent, {
+      db: client,
+      dispatch: 'none',
+      errorMode: 'throw',
+    });
+    webhookDeliveryIds.push(...webhook.deliveryIds);
+  }
 
   await client.query('COMMIT');
+  scheduleWebhookDeliveryDispatch(webhookDeliveryIds);
 
   await enqueueFleetGraphIssueAttentionEvents({
     workspaceId,
@@ -319,7 +366,6 @@ export async function updateIssueMutation(
     }
   }
 
-  const row = requireFirstRow(result.rows);
   const issue = extractIssueFromRow(row);
   const belongsTo = await getBelongsToAssociations(id);
 
@@ -336,4 +382,20 @@ export async function updateIssueMutation(
     status: 200,
     body: { ...issue, display_id: `#${row.ticket_number}`, belongs_to: belongsTo },
   };
+}
+
+function issueStateOrNull(value: unknown): IssueState | null {
+  if (
+    value === 'backlog' ||
+    value === 'triage' ||
+    value === 'todo' ||
+    value === 'in_progress' ||
+    value === 'in_review' ||
+    value === 'blocked' ||
+    value === 'done' ||
+    value === 'cancelled'
+  ) {
+    return value;
+  }
+  return null;
 }

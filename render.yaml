@@ -70,6 +70,13 @@ services:
     runtime: static
     buildCommand: CI=true pnpm install --frozen-lockfile && pnpm build:shared && pnpm --filter @ship/web exec tsc && VITE_API_URL=https://ship-shape-api.onrender.com VITE_WS_URL=https://ship-shape-api.onrender.com VITE_APP_ENV=production pnpm --filter @ship/web exec vite build
     staticPublishPath: ./web/dist
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Content-Security-Policy
+        value: frame-ancestors 'none'
     routes:
       - type: rewrite
         source: /*

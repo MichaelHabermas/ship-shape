@@ -94,6 +94,254 @@ CREATE TABLE IF NOT EXISTS oauth_state (
   expires_at TIMESTAMPTZ NOT NULL
 );
 
+-- OAuth platform app and token state for public /api/v1 access
+CREATE TABLE IF NOT EXISTS oauth_apps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  name TEXT NOT NULL CHECK (btrim(name) <> ''),
+  client_id TEXT NOT NULL UNIQUE,
+  client_secret_hash TEXT NOT NULL,
+  redirect_uris TEXT[] NOT NULL CHECK (cardinality(redirect_uris) > 0),
+  requested_scopes TEXT[] NOT NULL CHECK (cardinality(requested_scopes) > 0),
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  is_first_party BOOLEAN NOT NULL DEFAULT FALSE,
+  system_key TEXT CHECK (system_key IS NULL OR btrim(system_key) <> ''),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT oauth_apps_id_workspace_unique UNIQUE (id, workspace_id)
+);
+
+CREATE TABLE IF NOT EXISTS oauth_app_secrets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  app_id UUID NOT NULL,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  secret_hash TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('active', 'grace', 'revoked')),
+  expires_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT oauth_app_secrets_app_workspace_fk
+    FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE,
+  CONSTRAINT oauth_app_secrets_status_timestamps_check
+    CHECK (
+      (status = 'active' AND expires_at IS NULL AND revoked_at IS NULL)
+      OR (status = 'grace' AND expires_at IS NOT NULL AND revoked_at IS NULL)
+      OR (status = 'revoked' AND revoked_at IS NOT NULL)
+    )
+);
+
+CREATE TABLE IF NOT EXISTS oauth_grants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  app_id UUID NOT NULL,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  granted_scopes TEXT[] NOT NULL CHECK (cardinality(granted_scopes) > 0),
+  revoked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT oauth_grants_app_workspace_fk
+    FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE,
+  CONSTRAINT oauth_grants_app_user_workspace_unique UNIQUE (app_id, user_id, workspace_id)
+);
+
+CREATE TABLE IF NOT EXISTS oauth_authorization_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  app_id UUID NOT NULL,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  client_id TEXT NOT NULL,
+  redirect_uri TEXT NOT NULL,
+  requested_scopes TEXT[] NOT NULL CHECK (cardinality(requested_scopes) > 0),
+  state TEXT,
+  code_challenge TEXT NOT NULL,
+  code_challenge_method TEXT NOT NULL CHECK (code_challenge_method = 'S256'),
+  expires_at TIMESTAMPTZ NOT NULL,
+  approved_at TIMESTAMPTZ,
+  denied_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT oauth_authorization_requests_app_workspace_fk
+    FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS oauth_authorization_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  authorization_request_id UUID REFERENCES oauth_authorization_requests(id) ON DELETE SET NULL,
+  grant_id UUID NOT NULL REFERENCES oauth_grants(id) ON DELETE CASCADE,
+  app_id UUID NOT NULL,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  code_hash TEXT NOT NULL UNIQUE,
+  redirect_uri TEXT NOT NULL,
+  granted_scopes TEXT[] NOT NULL CHECK (cardinality(granted_scopes) > 0),
+  state TEXT,
+  code_challenge TEXT NOT NULL,
+  code_challenge_method TEXT NOT NULL CHECK (code_challenge_method = 'S256'),
+  expires_at TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT oauth_authorization_codes_app_workspace_fk
+    FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS oauth_refresh_token_families (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  grant_id UUID NOT NULL REFERENCES oauth_grants(id) ON DELETE CASCADE,
+  app_id UUID NOT NULL,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  invalidated_at TIMESTAMPTZ,
+  invalidated_reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT oauth_refresh_token_families_app_workspace_fk
+    FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  family_id UUID NOT NULL REFERENCES oauth_refresh_token_families(id) ON DELETE CASCADE,
+  app_id UUID NOT NULL,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  replaced_by_token_id UUID REFERENCES oauth_refresh_tokens(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT oauth_refresh_tokens_app_workspace_fk
+    FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS oauth_device_authorizations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  app_id UUID NOT NULL,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  client_id TEXT NOT NULL,
+  device_code_hash TEXT NOT NULL UNIQUE,
+  user_code_hash TEXT NOT NULL UNIQUE,
+  requested_scopes TEXT[] NOT NULL CHECK (cardinality(requested_scopes) > 0),
+  interval_seconds INTEGER NOT NULL DEFAULT 5 CHECK (interval_seconds > 0),
+  slow_down_count INTEGER NOT NULL DEFAULT 0 CHECK (slow_down_count >= 0),
+  last_polled_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ NOT NULL,
+  authorized_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  grant_id UUID REFERENCES oauth_grants(id) ON DELETE SET NULL,
+  authorized_at TIMESTAMPTZ,
+  denied_at TIMESTAMPTZ,
+  consumed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT oauth_device_authorizations_app_workspace_fk
+    FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS oauth_access_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  app_id UUID NOT NULL,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  grant_id UUID REFERENCES oauth_grants(id) ON DELETE SET NULL,
+  refresh_token_family_id UUID REFERENCES oauth_refresh_token_families(id) ON DELETE SET NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  granted_scopes TEXT[] NOT NULL CHECK (cardinality(granted_scopes) > 0),
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ,
+  last_used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT oauth_access_tokens_app_workspace_fk
+    FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS public_api_audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id TEXT NOT NULL CHECK (char_length(request_id) <= 128),
+  app_id UUID REFERENCES oauth_apps(id) ON DELETE SET NULL,
+  client_id TEXT,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL,
+  method TEXT NOT NULL,
+  route TEXT NOT NULL,
+  scope_used TEXT,
+  status INTEGER NOT NULL,
+  latency_ms INTEGER NOT NULL CHECK (latency_ms >= 0),
+  error_code TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS webhook_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  app_id UUID NOT NULL,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  target_url TEXT NOT NULL,
+  read_subject_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  read_subject_scopes TEXT[] NOT NULL DEFAULT '{}'::text[],
+  read_context_source TEXT NOT NULL DEFAULT 'legacy'
+    CHECK (read_context_source IN ('legacy', 'public_oauth', 'portal_session')),
+  read_context_version INTEGER NOT NULL DEFAULT 1 CHECK (read_context_version > 0),
+  signing_secret_hash TEXT NOT NULL,
+  signing_secret_ciphertext TEXT NOT NULL,
+  signing_secret_iv TEXT NOT NULL,
+  signing_secret_tag TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT webhook_subscriptions_app_workspace_fk
+    FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS webhook_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  idempotency_key TEXT NOT NULL UNIQUE,
+  payload JSONB NOT NULL,
+  resource_kind TEXT CHECK (resource_kind IS NULL OR resource_kind = 'document'),
+  resource_id UUID,
+  resource_document_type TEXT CHECK (
+    resource_document_type IS NULL
+    OR resource_document_type IN (
+      'wiki',
+      'issue',
+      'program',
+      'project',
+      'sprint',
+      'person',
+      'weekly_plan',
+      'weekly_retro',
+      'standup',
+      'weekly_review'
+    )
+  ),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subscription_id UUID NOT NULL REFERENCES webhook_subscriptions(id) ON DELETE CASCADE,
+  event_id UUID NOT NULL REFERENCES webhook_events(id) ON DELETE CASCADE,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  attempt_number INTEGER NOT NULL CHECK (attempt_number > 0),
+  status TEXT NOT NULL CHECK (status IN ('pending', 'sending', 'succeeded', 'retrying', 'failed', 'dlq')),
+  idempotency_key TEXT NOT NULL,
+  response_status INTEGER,
+  response_excerpt TEXT,
+  latency_ms INTEGER CHECK (latency_ms IS NULL OR latency_ms >= 0),
+  next_attempt_at TIMESTAMPTZ,
+  delivered_at TIMESTAMPTZ,
+  failed_at TIMESTAMPTZ,
+  replay_of_delivery_id UUID REFERENCES webhook_deliveries(id) ON DELETE SET NULL,
+  last_error TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT webhook_deliveries_subscription_event_attempt_unique
+    UNIQUE (subscription_id, event_id, attempt_number)
+);
+
 -- Document types enum
 DO $$ BEGIN
   CREATE TYPE document_type AS ENUM ('wiki', 'issue', 'program', 'project', 'sprint', 'person', 'weekly_plan', 'weekly_retro', 'standup', 'weekly_review');
@@ -431,6 +679,7 @@ CREATE TABLE IF NOT EXISTS api_tokens (
   name TEXT NOT NULL,         -- User-provided name (e.g., "Claude Code")
   token_hash TEXT NOT NULL,   -- SHA-256 hash (never store plain token)
   token_prefix TEXT NOT NULL, -- First 8 chars for identification
+  scopes TEXT[] NOT NULL DEFAULT ARRAY['legacy:full']::text[],
   last_used_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,     -- NULL = never expires
   revoked_at TIMESTAMPTZ,     -- NULL = active, timestamp = revoked
@@ -1036,6 +1285,84 @@ CREATE INDEX IF NOT EXISTS idx_sessions_workspace_id ON sessions(workspace_id);
 
 -- OAuth state indexes
 CREATE INDEX IF NOT EXISTS idx_oauth_state_expires_at ON oauth_state(expires_at);
+CREATE INDEX IF NOT EXISTS idx_oauth_apps_workspace_owner
+  ON oauth_apps(workspace_id, owner_user_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_apps_workspace_system_key
+  ON oauth_apps(workspace_id, system_key)
+  WHERE system_key IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_app_secrets_one_active
+  ON oauth_app_secrets(app_id)
+  WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_oauth_app_secrets_app_created
+  ON oauth_app_secrets(app_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_oauth_app_secrets_grace_expiry
+  ON oauth_app_secrets(expires_at)
+  WHERE status = 'grace';
+CREATE INDEX IF NOT EXISTS idx_oauth_grants_app_user
+  ON oauth_grants(app_id, user_id, workspace_id)
+  WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_oauth_authorization_requests_lookup
+  ON oauth_authorization_requests(id, user_id, workspace_id)
+  WHERE approved_at IS NULL AND denied_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_oauth_authorization_requests_expires
+  ON oauth_authorization_requests(expires_at);
+CREATE INDEX IF NOT EXISTS idx_oauth_authorization_codes_lookup
+  ON oauth_authorization_codes(code_hash)
+  WHERE consumed_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_oauth_authorization_codes_expires
+  ON oauth_authorization_codes(expires_at);
+CREATE INDEX IF NOT EXISTS idx_oauth_refresh_token_families_active
+  ON oauth_refresh_token_families(app_id, user_id, workspace_id, expires_at)
+  WHERE invalidated_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_oauth_refresh_tokens_lookup
+  ON oauth_refresh_tokens(token_hash)
+  WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_oauth_refresh_tokens_family
+  ON oauth_refresh_tokens(family_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_oauth_device_authorizations_user_code
+  ON oauth_device_authorizations(user_code_hash)
+  WHERE authorized_at IS NULL AND denied_at IS NULL AND consumed_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_oauth_device_authorizations_device_code
+  ON oauth_device_authorizations(device_code_hash)
+  WHERE consumed_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_oauth_device_authorizations_expires
+  ON oauth_device_authorizations(expires_at);
+CREATE INDEX IF NOT EXISTS idx_oauth_access_tokens_lookup
+  ON oauth_access_tokens(token_hash)
+  WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_oauth_access_tokens_app_user
+  ON oauth_access_tokens(app_id, user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_oauth_access_tokens_grant
+  ON oauth_access_tokens(grant_id)
+  WHERE grant_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_oauth_access_tokens_refresh_family
+  ON oauth_access_tokens(refresh_token_family_id)
+  WHERE refresh_token_family_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_public_api_audit_logs_app_created
+  ON public_api_audit_logs(app_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_public_api_audit_logs_request_id
+  ON public_api_audit_logs(request_id);
+CREATE INDEX IF NOT EXISTS idx_public_api_audit_logs_workspace_created
+  ON public_api_audit_logs(workspace_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_public_api_audit_logs_created
+  ON public_api_audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_app_created
+  ON webhook_subscriptions(app_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_match
+  ON webhook_subscriptions(workspace_id, event_type)
+  WHERE active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_read_subject
+  ON webhook_subscriptions(workspace_id, read_subject_user_id)
+  WHERE read_subject_user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_webhook_events_workspace_created
+  ON webhook_events(workspace_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_subscription_created
+  ON webhook_deliveries(subscription_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_due
+  ON webhook_deliveries(next_attempt_at)
+  WHERE status IN ('pending', 'retrying');
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_event
+  ON webhook_deliveries(event_id, attempt_number);
 
 -- User indexes
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

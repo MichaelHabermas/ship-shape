@@ -143,3 +143,78 @@ ShipShape example (2026-05-31): Tier 3 cleared ~487 E2E warnings. Top file `week
 If users expect conversation, a deterministic intent classifier will feel robotic no matter how many branches you add. Tests that lock exact greeting strings, force `modelCalls: 0` on chat, or add a flag that disables the chat model will green-light a broken product. Separate concerns: keep detection, workers, and auth deterministic; use the model for PM chat when key and model name are configured; when unconfigured, fail honestly; assert outcomes (grounding, gates, no hallucination) instead of canned copy.
 
 ShipShape example (2026-06): FleetGraph `POST /api/fleetgraph/chat` fell back to an 800+ line template router whenever `OPENAI_API_KEY` was unset, while docs and evals treated zero-token chat as success. We removed the product router and the chat-deterministic env flag, return unavailable text without a key, and mock `@langchain/openai` in tests on the real `generateContextChatText` path.
+
+## 12. Seeded Tokens Can Hide A Missing Front Door
+
+Tests that insert bearer tokens directly prove token validation, not credential issuance. For auth platforms, keep a separate proof that starts where users and clients start: authorization request, consent, credential exchange, and one real protected API call. Otherwise every downstream feature can accidentally build on a fictional login path.
+
+ShipShape example (2026-06): `/api/v1/me` accepted OAuth access tokens, but the first tests seeded those tokens directly. The route was real; the platform entrance was not. The fix was to add Authorization Code + PKCE, browser consent, one-time code exchange, refresh rotation, and a Playwright flow that mints the token before calling `/api/v1/me`.
+
+## 13. A Packed Install Is A Different Product Than A Workspace Link
+
+Workspace links hide packaging mistakes. A CLI can import a sibling SDK perfectly in a monorepo and still fail for users when the packed tarball asks the package manager to fetch that private workspace dependency from a registry.
+
+The transferable rules:
+
+- Test developer tools from packed artifacts in a fresh temp project.
+- Make CLI packages depend on public SDKs the way users will install them: usually peer dependency plus dev workspace dependency.
+- Keep the demo path and test path on the same executable receiver whenever possible.
+- Treat "works with workspace symlink" as local convenience, not release proof.
+
+ShipShape example (2026-06): `ship webhooks tail` worked from the workspace, but `pnpm drill ttfe` failed because packed `@ship/cli` depended on `@ship/sdk` as `workspace:*` and fresh install tried npm. Moving `@ship/sdk` to a CLI peer dependency made the packed SDK+CLI drill real.
+
+## 14. Retry Logic Needs Injectable Time And Transport
+
+Backoff, timeout, retry, and dead-letter behavior cannot be tested well through real sleeps and real network calls. Those tests prove the wall clock moved, not that the retry state machine is correct. Put time, timers, transport, and persistence boundaries behind injectable seams; production uses real dependencies, tests advance fake time and return exact transport outcomes.
+
+The transferable rules:
+
+- Assert every retry class directly: success, retryable status, retryable transport error, terminal failure, and max-attempt DLQ.
+- Keep delay constants visible and test them without sleeping.
+- Capture outbound request metadata in tests so replay/idempotency behavior is observable.
+- Do not let UI or route tests duplicate retry logic; they should drive the same service path.
+- Atomically claim due work before side effects; "select then update" is enough to green tests and still double-send under two workers.
+- Persist retry state and next work item in one transaction, then recover stale in-flight rows by age; otherwise crashes land between green-state transitions.
+- Update bootstrap schema snapshots when retry/ops migrations must work in fresh isolated databases.
+
+ShipShape example (2026-06): webhook tests originally waited for deliveries with `setTimeout` polling. Refactoring delivery around an injected clock and deliverer made 2xx, 429/5xx, timeout, 4xx DLQ, six-failure DLQ, and replay `Idempotency-Key` behavior deterministic in milliseconds.
+
+## 15. Monorepos Should Not Type-Check Against Ignored Build Artifacts
+
+If one workspace package exports `dist/` and another package imports it during development, the consumer can silently type-check against stale or missing generated files. That makes local success depend on whether someone happened to build the producer package first.
+
+The transferable rules:
+
+- Resolve workspace-to-workspace imports to source in dev, test, and type-check tooling.
+- Keep published package exports pointed at build artifacts, but add monorepo aliases or references for sibling consumers.
+- Treat ignored `dist/` as disposable output, not as a source of truth for local verification.
+- Add a focused test or type-check after changing a public package surface so stale artifacts are caught immediately.
+
+ShipShape example (2026-06): web `/sdk-demo` initially failed type-check after the SDK gained issue/sprint clients because `@ship/sdk` resolved to ignored `sdk/dist` from a previous build. Adding source aliases in web TypeScript/Vite/Vitest made the app consume the current SDK source during development while keeping package exports stable for packed installs.
+
+## 16. Authorization Must Cover Related Data, Not Just The Primary Row
+
+Public read models often assemble one authorized resource plus labels, counts, owners, parents, or rollups from neighboring records. If those joins do not repeat the same visibility and ownership predicates, a safe primary-resource endpoint becomes a metadata leak or relationship oracle.
+
+The transferable rules:
+
+- Treat every joined label, count, filter, and webhook payload field as data that needs its own read authorization.
+- Apply same-tenant, non-deleted, visibility, and subject-specific predicates to related rows before they influence output or filters.
+- Avoid unsafe casts from user-editable JSON/properties fields; validate first and join on safe representations.
+- Do not fan out private resource webhooks through workspace-level subscriptions unless the subscription stores the read subject and scopes it was authorized with.
+
+ShipShape example (2026-06): public issue/sprint routes correctly authorized the primary document-backed resource, but related programs, weekly plans, retros, and accountability targets needed the same visibility predicates. The fix filtered those joins and suppressed private issue webhook fanout until webhook subscriptions can carry an explicit read-context snapshot.
+
+## 17. Event Buses Must Not Weaken Durability Boundaries
+
+Decoupling a domain service from a delivery service is good architecture only if it preserves the old persistence guarantee. Moving from "enqueue inside the transaction, dispatch after commit" to "publish in the background after commit" silently turns a durable outbox into a best-effort notification.
+
+The transferable rules:
+
+- Keep durable event/outbox writes inside the transaction that creates the domain fact when callers need at-least-once delivery.
+- Dispatch external side effects after commit, but persist the retryable work before commit.
+- Make the event-bus API express that distinction: publish/enqueue durably, then schedule dispatch.
+- Test both positive fanout and negative fanout after the event path has settled.
+- Treat post-commit side effects like search indexing as independent; they must not be able to suppress webhook/event publication.
+
+ShipShape example (2026-06): hardening the webhook event-bus boundary initially removed direct service imports from issue/document mutations but also moved webhook persistence into fire-and-forget publication after commit. Review caught that committed documents could lose webhooks if the process exited or search indexing threw. The fix kept the domain boundary on the event bus while publishing durable webhook rows inside the existing transaction and scheduling delivery dispatch after commit.

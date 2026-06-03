@@ -1,3 +1,4 @@
+// Workspace settings page routes admin tabs for members, invites, tokens, developer ops, and audit.
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -5,11 +6,12 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/hooks/useAuth';
 import { api, WorkspaceMember, WorkspaceInvite, AuditLog, ApiToken, ApiTokenCreateResponse } from '@/lib/api';
 import { archivedPersonsKey } from '@/contexts/ArchivedPersonsContext';
+import { DeveloperSettingsTab } from '@/pages/DeveloperSettingsTab';
 import { cn } from '@/lib/cn';
 
-type Tab = 'members' | 'invites' | 'tokens' | 'audit';
+type Tab = 'members' | 'invites' | 'tokens' | 'developer' | 'audit';
 
-const VALID_TABS: Tab[] = ['members', 'invites', 'tokens', 'audit'];
+const VALID_TABS: Tab[] = ['members', 'invites', 'tokens', 'developer', 'audit'];
 
 export function WorkspaceSettingsPage() {
   const { currentWorkspace, isWorkspaceAdmin } = useWorkspace();
@@ -174,6 +176,9 @@ export function WorkspaceSettingsPage() {
           <TabButton active={activeTab === 'tokens'} onClick={() => handleTabChange('tokens')}>
             API Tokens
           </TabButton>
+          <TabButton active={activeTab === 'developer'} onClick={() => handleTabChange('developer')}>
+            Developer
+          </TabButton>
           <TabButton active={activeTab === 'audit'} onClick={() => handleTabChange('audit')}>
             Audit Logs
           </TabButton>
@@ -230,6 +235,9 @@ export function WorkspaceSettingsPage() {
                 onTokenCreated={(token) => setApiTokens(prev => [token, ...prev])}
                 onTokenRevoked={(tokenId) => setApiTokens(prev => prev.filter(t => t.id !== tokenId))}
               />
+            )}
+            {activeTab === 'developer' && (
+              <DeveloperSettingsTab />
             )}
             {activeTab === 'audit' && (
               <AuditTab auditLogs={auditLogs} />
