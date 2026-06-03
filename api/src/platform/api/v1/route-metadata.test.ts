@@ -12,6 +12,7 @@ import {
   type PublicRouteMetadata,
   type PublicRouteSdkMetadata,
 } from './route-metadata.js';
+import { publicRouteOpenApiContracts } from './route-openapi-contracts.js';
 
 describe('public API v1 route registry', () => {
   const app = createApp();
@@ -52,6 +53,19 @@ describe('public API v1 route registry', () => {
       if (route.isListEndpoint) {
         expect(['cursor', 'none']).toContain(route.pagination);
       }
+    }
+  });
+
+  it('keeps OpenAPI contracts aligned with registry operationIds', () => {
+    const registryIds = publicApiV1RouteRegistry.map(route => route.operationId).sort();
+    const contractIds = Object.keys(publicRouteOpenApiContracts).sort();
+    expect(contractIds).toEqual(registryIds);
+
+    for (const operationId of registryIds) {
+      const contract = publicRouteOpenApiContracts[operationId];
+      expect(contract, operationId).toBeDefined();
+      const statuses = Object.keys(contract.responses);
+      expect(statuses.some(status => status.startsWith('2')), operationId).toBe(true);
     }
   });
 

@@ -1,5 +1,4 @@
 // Document creation service owns generic document inserts and post-create side effects.
-import type { WebhookEvent } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import { broadcastToUser } from '../../collaboration/index.js';
 import {
@@ -14,6 +13,10 @@ import {
 import { upsertDocumentSearchIndex } from '../../utils/tiptap-search.js';
 import { getDocumentAccessContext, getReadableDocument } from '../document-access.js';
 import {
+  commitAndDispatchWebhooks,
+  publishWebhookEventInTransaction,
+} from '../../platform/webhooks/event-bus.js';
+import {
   guardMutationCapability,
   nextIssueTicketNumber,
   validateReferences,
@@ -23,10 +26,7 @@ import {
   type DocumentAccessRow,
   type MutationResult,
 } from './types.js';
-import {
-  publishWebhookEvent,
-  scheduleWebhookDeliveryDispatch,
-} from '../../platform/webhooks/event-bus.js';
+import { buildDocumentCreatedWebhookEvent } from './webhook-events.js';
 
 export async function createDocumentMutation({
   actor,
@@ -133,36 +133,17 @@ export async function createDocumentMutation({
       await addBelongsToAssociation(newDoc.id, program_id, 'program', client);
     }
 
-    const webhookEvent: WebhookEvent = {
-      type: 'document.created',
-      workspace_id: actor.workspaceId,
-      idempotency_key: `document.created:${newDoc.id}`,
-      resource: {
-        kind: 'document',
-        id: newDoc.id,
-        document_type: newDoc.document_type,
-      },
-      payload: {
-        document: {
-          id: newDoc.id,
-          title: newDoc.title,
-          document_type: newDoc.document_type,
-          api_url: `/api/v1/documents/${newDoc.id}`,
-          ui_url: `/documents/${newDoc.id}`,
-        },
-        actor: {
-          id: actor.userId,
-        },
-      },
-    };
-    const webhook = await publishWebhookEvent(webhookEvent, {
-      db: client,
-      dispatch: 'none',
-      errorMode: 'throw',
-    });
+    const webhook = await publishWebhookEventInTransaction(
+      buildDocumentCreatedWebhookEvent({
+        workspaceId: actor.workspaceId,
+        actorUserId: actor.userId,
+        row: newDoc,
+      }),
+      client
+    );
 
     await client.query('COMMIT');
-    scheduleWebhookDeliveryDispatch(webhook.deliveryIds);
+    commitAndDispatchWebhooks(webhook.deliveryIds);
     await upsertDocumentSearchIndex(newDoc.id);
 
     if (document_type === 'weekly_plan' || (properties && 'outcome' in properties)) {

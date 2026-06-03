@@ -6,6 +6,9 @@ import {
   type PublicIssue,
 } from '@ship/shared';
 import { pool } from '../../../db/client.js';
+import {
+  issueCoreFromDocumentRow,
+} from '../../../services/issue-mutations/issue-core.js';
 import { getDocumentAccessContext, visibilityPredicate } from '../../../services/document-access.js';
 import {
   decodePublicCursor,
@@ -142,17 +145,18 @@ function publicIssueFromRow(
   options: { includeContent: boolean; belongsTo: PublicIssue['belongs_to'] }
 ): PublicIssue {
   const props = row.properties ?? {};
+  const core = issueCoreFromDocumentRow(row);
   const issue = {
-    id: row.id,
-    title: row.title,
-    display_id: row.ticket_number === null ? '' : `#${row.ticket_number}`,
-    ticket_number: row.ticket_number,
+    id: core.id,
+    title: core.title,
+    display_id: core.display_id,
+    ticket_number: core.ticket_number,
     state: schemaValueOr(PublicIssueSchema.shape.state, props.state, 'backlog'),
     priority: schemaValueOr(PublicIssueSchema.shape.priority, props.priority, 'medium'),
     assignee_id: uuidOrNull(props.assignee_id),
     ...(row.assignee_name !== null ? { assignee_name: row.assignee_name } : {}),
     ...(row.assignee_archived ? { assignee_archived: true } : {}),
-    ...(typeof props.estimate === 'number' ? { estimate: props.estimate } : {}),
+    ...(typeof props.estimate === 'number' ? { estimate: props.estimate } : core.estimate !== undefined ? { estimate: core.estimate } : {}),
     source: schemaValueOr(PublicIssueSchema.shape.source, props.source, 'internal'),
     ...(typeof props.due_date === 'string' ? { due_date: props.due_date } : {}),
     ...(typeof props.is_system_generated === 'boolean' ? { is_system_generated: props.is_system_generated } : {}),
@@ -320,10 +324,12 @@ async function getPublicBelongsToAssociationsBatch(input: {
 
   const associations = new Map<string, PublicIssue['belongs_to']>();
   for (const row of result.rows) {
+    const parsedType = PublicIssueSchema.shape.belongs_to.element.shape.type.safeParse(row.type);
+    if (!parsedType.success) continue;
     const current = associations.get(row.document_id) ?? [];
     current.push({
       id: row.id,
-      type: row.type,
+      type: parsedType.data,
       ...(row.title ? { title: row.title } : {}),
       ...(row.color ? { color: row.color } : {}),
     });

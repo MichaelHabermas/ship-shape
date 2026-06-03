@@ -8,6 +8,8 @@ cd "${ROOT_DIR}"
 pnpm lint
 pnpm type-check
 pnpm openapi:check:strict
+pnpm --filter @ship/api public-openapi:generate
+git diff --exit-code docs/openapi.json
 node ./scripts/ci/validate-public-openapi.mjs
 
 ./scripts/run-api-tests.sh -- \
@@ -17,7 +19,13 @@ node ./scripts/ci/validate-public-openapi.mjs
   src/platform/api/v1/middleware.test.ts \
   src/platform/api/v1/me.test.ts \
   src/platform/api/v1/documents.test.ts \
+  src/platform/api/v1/issues.test.ts \
+  src/platform/api/v1/sprints.test.ts \
+  src/platform/api/v1/fleetgraph.test.ts \
   src/platform/api/v1/webhooks.test.ts \
+  src/platform/webhooks/deliverer.test.ts \
+  src/platform/webhooks/worker.test.ts \
+  src/platform/webhooks/bootstrap.test.ts \
   src/platform/webhooks/event-bus.test.ts \
   src/platform/webhooks/service.test.ts \
   src/services/issue-mutations/webhook-events.test.ts \

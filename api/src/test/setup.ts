@@ -29,6 +29,9 @@ beforeAll(async () => {
     issue_iterations, fleetgraph_worker_ticks, documents, audit_logs, workspace_memberships,
     users, workspaces
     CASCADE`)
+
+  const { bootstrapWebhooks } = await import('../platform/webhooks/bootstrap.js')
+  bootstrapWebhooks()
 })
 
 afterAll(async () => {

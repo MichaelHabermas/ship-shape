@@ -113,6 +113,16 @@
                             "type": [
                               "string",
                               "null"
+                            ],
+                            "enum": [
+                              "triage",
+                              "backlog",
+                              "todo",
+                              "in_progress",
+                              "blocked",
+                              "in_review",
+                              "done",
+                              "cancelled"
                             ]
                           },
                           "issue_priority": {
@@ -318,6 +328,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -356,6 +367,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -394,6 +406,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -432,6 +445,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -470,6 +484,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -508,6 +523,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -631,6 +647,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -669,6 +686,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -707,6 +725,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -745,6 +764,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -783,6 +803,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -821,6 +842,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1019,6 +1041,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1057,6 +1080,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1095,6 +1119,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1133,6 +1158,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1171,6 +1197,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1209,6 +1236,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1399,6 +1427,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1437,6 +1466,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1475,6 +1505,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1513,6 +1544,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1551,6 +1583,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1589,6 +1622,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1740,6 +1774,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1778,6 +1813,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1816,6 +1852,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1854,6 +1891,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1892,6 +1930,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -1930,6 +1969,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2302,6 +2342,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2340,6 +2381,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2378,6 +2420,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2416,6 +2459,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2454,6 +2498,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2492,6 +2537,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2834,6 +2880,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2872,6 +2919,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2910,6 +2958,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2948,6 +2997,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -2986,6 +3036,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3024,6 +3075,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3286,6 +3338,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3324,6 +3377,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3362,6 +3416,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3400,6 +3455,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3438,6 +3494,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3476,6 +3533,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3808,6 +3866,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3846,6 +3905,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3884,6 +3944,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3922,6 +3983,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3960,6 +4022,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -3969,7 +4032,65 @@
                     },
                     "details": {
                       "type": "object",
-                      "additionalProperties": {}
+                      "properties": {
+                        "reason": {
+                          "type": "string",
+                          "enum": [
+                            "incomplete_children"
+                          ]
+                        },
+                        "incomplete_children": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "ticket_number": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "state": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "enum": [
+                                  "triage",
+                                  "backlog",
+                                  "todo",
+                                  "in_progress",
+                                  "blocked",
+                                  "in_review",
+                                  "done",
+                                  "cancelled"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "ticket_number",
+                              "state"
+                            ]
+                          }
+                        },
+                        "confirm_action": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "reason",
+                        "incomplete_children",
+                        "confirm_action"
+                      ]
                     },
                     "request_id": {
                       "type": "string"
@@ -3978,6 +4099,7 @@
                   "required": [
                     "code",
                     "message",
+                    "details",
                     "request_id"
                   ]
                 }
@@ -3998,6 +4120,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4036,6 +4159,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4331,6 +4455,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4369,6 +4494,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4407,6 +4533,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4445,6 +4572,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4483,6 +4611,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4521,6 +4650,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4789,6 +4919,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4827,6 +4958,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4865,6 +4997,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4903,6 +5036,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4941,6 +5075,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -4979,6 +5114,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5351,6 +5487,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5389,6 +5526,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5427,6 +5565,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5465,6 +5604,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5503,6 +5643,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5541,6 +5682,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5678,6 +5820,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5716,6 +5859,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5754,6 +5898,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5792,6 +5937,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5830,6 +5976,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -5868,6 +6015,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6002,6 +6150,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6040,6 +6189,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6078,6 +6228,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6116,6 +6267,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6154,6 +6306,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6192,6 +6345,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6373,6 +6527,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6411,6 +6566,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6449,6 +6605,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6487,6 +6644,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6525,6 +6683,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6563,6 +6722,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6717,6 +6877,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6755,6 +6916,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6793,6 +6955,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6831,6 +6994,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6869,6 +7033,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]
@@ -6907,6 +7072,7 @@
                         "forbidden",
                         "not_found",
                         "validation_failed",
+                        "conflict",
                         "rate_limited",
                         "server_error"
                       ]

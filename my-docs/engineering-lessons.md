@@ -218,3 +218,75 @@ The transferable rules:
 - Treat post-commit side effects like search indexing as independent; they must not be able to suppress webhook/event publication.
 
 ShipShape example (2026-06): hardening the webhook event-bus boundary initially removed direct service imports from issue/document mutations but also moved webhook persistence into fire-and-forget publication after commit. Review caught that committed documents could lose webhooks if the process exited or search indexing threw. The fix kept the domain boundary on the event bus while publishing durable webhook rows inside the existing transaction and scheduling delivery dispatch after commit.
+
+## 18. Post-Commit Side Effects Need One Module Boundary
+
+When every caller must remember the same two-step sequence — enqueue inside the transaction with `dispatch: 'none'`, then schedule dispatch after commit — the invariant will eventually be forgotten at a new call site. Encode the sequence in one API on the deep module instead of copying it across mutations.
+
+The transferable rules:
+
+- Pair transactional publish and post-commit dispatch in named functions, not comments.
+- Grep for the old flags after refactors; zero mutation call sites should remain.
+- Keep the bus as the domain-facing surface; hide delivery policy behind bootstrap wiring.
+
+ShipShape example (2026-06): issue and document mutations each duplicated the webhook two-phase commit. `publishWebhookEventInTransaction` and `commitAndDispatchWebhooks` replaced three identical blocks and made the contract enforceable.
+
+## 19. Test-Only Workers Hide Production Gaps
+
+Background retry or reclaim logic that exists only in unit tests but is never wired at startup produces green CI for a feature that does not run in production. If the code path is required for reliability, something in the composition root must invoke it.
+
+The transferable rules:
+
+- Every due-queue processor needs an explicit startup registration or documented deferral.
+- Match worker shutdown to graceful cleanup alongside other background jobs.
+- Expand CI gates to cover the routes and services the worker protects.
+
+ShipShape example (2026-06): `processDueWebhookDeliveries` had full retry/DLQ tests but no production caller. Wiring a simple in-process interval at API startup closed the gap without waiting for a queue-backed worker.
+
+## 20. Three Wire Shapes For One Entity Means Drift
+
+When public API bodies, session/mutation responses, and webhook payloads each map the same storage row independently, field defaults and sparse-option rules diverge silently. Extract core fields once, then adapt at each boundary.
+
+The transferable rules:
+
+- One core mapper from row/properties JSON; thin adapters for ISO dates, URLs, and Zod validation.
+- Keep read-model SQL and visibility filters in the read path; do not merge authorization into mutation mappers.
+- Webhook payloads should reuse the core mapper, not re-parse properties with loose checks.
+
+ShipShape example (2026-06): `issue-core.ts` unified display ID, state, priority, and assignee defaults for public read, webhook events, and future session alignment.
+
+## 21. Shared Mappers Must Sanitize Enums At Every Wire Boundary
+
+Extracting one core mapper from storage JSON does not remove the need to validate enums before Zod parse on each adapter. A mapper that passes through any string (`typeof x === 'string'`) will still break webhook enqueue (`parseWebhookEvent` throws) or public list endpoints (500 on `.parse`) when legacy rows contain garbage.
+
+The transferable rules:
+
+- Use canonical enum helpers (`asIssueState`, `ISSUE_*_VALUES.includes`) in the core mapper, not loose string checks.
+- Public read adapters may still need explicit fallbacks on raw properties when the wire contract is stricter than storage.
+- Skip or sanitize joined association types before array assembly, not only top-level fields.
+
+ShipShape example (2026-06): are-you-sure review found malformed `issue_state` could 500 FleetGraph lists, webhook updates could roll back on bad DB enums, and unknown `belongs_to.type` values could fail entire public issue responses. Fixes: `asIssueState` in `issue-core` and attention-context reader; skip invalid belongs_to rows in the public read model.
+
+## 22. Public Conflicts Belong In PublicApiError.details
+
+When internal mutations return rich 409 bodies (for example orphan sub-issues on close), public adapters must not collapse them to `validation_failed` with the machine reason as the message. Keep the standard error envelope and put actionable conflict data in typed `details`.
+
+The transferable rules:
+
+- Add a dedicated public error code when semantics differ (`conflict` vs malformed input).
+- Mirror internal warning shapes in shared Zod under `details`, not as a second top-level wire format.
+- Document non-2xx responses in the same OpenAPI contract map keyed by `operationId`.
+
+ShipShape example (2026-06): public `PATCH /api/v1/issues/:id` now returns `code: conflict` with `details.incomplete_children` and `confirm_action`, matching the internal cascade warning while keeping `PublicApiErrorSchema`.
+
+## 23. Registry And OpenAPI Contracts Must Be One Keyed Set
+
+Route metadata, OpenAPI contracts, and generated `docs/openapi.json` must share the same `operationId` keys. CI should fail when a registry route lacks a contract, when the committed spec drifts from the generator, or when operation counts diverge.
+
+The transferable rules:
+
+- Use `satisfies Record<RegistryOperationId, …>` on the contracts object.
+- Add Vitest parity between registry and contract keys.
+- Regenerate and diff the public spec in the Plugforge gate; validate operationId sets in the smoke script.
+
+ShipShape example (2026-06): `route-metadata.test.ts` asserts registry ↔ contracts parity; `plugforge-verify.sh` runs `public-openapi:generate` + `git diff docs/openapi.json`; `validate-public-openapi.mjs` checks operationId set equality.

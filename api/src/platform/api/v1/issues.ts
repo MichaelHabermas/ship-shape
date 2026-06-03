@@ -1,11 +1,13 @@
 // Public issue routes expose document-backed work items through OAuth issue scopes.
 import { Router, type Request, type Response } from 'express';
-import { z } from 'zod';
 import {
   PublicIssueCreateSchema,
   PublicIssueListQuerySchema,
   PublicIssueParamsSchema,
+  PublicIssueIncompleteChildrenDetailsSchema,
   PublicIssueUpdateSchema,
+  asIssueState,
+  type PublicIssueIncompleteChildrenDetails,
 } from '@ship/shared';
 import { pool } from '../../../db/client.js';
 import {
@@ -20,6 +22,11 @@ import {
   requirePublicApiBearer,
 } from './middleware.js';
 import { sendPublicApiError } from './errors.js';
+import {
+  sendInvalidCursorError,
+  sendMissingContext,
+  sendValidationError,
+} from './route-handlers.js';
 import {
   findPublicIssue,
   listPublicIssuesPage,
@@ -210,44 +217,72 @@ function publicIssueIdFromMutationBody(body: Record<string, unknown>): string {
   throw new Error('Issue mutation returned no issue id');
 }
 
-function sendValidationError(req: Request, res: Response, error: z.ZodError): void {
-  req.publicApiErrorCode = 'validation_failed';
-  sendPublicApiError(res, 400, {
-    code: 'validation_failed',
-    message: 'Invalid request',
-    details: { fields: error.flatten() },
-    request_id: req.publicApi?.requestId ?? req.publicApiRequestId ?? publicApiRequestIdFromRequest(req),
-  });
-}
-
-function sendInvalidCursorError(req: Request, res: Response): void {
-  req.publicApiErrorCode = 'validation_failed';
-  sendPublicApiError(res, 400, {
-    code: 'validation_failed',
-    message: 'Invalid cursor',
-    request_id: req.publicApi?.requestId ?? req.publicApiRequestId ?? publicApiRequestIdFromRequest(req),
-  });
-}
-
-function sendMissingContext(req: Request, res: Response): void {
-  req.publicApiErrorCode = 'server_error';
-  sendPublicApiError(res, 500, {
-    code: 'server_error',
-    message: 'Public API context missing',
-    request_id: req.publicApiRequestId ?? 'unknown',
-  });
-}
-
 function sendMutationError(
   req: Request,
   res: Response,
   status: number,
   body: Record<string, unknown>
 ): void {
-  req.publicApiErrorCode = status === 404 ? 'not_found' : status === 403 ? 'forbidden' : 'validation_failed';
+  const requestId = req.publicApi?.requestId ?? req.publicApiRequestId ?? publicApiRequestIdFromRequest(req);
+
+  if (status === 404) {
+    req.publicApiErrorCode = 'not_found';
+    sendPublicApiError(res, status, {
+      code: 'not_found',
+      message: typeof body.error === 'string' ? body.error : 'Issue not found',
+      request_id: requestId,
+    });
+    return;
+  }
+
+  if (status === 403) {
+    req.publicApiErrorCode = 'forbidden';
+    sendPublicApiError(res, status, {
+      code: 'forbidden',
+      message: typeof body.error === 'string' ? body.error : 'Forbidden',
+      request_id: requestId,
+    });
+    return;
+  }
+
+  if (status === 409 && body.error === 'incomplete_children') {
+    const details = buildIncompleteChildrenDetails(body);
+    req.publicApiErrorCode = 'conflict';
+    sendPublicApiError(res, status, {
+      code: 'conflict',
+      message: typeof body.message === 'string' ? body.message : 'Issue update conflict',
+      details,
+      request_id: requestId,
+    });
+    return;
+  }
+
+  req.publicApiErrorCode = 'validation_failed';
   sendPublicApiError(res, status, {
-    code: req.publicApiErrorCode,
+    code: 'validation_failed',
     message: typeof body.error === 'string' ? body.error : 'Issue mutation failed',
-    request_id: req.publicApi?.requestId ?? req.publicApiRequestId ?? publicApiRequestIdFromRequest(req),
+    request_id: requestId,
+  });
+}
+
+function buildIncompleteChildrenDetails(body: Record<string, unknown>): PublicIssueIncompleteChildrenDetails {
+  const rawChildren = Array.isArray(body.incomplete_children) ? body.incomplete_children : [];
+  const incompleteChildren = rawChildren.flatMap((child) => {
+    if (!child || typeof child !== 'object') return [];
+    const row = child as Record<string, unknown>;
+    if (typeof row.id !== 'string' || typeof row.title !== 'string') return [];
+    const ticketNumber = typeof row.ticket_number === 'number' ? row.ticket_number : null;
+    const state = row.state === null || row.state === undefined
+      ? null
+      : asIssueState(row.state);
+    return [{ id: row.id, title: row.title, ticket_number: ticketNumber, state }];
+  });
+
+  return PublicIssueIncompleteChildrenDetailsSchema.parse({
+    reason: 'incomplete_children',
+    incomplete_children: incompleteChildren,
+    confirm_action: typeof body.confirm_action === 'string'
+      ? body.confirm_action
+      : 'Set confirm_orphan_children: true to proceed',
   });
 }

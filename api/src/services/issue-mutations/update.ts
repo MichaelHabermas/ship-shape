@@ -19,8 +19,8 @@ import { VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { requireFirstRow } from '../../utils/query-rows.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../../fleetgraph/events.js';
 import {
-  publishWebhookEvent,
-  scheduleWebhookDeliveryDispatch,
+  commitAndDispatchWebhooks,
+  publishWebhookEventInTransaction,
 } from '../../platform/webhooks/event-bus.js';
 import {
   type CountRow,
@@ -330,16 +330,12 @@ export async function updateIssueMutation(
 
   const webhookDeliveryIds: string[] = [];
   for (const webhookEvent of webhookEvents) {
-    const webhook = await publishWebhookEvent(webhookEvent, {
-      db: client,
-      dispatch: 'none',
-      errorMode: 'throw',
-    });
+    const webhook = await publishWebhookEventInTransaction(webhookEvent, client);
     webhookDeliveryIds.push(...webhook.deliveryIds);
   }
 
   await client.query('COMMIT');
-  scheduleWebhookDeliveryDispatch(webhookDeliveryIds);
+  commitAndDispatchWebhooks(webhookDeliveryIds);
 
   await enqueueFleetGraphIssueAttentionEvents({
     workspaceId,

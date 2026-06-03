@@ -23,7 +23,6 @@ import {
   FetchWebhookDeliverer,
   type IWebhookDeliverer,
 } from './deliverer.js';
-import { registerWebhookDeliveryDispatchHandler, webhookEventBus } from './event-bus.js';
 import {
   expectedDocumentTypeForWebhookEvent,
   parseWebhookEvent,
@@ -945,13 +944,3 @@ function webhookSubscriptionPrincipal(
   };
 }
 
-registerWebhookDeliveryDispatchHandler(dispatchWebhookDeliveries);
-
-webhookEventBus.subscribe(async (event, options) => {
-  const enqueued = await enqueueWebhookEvent(event, options.db);
-  if (options.dispatch === 'none') {
-    return { deliveryIds: enqueued.deliveryIds };
-  }
-  await dispatchWebhookDeliveries(enqueued.deliveryIds);
-  return { deliveryIds: enqueued.deliveryIds };
-});

@@ -1,6 +1,5 @@
 // Public document routes expose the unified document model through OAuth scopes.
 import { Router, type Request, type Response } from 'express';
-import { z } from 'zod';
 import {
   type DocumentType,
   type DocumentVisibility,
@@ -20,10 +19,14 @@ import {
   markPublicApiRoute,
   publicApiAsyncHandler,
   publicApiPrincipalFromRequest,
-  publicApiRequestIdFromRequest,
   requirePublicApiBearer,
 } from './middleware.js';
 import { sendPublicApiError } from './errors.js';
+import {
+  accountabilityReadPredicate,
+  sendMissingContext,
+  sendValidationError,
+} from './route-handlers.js';
 import {
   publicDocumentsCreateRouteMetadata,
   publicDocumentsGetRouteMetadata,
@@ -256,50 +259,9 @@ function publicDocumentFromRow(row: PublicDocumentRow): PublicDocument {
   };
 }
 
-function sendValidationError(req: Request, res: Response, error: z.ZodError): void {
-  req.publicApiErrorCode = 'validation_failed';
-  sendPublicApiError(res, 400, {
-    code: 'validation_failed',
-    message: 'Invalid request',
-    details: { fields: error.flatten() },
-    request_id: req.publicApi?.requestId ?? req.publicApiRequestId ?? publicApiRequestIdFromRequest(req),
-  });
-}
-
-function sendMissingContext(req: Request, res: Response): void {
-  req.publicApiErrorCode = 'server_error';
-  sendPublicApiError(res, 500, {
-    code: 'server_error',
-    message: 'Public API context missing',
-    request_id: req.publicApiRequestId ?? 'unknown',
-  });
-}
-
 function publicErrorCodeForStatus(status: number) {
   if (status === 400) return 'validation_failed';
   if (status === 403) return 'forbidden';
   if (status === 404) return 'not_found';
   return 'server_error';
-}
-
-function accountabilityReadPredicate(
-  tableAlias: string,
-  userIdParam: string,
-  isAdminParam: string
-): string {
-  return `(
-    ${tableAlias}.document_type NOT IN ('weekly_plan', 'weekly_retro')
-    OR ${isAdminParam} = TRUE
-    OR EXISTS (
-      SELECT 1
-        FROM documents person
-       WHERE person.id::text = ${tableAlias}.properties->>'person_id'
-         AND person.workspace_id = ${tableAlias}.workspace_id
-         AND person.document_type = 'person'
-         AND person.archived_at IS NULL
-         AND person.deleted_at IS NULL
-         AND person.properties->>'user_id' = ${userIdParam}::text
-         AND ${visibilityPredicate('person', userIdParam, isAdminParam)}
-    )
-  )`;
 }
