@@ -331,3 +331,16 @@ ShipShape example (2026-06): `ship login` default scope string includes issues/s
 When a frontend hand-rolls DTOs for API responses that are already in OpenAPI, schema drift becomes a runtime surprise instead of a compile-time failure. Generated OpenAPI aliases should be the frontend source of truth for response contracts; local types should describe only UI-derived state that does not cross the wire.
 
 ShipShape example (2026-06): Team and Reviews screens had local response shapes that drifted from runtime Team endpoints. Moving those wire types to generated OpenAPI aliases made `TeamGridResponse`, assignments, review cells, people, weeks, and approval records compile against the same contract the API publishes.
+
+## 28. Reference Integrations Need Enforced Public Boundaries
+
+An integration that imports internal app modules is not a reference integration. It is a colocated feature pretending to be an external client. The proof must be mechanical: package dependency checks, static import checks, `require()` checks, dynamic import checks, and a negative fixture that fails when an integration reaches into app internals.
+
+The transferable rules:
+
+- Let integrations depend on the public SDK and ordinary platform packages, not app source trees.
+- Block internal packages and relative paths in package manifests and source files.
+- Test the boundary checker with a deliberately bad fixture, not only the real integrations.
+- Add the boundary check to the same final gate that proves the integration behavior.
+
+ShipShape example (2026-06): Slack and GitLab reference integrations live under `integrations/` and import Ship only through `@ship/sdk`. `scripts/ci/check-integration-boundary.mjs` blocks `api/src`, `web/src`, `shared`, `@ship/shared`, app aliases, `require()`, and dynamic internal imports; `pnpm plugforge:final` runs the checker and its negative fixture.

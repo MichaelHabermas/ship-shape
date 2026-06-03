@@ -22,6 +22,7 @@ describe('ShipClient public work SDK', () => {
       get: expect.any(Function),
       create: expect.any(Function),
       update: expect.any(Function),
+      upsertExternalLink: expect.any(Function),
       iterate: expect.any(Function),
     });
     expect(client.sprints).toMatchObject({
@@ -50,15 +51,32 @@ describe('ShipClient public work SDK', () => {
     await client.issues.get('issue-1');
     await client.issues.create({ title: 'Public issue' });
     await client.issues.update('issue-1', { state: 'done', confirm_orphan_children: true });
+    await client.issues.upsertExternalLink('issue-1', {
+      provider: 'gitlab',
+      external_id: 'merge_request:42',
+      kind: 'merge_request',
+      url: 'https://gitlab.example.test/group/project/-/merge_requests/42',
+      title: 'Ship integration',
+      status: 'opened',
+    });
 
     expect(callSummary(calls)).toEqual([
       ['GET', 'https://ship.test/api/v1/issues?limit=5&state=todo%2Cin_progress'],
       ['GET', 'https://ship.test/api/v1/issues/issue-1'],
       ['POST', 'https://ship.test/api/v1/issues'],
       ['PATCH', 'https://ship.test/api/v1/issues/issue-1'],
+      ['POST', 'https://ship.test/api/v1/issues/issue-1/external-links'],
     ]);
     expect(jsonBody(calls[2])).toEqual({ title: 'Public issue' });
     expect(jsonBody(calls[3])).toEqual({ state: 'done', confirm_orphan_children: true });
+    expect(jsonBody(calls[4])).toEqual({
+      provider: 'gitlab',
+      external_id: 'merge_request:42',
+      kind: 'merge_request',
+      url: 'https://gitlab.example.test/group/project/-/merge_requests/42',
+      title: 'Ship integration',
+      status: 'opened',
+    });
   });
 
   it('calls sprint endpoints with nested issue reads', async () => {

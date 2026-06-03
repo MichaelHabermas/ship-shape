@@ -48,7 +48,7 @@ When running multiple worktrees, ports auto-increment. Check the `.ports` file.
 3. Apply `authMiddleware` for protected routes
 4. Register in `api/src/app.ts`
 
-See `api/src/routes/issues.ts` for a complete example.
+See `api/src/routes/issues/index.ts` for a complete example.
 
 ### How do I create a new document type?
 

@@ -5,6 +5,7 @@ import {
   PUBLIC_FLEETGRAPH_ATTENTION_CONTEXTS_PATH,
   PUBLIC_DOCUMENT_PATH,
   PUBLIC_DOCUMENTS_PATH,
+  PUBLIC_ISSUE_EXTERNAL_LINKS_PATH,
   PUBLIC_ISSUE_PATH,
   PUBLIC_ISSUES_PATH,
   PUBLIC_ME_PATH,
@@ -189,6 +190,20 @@ export const publicIssuesUpdateRouteMetadata = {
   },
 } satisfies PublicRouteMetadata;
 
+export const publicIssueExternalLinksUpsertRouteMetadata = {
+  method: 'POST',
+  path: PUBLIC_ISSUE_EXTERNAL_LINKS_PATH,
+  operationId: 'issues.externalLinks.upsert',
+  requiredScopes: ['issues:write'],
+  auth: 'oauth',
+  handlerMountPath: '/issues/:id/external-links',
+  isListEndpoint: false,
+  sdk: {
+    client: 'issues',
+    method: 'upsertExternalLink',
+  },
+} satisfies PublicRouteMetadata;
+
 export const publicSprintsListRouteMetadata = {
   method: 'GET',
   path: PUBLIC_SPRINTS_PATH,
@@ -302,6 +317,7 @@ export const publicApiV1RouteRegistry = [
   publicIssuesGetRouteMetadata,
   publicIssuesCreateRouteMetadata,
   publicIssuesUpdateRouteMetadata,
+  publicIssueExternalLinksUpsertRouteMetadata,
   publicSprintsListRouteMetadata,
   publicSprintsGetRouteMetadata,
   publicSprintIssuesListRouteMetadata,

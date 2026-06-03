@@ -79,14 +79,14 @@ Each row: do the **live check**, then confirm **pass if**.
 | 6 | ScopeRegistry; 403 names missing scope | Create a **second** OAuth app with **only** `documents:read`. On SDK demo, connect with that client_id, then click **Create** | Error/status names missing scope (e.g. `documents:write`), not generic forbidden. CI: `api/src/platform/api/v1/middleware.test.ts` |
 | 7 | OpenAPI 3.1 generated at `/api/v1/openapi.json` | [Live OpenAPI on API host](https://ship-shape-api.onrender.com/api/v1/openapi.json) (not the static web copy) | JSON loads; `openapi` is **3.1.x**; includes `/api/v1/documents` paths |
 | 8 | SDK: `new ShipClient({ token }).me()` | Step 4 above (lists load after connect) | Authenticated SDK calls succeed; `.me()` covered by CI (`e2e/oauth-auth-code.spec.ts`) |
-| 9 | Regression suite + perf within +10% | Not runnable from the deployed site alone | **`Plugforge MVP` workflow green on `main`** ([GitHub Actions](https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-mvp.yml)): platform API tests, `e2e/oauth-auth-code.spec.ts`, TTFE drill (`pnpm drill ttfe`), lint/types/OpenAPI checks. GitLab mirror: `verify` + `plugforge-oauth-e2e` + `ttfe` jobs. Perf: no automated +10% gate yet; run `pnpm test:all` locally before release if you need regression evidence. |
+| 9 | Regression suite + perf within +10% | Not runnable from the deployed site alone | Local proof gates: `pnpm plugforge:verify`, `pnpm plugforge:oauth-e2e`, and `pnpm plugforge:final`. The final gate runs platform API tests, TTFE, refresh theft, webhook replay/idempotency, SDK/OpenAPI parity, integration boundary checks, Slack/GitLab package checks, and docs drift checks. Perf: no automated +10% gate yet; run `pnpm test:all` locally before release if you need full-regression evidence. |
 | 10 | Deployed + published OpenAPI + grader OAuth | [API /health](https://ship-shape-api.onrender.com/health) shows `plugforge:true`; create read-only app in Developer tab | Public web + API + live OpenAPI; grader can self-register a read-only OAuth app |
 
 ---
 
 ## What this guide is not
 
-- **Final submission bar** (TTFE webhook drill, full CLI story, agent rewire) lives in the packet’s “Beyond MVP” section and [`README.md` § Week 6](./README.md#week-6-plugforge-evidence)—not required for Tuesday MVP gates.
+- **Final submission bar** (TTFE webhook drill, full CLI story, refresh-token theft drill, replay idempotency drill, SDK-only Slack/GitLab integrations, and agent audit rows) is executable with `pnpm plugforge:final` and summarized in [`README.md` § Week 6](./README.md#week-6-plugforge-evidence)—not required for Tuesday MVP gates.
 
 ---
 

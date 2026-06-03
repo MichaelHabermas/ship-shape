@@ -2,11 +2,15 @@
 import { Router, type Request, type Response } from 'express';
 import {
   PublicIssueCreateSchema,
+  PublicIssueExternalLinkInputSchema,
+  PublicIssueExternalLinkSchema,
   PublicIssueListQuerySchema,
   PublicIssueParamsSchema,
   PublicIssueIncompleteChildrenDetailsSchema,
   PublicIssueUpdateSchema,
   asIssueState,
+  type PublicIssueExternalLink,
+  type PublicIssueExternalLinkInput,
   type PublicIssueIncompleteChildrenDetails,
 } from '@ship/shared';
 import { pool } from '../../../db/client.js';
@@ -14,6 +18,8 @@ import {
   createIssueMutation,
   updateIssueMutation,
 } from '../../../services/issue-mutations/index.js';
+import { guardIssueMutation } from '../../../services/issue-mutation-guards.js';
+import { logDocumentChange } from '../../../utils/document-crud.js';
 import {
   markPublicApiRoute,
   publicApiAsyncHandler,
@@ -37,6 +43,7 @@ import {
   publicIssuesGetRouteMetadata,
   publicIssuesListRouteMetadata,
   publicIssuesUpdateRouteMetadata,
+  publicIssueExternalLinksUpsertRouteMetadata,
 } from './route-metadata.js';
 import { parsePublicRouteBody, parsePublicRouteParams, parsePublicRouteQuery } from './route-request.js';
 
@@ -169,6 +176,105 @@ publicIssuesRouter.post(
   })
 );
 
+publicIssuesRouter.post(
+  publicIssueExternalLinksUpsertRouteMetadata.handlerMountPath,
+  requirePublicApiBearer(publicIssueExternalLinksUpsertRouteMetadata.requiredScopes),
+  publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
+    markPublicApiRoute(req, publicIssueExternalLinksUpsertRouteMetadata.path);
+    const params = parsePublicRouteParams(
+      publicIssueExternalLinksUpsertRouteMetadata.operationId,
+      req.params,
+      PublicIssueParamsSchema
+    );
+    const body = parsePublicRouteBody(
+      publicIssueExternalLinksUpsertRouteMetadata.operationId,
+      req.body,
+      PublicIssueExternalLinkInputSchema
+    );
+    if (!params.success) {
+      sendValidationError(req, res, params.error);
+      return;
+    }
+    if (!body.success) {
+      sendValidationError(req, res, body.error);
+      return;
+    }
+    if (!req.publicApi) {
+      sendMissingContext(req, res);
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      const denied = await guardIssueMutation(client, publicApiPrincipalFromRequest(req), {
+        action: 'write',
+        documentId: params.data.id,
+        expectedType: 'issue',
+      });
+      if (denied) {
+        sendMutationError(req, res, denied.status, denied.body);
+        return;
+      }
+
+      await client.query('BEGIN');
+      const result = await client.query<IssueExternalLinksRow>(
+        `SELECT properties
+           FROM documents
+          WHERE id = $1
+            AND workspace_id = $2
+            AND document_type = 'issue'
+          FOR UPDATE`,
+        [params.data.id, req.publicApi.workspaceId]
+      );
+      const row = result.rows[0];
+      if (!row) {
+        await client.query('ROLLBACK');
+        req.publicApiErrorCode = 'not_found';
+        sendPublicApiError(res, 404, {
+          code: 'not_found',
+          message: 'Issue not found',
+          request_id: req.publicApi.requestId,
+        });
+        return;
+      }
+
+      const properties = recordFromJson(row.properties);
+      const currentLinks = externalLinksFromProperties(properties);
+      const upsert = upsertExternalLink(currentLinks, body.data, new Date().toISOString());
+      if (upsert.changed) {
+        const nextProperties = {
+          ...properties,
+          external_links: upsert.links,
+        };
+        await logDocumentChange(
+          params.data.id,
+          'external_links',
+          currentLinks.length > 0 ? JSON.stringify(currentLinks) : null,
+          JSON.stringify(upsert.links),
+          req.publicApi.userId,
+          undefined,
+          client
+        );
+        await client.query(
+          `UPDATE documents
+              SET properties = $3,
+                  updated_at = NOW()
+            WHERE id = $1
+              AND workspace_id = $2`,
+          [params.data.id, req.publicApi.workspaceId, JSON.stringify(nextProperties)]
+        );
+      }
+      await client.query('COMMIT');
+      res.status(upsert.created ? 201 : 200).json(upsert.link);
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  })
+);
+
 publicIssuesRouter.patch(
   publicIssuesUpdateRouteMetadata.handlerMountPath,
   requirePublicApiBearer(publicIssuesUpdateRouteMetadata.requiredScopes),
@@ -239,6 +345,78 @@ publicIssuesRouter.patch(
 function publicIssueIdFromMutationBody(body: Record<string, unknown>): string {
   if (typeof body.id === 'string') return body.id;
   throw new Error('Issue mutation returned no issue id');
+}
+
+type IssueExternalLinksRow = {
+  properties: Record<string, unknown> | null;
+};
+
+function recordFromJson(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function externalLinksFromProperties(props: Record<string, unknown>): PublicIssueExternalLink[] {
+  const rawLinks = props.external_links;
+  if (!Array.isArray(rawLinks)) return [];
+  return rawLinks.flatMap((link) => {
+    const parsed = PublicIssueExternalLinkSchema.safeParse(link);
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
+function upsertExternalLink(
+  currentLinks: PublicIssueExternalLink[],
+  input: PublicIssueExternalLinkInput,
+  now: string
+): {
+  link: PublicIssueExternalLink;
+  links: PublicIssueExternalLink[];
+  created: boolean;
+  changed: boolean;
+} {
+  const index = currentLinks.findIndex((link) =>
+    link.provider === input.provider && link.external_id === input.external_id
+  );
+  if (index === -1) {
+    const link = PublicIssueExternalLinkSchema.parse({
+      ...input,
+      created_at: now,
+      updated_at: now,
+    });
+    return {
+      link,
+      links: [...currentLinks, link],
+      created: true,
+      changed: true,
+    };
+  }
+
+  const existing = currentLinks[index];
+  if (!existing) throw new Error('External link index disappeared during upsert');
+  const changed = externalLinkFieldsChanged(existing, input);
+  const link = PublicIssueExternalLinkSchema.parse({
+    ...input,
+    created_at: existing.created_at,
+    updated_at: changed ? now : existing.updated_at,
+  });
+  const links = currentLinks.map((candidate, candidateIndex) =>
+    candidateIndex === index ? link : candidate
+  );
+  return { link, links, created: false, changed };
+}
+
+function externalLinkFieldsChanged(
+  existing: PublicIssueExternalLink,
+  input: PublicIssueExternalLinkInput
+): boolean {
+  return (
+    existing.kind !== input.kind ||
+    existing.url !== input.url ||
+    existing.title !== input.title ||
+    (existing.status ?? null) !== (input.status ?? null)
+  );
 }
 
 function sendMutationError(

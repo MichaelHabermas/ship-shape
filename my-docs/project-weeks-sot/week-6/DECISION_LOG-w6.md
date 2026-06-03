@@ -99,3 +99,13 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Webhooks split: `webhook-subscriptions.ts`, `webhook-fanout.ts`, `webhook-delivery.ts`, `webhook-target-url.ts`, `webhook-replay.ts`, `webhook-service-deps.ts`, `mutation-publisher.ts`; `service.ts` remains the import facade.
 - FleetGraph: `attention-context-factory.ts` chooses in-process vs HTTP loopback readers.
 - SDK uses `@ship/shared` `PUBLIC_API_RELATIVE_PATHS`; CLI exposes full registry parity (`ship me`, documents, issues, sprints, fleetgraph, webhooks subscriptions/deliveries).
+
+## 2026-06-03 — External Client Proof Pack
+
+- The final bar is `pnpm plugforge:final`: MVP verify, TTFE, refresh-token theft drill, webhook replay/idempotency drill, SDK/OpenAPI parity, integration boundary proof, FleetGraph public audit proof, Slack/GitLab checks, and docs drift checks.
+- Reference integrations are SDK-only packages under `integrations/slack` and `integrations/gitlab`; the boundary checker blocks `api/src`, `web/src`, `shared`, `@ship/shared`, aliases, `require()`, and dynamic internal imports.
+- Public GitLab linking uses the smallest public issue seam: `POST /api/v1/issues/:id/external-links` and `client.issues.upsertExternalLink()`. Links live in issue document `properties.external_links`; no schema migration.
+- External links are idempotent by `provider + external_id` and expose only public issue metadata: provider, external id, kind, URL, title, optional status, and server timestamps.
+- Refresh-token theft proof now exercises `/oauth/token`: rotate once, reuse the stolen old token, invalidate the family, revoke issued access tokens, and assert `/api/v1/me` rejects them.
+- Replay proof now includes a signed SDK-verifying subscriber that processes the first delivery, dedupes replay, and observes the same `Idempotency-Key`.
+- FleetGraph public-source read proof now mints a delegated `ship-agent` OAuth token, calls through `@ship/sdk` and `/api/v1`, and asserts `public_api_audit_logs` rows.

@@ -223,7 +223,7 @@ async function seedFixtures(url) {
         userId,
         clientId,
         ['http://127.0.0.1/oauth/callback'],
-        ['documents:read', 'documents:write', 'webhooks:manage'],
+        ['documents:read', 'documents:write', 'issues:read', 'sprints:read', 'webhooks:manage'],
       ]
     );
     return { workspaceId, userId, appId: app.rows[0].id, clientId };

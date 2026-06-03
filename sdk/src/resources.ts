@@ -9,6 +9,8 @@ import type {
   PublicFleetGraphAttentionContextsListResponse,
   PublicIssue,
   PublicIssueCreateInput as IssueCreateInput,
+  PublicIssueExternalLink as IssueExternalLink,
+  PublicIssueExternalLinkInput as IssueExternalLinkInput,
   PublicIssueListParams as IssueListParams,
   PublicIssueUpdateInput as IssueUpdateInput,
   PublicSprint,
@@ -93,6 +95,14 @@ export class IssuesClient {
     return this.client.request<PublicIssue>('PATCH', pathWithId(P.issue, id), {
       body: input,
     });
+  }
+
+  upsertExternalLink(id: string, input: IssueExternalLinkInput): Promise<IssueExternalLink> {
+    return this.client.request<IssueExternalLink>(
+      'POST',
+      pathWithId(P.issueExternalLinks, id),
+      { body: input }
+    );
   }
 
   async *iterate(params: Omit<IssueListParams, 'cursor'> = {}): AsyncIterable<PublicIssue> {

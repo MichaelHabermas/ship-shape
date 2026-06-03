@@ -13,7 +13,7 @@ console.log('Clicked sidebar button');
 
 ### Examples in codebase
 
-- `api/src/routes/issues.ts` and other routes — use `sendInternalError()` from `api/src/utils/route-http.ts` instead of raw `console.error`
+- `api/src/routes/issues/index.ts` and other routes — use `sendInternalError()` from `api/src/utils/route-http.ts` instead of raw `console.error`
 - `e2e/debug-create.spec.ts:26-58` - Multiple `console.log()` statements in test files
 
 ### Why it's problematic
@@ -246,8 +246,8 @@ res.status(400).json({ message: 'Bad request' });
 
 ### Examples in codebase
 
-- `api/src/routes/issues.ts:284-933` - Uses `{ error: string }`
-- `api/src/routes/issues.ts:517` - Uses `{ error, details }`
+- `api/src/routes/issues/index.ts`:284-933 - Uses `{ error: string }`
+- `api/src/routes/issues/index.ts`:517 - Uses `{ error, details }`
 - `api/src/routes/standups.ts:159` - Uses `{ error, details }`
 - `api/src/routes/associations.ts:86` - Uses `{ error: 'Failed to...' }`
 
@@ -307,11 +307,11 @@ interface ClaudeContextRequest {
 
 ### Examples in codebase
 
-- `api/src/routes/dashboard.ts:11-32` - `WorkItem` interface
-- `api/src/routes/claude.ts:21-48` - Multiple interfaces
-- `api/src/routes/weeks.ts:265` - `ActionItem` interface
+- `api/src/routes/dashboard/index.ts`:11-32 - `WorkItem` interface
+- `api/src/routes/claude/types.ts`:21-48 - Multiple interfaces
+- `api/src/routes/weeks/index.ts`:265 - `ActionItem` interface
 - `api/src/routes/backlinks.ts:158` - `Request` interface
-- `api/src/routes/issues.ts:105` - `BelongsTo` is in `shared/src/types/document.ts`; do not reintroduce local `BelongsToEntry`
+- `api/src/routes/issues/shared.ts`:105 - `BelongsTo` is in `shared/src/types/document.ts`; do not reintroduce local `BelongsToEntry`
 - `api/src/routes/caia-auth.ts:381` - `PendingInvite` interface
 
 ### Why it's problematic
@@ -410,8 +410,8 @@ await pool.query('INSERT INTO document_history ...', [...]);
 
 ### Examples of CORRECT usage (with transactions)
 
-- `api/src/routes/issues.ts:513-582` - Issue creation
-- `api/src/routes/documents.ts:675-871` - Document operations
+- `api/src/routes/issues/index.ts`:513-582 - Issue creation
+- `api/src/routes/documents/index.ts`:675-871 - Document operations
 - `api/src/routes/backlinks.ts:115-142` - Backlink updates
 
 ### Examples of potentially risky patterns
@@ -451,8 +451,8 @@ try {
 ```
 
 Follow the transaction pattern used in:
-- `api/src/routes/issues.ts:513-586`
-- `api/src/routes/documents.ts:907-1002`
+- `api/src/routes/issues/index.ts`:513-586
+- `api/src/routes/documents/index.ts`:907-1002
 
 ---
 

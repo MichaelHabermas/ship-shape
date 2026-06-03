@@ -57,6 +57,8 @@ export type {
   PublicFleetGraphAttentionContextsListResponse,
   PublicIssue,
   PublicIssueCreateInput as IssueCreateInput,
+  PublicIssueExternalLink as IssueExternalLink,
+  PublicIssueExternalLinkInput as IssueExternalLinkInput,
   PublicIssueListParams as IssueListParams,
   PublicIssueUpdateInput as IssueUpdateInput,
   PublicMe,

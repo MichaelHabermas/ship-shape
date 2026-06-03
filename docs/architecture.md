@@ -19,6 +19,11 @@ sdk/
   src/token-store.ts Memory, browser, and file token stores.
   src/errors.ts      `ShipError` discriminated error data.
   src/webhook.ts     `verifyWebhook(headers, rawBody, secret, toleranceSec?)`.
+
+integrations/
+  cli/      Packed TTFE reference client for Device Grant, document create, webhook tail, and signature verification.
+  slack/    SDK-only Slack OAuth/webhook receiver that posts `document.created` and `issue.assigned`.
+  gitlab/   SDK-only GitLab webhook receiver that upserts merge request links onto existing Ship issues.
 ```
 
 `openapi` and `audit` are platform modules, but not standalone directories: public OpenAPI lives in `api/src/platform/api/v1/openapi.ts` and `route-metadata.ts`; public audit rows are recorded by `api/src/platform/api/v1/middleware.ts` and queried through `api/src/platform/apps/service.ts`.
@@ -28,6 +33,8 @@ flowchart LR
   SDK["@ship/sdk"] --> V1["/api/v1 public router"]
   Portal["Developer settings"] --> Apps["platform/apps"]
   CLI["integrations/cli"] --> SDK
+  Slack["integrations/slack"] --> SDK
+  GitLab["integrations/gitlab"] --> SDK
   V1 --> OAuth["platform/oauth"]
   V1 --> Scopes["platform/scopes"]
   V1 --> RateLimit["platform/ratelimit"]
@@ -99,6 +106,8 @@ sequenceDiagram
 ```
 
 OpenAPI is generated, not written. `api/src/platform/api/v1/openapi.ts` walks `publicApiV1RouteRegistry` from `route-metadata.ts` and shared Zod schemas to serve OpenAPI 3.1 at `/api/v1/openapi.json`; `docs/openapi.json` is the generated static copy.
+
+External issue links are public issue metadata, not a new table. `POST /api/v1/issues/:id/external-links` validates `provider`, `external_id`, `kind`, `url`, `title`, optional `status`, and server timestamps, then idempotently upserts by `provider + external_id` into `documents.properties.external_links`. GitLab uses this seam through `client.issues.upsertExternalLink()`; integrations do not import internal issue handlers.
 
 ## OAuth Flows
 
@@ -175,6 +184,7 @@ Stable public surface:
 - `client.me()`
 - `client.documents.list/get/create/iterate`
 - `client.issues.list/get/create/update/iterate`
+- `client.issues.upsertExternalLink(id, input)`
 - `client.sprints.list/get/listIssues/iterate`
 - `client.webhooks.list/create/listDeliveries/replay`
 - `ShipClient.deviceLogin()` and `ShipClient.authorizationCodeFlow()`
@@ -184,7 +194,7 @@ Stable public surface:
 
 Pre-1.0/narrow surface: `client.fleetgraph.attentionContexts.list()` exists to let the first-party agent read source context through `/api/v1/fleetgraph/attention-contexts`; it is not a broad public FleetGraph write API.
 
-The SDK is hand-authored for TypeScript ergonomics and checked against generated OpenAPI. External integrations under `integrations/` import Ship only through `@ship/sdk`; `integrations/cli/src/index.mjs` is the reference proof with `ship login`, `ship docs create`, and `ship webhooks tail`.
+The SDK is hand-authored for TypeScript ergonomics and checked against generated OpenAPI. External integrations under `integrations/` import Ship only through `@ship/sdk`; `scripts/ci/check-integration-boundary.mjs` blocks `api/src`, `web/src`, `shared`, `@ship/shared`, aliases, `require()`, and dynamic internal imports. The reference clients are `integrations/cli`, `integrations/slack`, and `integrations/gitlab`.
 
 ## Agent-as-Citizen
 
@@ -210,6 +220,8 @@ flowchart TB
 ```
 
 This preserves the one-LLM-call rule: OAuth, public API, SDK, webhooks, CLI, portal, and integrations do not invoke the model. The model remains limited to user-initiated FleetGraph agent turns.
+
+The executable audit proof is `api/src/fleetgraph/public-api-client.audit.test.ts`: it mints a delegated Ship Agent OAuth token, calls FleetGraph source reads through `@ship/sdk` and `/api/v1`, then asserts `public_api_audit_logs` rows for `client_id`, user, route, scopes, status, and latency.
 
 ## Failure Modes
 

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   PublicIssueListQuerySchema,
   PublicIssueSchema,
+  PublicIssueExternalLinkSchema,
   type PublicIssue,
 } from '@ship/shared';
 import { pool } from '../../../db/client.js';
@@ -173,8 +174,18 @@ export function publicIssueFromRow(
     ...(row.reopened_at ? { reopened_at: row.reopened_at.toISOString() } : {}),
     ...(row.converted_from_id ? { converted_from_id: row.converted_from_id } : {}),
     belongs_to: options.belongsTo,
+    external_links: externalLinksFromProperties(props),
   };
   return PublicIssueSchema.parse(issue);
+}
+
+function externalLinksFromProperties(props: Record<string, unknown>): PublicIssue['external_links'] {
+  const rawLinks = props.external_links;
+  if (!Array.isArray(rawLinks)) return [];
+  return rawLinks.flatMap((link) => {
+    const parsed = PublicIssueExternalLinkSchema.safeParse(link);
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 function publicIssueSelectSql(): string {

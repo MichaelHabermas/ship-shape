@@ -11,9 +11,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  plugforge-verify:
+  plugforge-final:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
 
     services:
       postgres:
@@ -49,11 +49,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Plugforge verify (API, SDK, CLI)
-        run: chmod +x ./scripts/ci/plugforge-verify.sh && ./scripts/ci/plugforge-verify.sh
-
-      - name: TTFE drill
-        run: pnpm drill ttfe
+      - name: PlugForge final proof pack
+        run: pnpm plugforge:final
 
   plugforge-oauth-e2e:
     runs-on: ubuntu-latest
@@ -75,4 +72,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: OAuth Authorization Code + PKCE (Playwright)
-        run: chmod +x ./scripts/ci/plugforge-oauth-e2e.sh && ./scripts/ci/plugforge-oauth-e2e.sh
+        run: pnpm plugforge:oauth-e2e

@@ -1,6 +1,7 @@
 // Webhook service tests prove retry and DLQ semantics with fake clocks and transport.
 import crypto from 'node:crypto';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { verifyWebhook } from '@ship/sdk';
 import { pool } from '../../db/client.js';
 import { type IdRow, requireFirstRow } from '../../test/pg-result.js';
 import type {
@@ -14,6 +15,7 @@ import {
   dispatchWebhookDeliveries,
   enqueueWebhookEvent,
   processDueWebhookDeliveries,
+  replayWebhookDelivery,
   type WebhookClock,
 } from './service.js';
 import { WEBHOOK_MAX_FAILED_ATTEMPTS, WEBHOOK_RETRY_DELAYS_MS } from './retry-schedule.js';
@@ -58,6 +60,31 @@ class FakeWebhookDeliverer implements IWebhookDeliverer {
     return this.results.shift() ?? {
       responseStatus: 204,
       responseExcerpt: '',
+      error: null,
+    };
+  }
+}
+
+class DedupingWebhookReceiver implements IWebhookDeliverer {
+  readonly records: Array<{ idempotencyKey: string | null; verified: boolean; deduped: boolean }> = [];
+  private readonly seenKeys = new Set<string>();
+  private signingSecret = '';
+
+  setSigningSecret(secret: string): void {
+    this.signingSecret = secret;
+  }
+
+  async deliver(delivery: WebhookDelivererRequest): Promise<WebhookDelivererResult> {
+    const idempotencyKey = delivery.headers['Idempotency-Key'] ?? null;
+    const verified = verifyWebhook(delivery.headers, delivery.rawBody, this.signingSecret);
+    const deduped = Boolean(idempotencyKey && this.seenKeys.has(idempotencyKey));
+    if (verified && idempotencyKey && !deduped) {
+      this.seenKeys.add(idempotencyKey);
+    }
+    this.records.push({ idempotencyKey, verified, deduped });
+    return {
+      responseStatus: 200,
+      responseExcerpt: JSON.stringify({ ok: verified, deduped }),
       error: null,
     };
   }
@@ -244,6 +271,58 @@ describe('webhook delivery reliability', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.status).toBe('succeeded');
     expect(deliverer.requests).toHaveLength(1);
+  });
+
+  it('preserves Idempotency-Key on replay so subscribers can dedupe', async () => {
+    const receiver = new DedupingWebhookReceiver();
+    restoreWebhookDependencies?.();
+    restoreWebhookDependencies = configureWebhookServiceDependencies({
+      clock,
+      deliverer: receiver,
+      deliveryTimeoutMs: 123,
+      validateTargetUrl: async () => {},
+    });
+
+    const subscription = await createWebhookSubscription({
+      appId,
+      workspaceId,
+      event: 'document.created',
+      targetUrl: `https://hooks.example.test/${crypto.randomUUID()}`,
+      readSubjectUserId: userId,
+      readSubjectScopes: ['documents:read', 'webhooks:manage'],
+      readContextSource: 'portal_session',
+    });
+    receiver.setSigningSecret(subscription.signing_secret);
+
+    const idempotencyKey = `document.created:replay-dedupe-${testRunId}`;
+    const documentId = await insertWebhookDocument();
+    const enqueued = await enqueueWebhookEvent({
+      type: 'document.created',
+      workspace_id: workspaceId,
+      idempotency_key: idempotencyKey,
+      payload: eventPayload(documentId),
+      resource: eventResource(documentId, 'wiki'),
+    });
+    expect(enqueued.deliveryIds).toHaveLength(1);
+
+    await dispatchWebhookDeliveries(enqueued.deliveryIds);
+    const original = (await findDeliveries(idempotencyKey))[0];
+    if (!original) throw new Error('expected original delivery');
+    const replay = await replayWebhookDelivery({
+      deliveryId: original.id,
+      appId,
+      workspaceId,
+    });
+
+    expect(replay).toMatchObject({
+      idempotency_key: idempotencyKey,
+      replay_of_delivery_id: original.id,
+      status: 'succeeded',
+    });
+    expect(receiver.records).toEqual([
+      { idempotencyKey, verified: true, deduped: false },
+      { idempotencyKey, verified: true, deduped: true },
+    ]);
   });
 
   it('recovers stale sending attempts through the due processor', async () => {

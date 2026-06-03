@@ -25,6 +25,24 @@ Exact OpenAI, Claude, or Codex billable invoice data is not available from local
 
 The adversarial read: the measured FleetGraph model spend is a floor. It used tiny demo payloads, only 12 real-model calls, and two `gpt-5.5` calls with token usage but no persisted cost. A production user asking real questions from rich project context will cost more.
 
+## Week 6 PlugForge Addendum
+
+The external-client proof pack adds platform and integration traffic, not new AI behavior. OAuth, `/api/v1`, OpenAPI generation, SDK calls, CLI/TTFE, portal operations, webhooks, Slack, GitLab, and issue external-link upserts do not invoke a model. FleetGraph remains the only agent lane; with `FLEETGRAPH_USE_PUBLIC_API=true`, user-initiated source reads go through `@ship/sdk` and `/api/v1` and write public audit rows, but the public API hop itself adds zero token usage.
+
+Week 6 non-AI cost assumptions:
+
+| Assumption | Value |
+| --- | ---: |
+| Demo webhook fanout | 10 subscriptions per `document.created` load probe target; normal demo 1-2 matching subscriptions |
+| Webhook attempts per failed delivery | 6 maximum before DLQ |
+| Delivery-log retention | 30 days; target cap 10,000 delivery rows per app |
+| Public audit-log retention | 90 days for reviewer/demo analysis, then archive/prune policy required before production |
+| Agent active rate for cost projection | 20% monthly active users ask FleetGraph questions |
+| Average agent turns per active user | 6 turns/month |
+| Platform/integration model calls | 0 |
+
+Budget pressure from this pack is database rows and outbound HTTP, not LLM spend. The final gate (`pnpm plugforge:final`) proves this boundary by running refresh-token, webhook replay/idempotency, SDK/OpenAPI parity, integration boundary, Slack/GitLab, and FleetGraph public-audit checks without adding platform-layer model calls.
+
 ## Assignment Criteria
 
 Week 5 asks for:

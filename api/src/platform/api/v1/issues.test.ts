@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import {
   PublicApiErrorSchema,
+  PublicIssueExternalLinkSchema,
   PublicIssueSchema,
   PublicIssueUpdateConflictErrorSchema,
   PublicIssuesListResponseSchema,
@@ -162,6 +163,98 @@ describe('/api/v1/issues', () => {
       workspace_id: workspaceId,
       method: 'POST',
       route: '/api/v1/issues',
+      scope_used: 'issues:write',
+      status: 201,
+      error_code: null,
+    });
+  });
+
+  it('upserts external links as public issue metadata', async () => {
+    const issue = await createIssue('gitlab linked issue');
+    const forbidden = await request(app)
+      .post(`/api/v1/issues/${issue.id}/external-links`)
+      .set('Authorization', `Bearer ${readOnlyToken}`)
+      .send({
+        provider: 'gitlab',
+        external_id: 'merge_request:42',
+        kind: 'merge_request',
+        url: 'https://gitlab.example.test/group/project/-/merge_requests/42',
+        title: 'Draft Ship integration',
+        status: 'opened',
+      });
+    const forbiddenBody = expectJsonBody(forbidden, 403, PublicApiErrorSchema);
+    expect(forbiddenBody.details).toMatchObject({ missing_scope: 'issues:write' });
+
+    const requestId = `${ctx.testRunId}-external-link`;
+    const createResponse = await request(app)
+      .post(`/api/v1/issues/${issue.id}/external-links`)
+      .set('x-request-id', requestId)
+      .set('Authorization', `Bearer ${readWriteToken}`)
+      .send({
+        provider: 'gitlab',
+        external_id: 'merge_request:42',
+        kind: 'merge_request',
+        url: 'https://gitlab.example.test/group/project/-/merge_requests/42',
+        title: 'Draft Ship integration',
+        status: 'opened',
+      });
+    const created = expectJsonBody(createResponse, 201, PublicIssueExternalLinkSchema);
+    expect(created).toMatchObject({
+      provider: 'gitlab',
+      external_id: 'merge_request:42',
+      kind: 'merge_request',
+      title: 'Draft Ship integration',
+      status: 'opened',
+    });
+
+    const replayResponse = await request(app)
+      .post(`/api/v1/issues/${issue.id}/external-links`)
+      .set('Authorization', `Bearer ${readWriteToken}`)
+      .send({
+        provider: 'gitlab',
+        external_id: 'merge_request:42',
+        kind: 'merge_request',
+        url: 'https://gitlab.example.test/group/project/-/merge_requests/42',
+        title: 'Draft Ship integration',
+        status: 'opened',
+      });
+    const replayed = expectJsonBody(replayResponse, 200, PublicIssueExternalLinkSchema);
+    expect(replayed).toEqual(created);
+
+    const updateResponse = await request(app)
+      .post(`/api/v1/issues/${issue.id}/external-links`)
+      .set('Authorization', `Bearer ${readWriteToken}`)
+      .send({
+        provider: 'gitlab',
+        external_id: 'merge_request:42',
+        kind: 'merge_request',
+        url: 'https://gitlab.example.test/group/project/-/merge_requests/42',
+        title: 'Ready Ship integration',
+        status: 'merged',
+      });
+    const updated = expectJsonBody(updateResponse, 200, PublicIssueExternalLinkSchema);
+    expect(updated).toMatchObject({
+      provider: 'gitlab',
+      external_id: 'merge_request:42',
+      title: 'Ready Ship integration',
+      status: 'merged',
+      created_at: created.created_at,
+    });
+
+    const getResponse = await request(app)
+      .get(`/api/v1/issues/${issue.id}`)
+      .set('Authorization', `Bearer ${readOnlyToken}`);
+    const fetched = expectJsonBody(getResponse, 200, PublicIssueSchema);
+    expect(fetched.external_links).toEqual([updated]);
+
+    const audit = await waitForAuditRow(requestId);
+    expect(audit).toMatchObject({
+      app_id: ctx.appId,
+      client_id: clientId,
+      user_id: userId,
+      workspace_id: workspaceId,
+      method: 'POST',
+      route: '/api/v1/issues/:id/external-links',
       scope_used: 'issues:write',
       status: 201,
       error_code: null,

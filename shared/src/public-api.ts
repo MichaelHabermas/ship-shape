@@ -190,6 +190,20 @@ export const PublicIssueParamsSchema = z.object({
   id: z.string().uuid(),
 });
 
+export const PublicIssueExternalLinkInputSchema = z.object({
+  provider: z.string().min(1).max(64).regex(/^[A-Za-z0-9_.:-]+$/),
+  external_id: z.string().min(1).max(256),
+  kind: z.string().min(1).max(64).regex(/^[A-Za-z0-9_.:-]+$/),
+  url: z.string().url(),
+  title: z.string().min(1).max(500),
+  status: z.string().min(1).max(128).optional(),
+});
+
+export const PublicIssueExternalLinkSchema = PublicIssueExternalLinkInputSchema.extend({
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export const PublicIssueSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
@@ -217,6 +231,7 @@ export const PublicIssueSchema = z.object({
   reopened_at: z.string().nullable().optional(),
   converted_from_id: z.string().uuid().nullable().optional(),
   belongs_to: z.array(PublicBelongsToSchema),
+  external_links: z.array(PublicIssueExternalLinkSchema).optional(),
 });
 
 export const PublicIssuesListResponseSchema = z.object({
@@ -491,6 +506,8 @@ export type PublicIssue = z.infer<typeof PublicIssueSchema>;
 export type PublicIssueCreateInput = z.input<typeof PublicIssueCreateSchema>;
 export type PublicIssueUpdateInput = z.input<typeof PublicIssueUpdateSchema>;
 export type PublicIssueListParams = z.infer<typeof PublicIssueListQuerySchema>;
+export type PublicIssueExternalLink = z.infer<typeof PublicIssueExternalLinkSchema>;
+export type PublicIssueExternalLinkInput = z.input<typeof PublicIssueExternalLinkInputSchema>;
 export type PublicFleetGraphAttentionContext = z.infer<typeof PublicFleetGraphAttentionContextSchema>;
 export type PublicFleetGraphAttentionContextListParams = z.infer<typeof PublicFleetGraphAttentionContextListQuerySchema>;
 export type PublicFleetGraphAttentionContextsListResponse = z.infer<
