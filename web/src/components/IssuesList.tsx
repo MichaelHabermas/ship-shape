@@ -1,33 +1,21 @@
 // IssuesList renders filtered issue work queues and publishes bounded FleetGraph page context.
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BulkActionBar } from '@/components/BulkActionBar';
-import type { Issue, IssueListItem } from '@/contexts/IssuesContext';
-import {
-  useCreateIssue,
-  useIssuesQuery,
-  useUpdateIssue,
-  issueKeys,
-} from '@/hooks/useIssuesQuery';
-import type { BelongsTo, IssueState } from '@ship/shared';
+import type { IssueListItem } from '@/contexts/IssuesContext';
+import { issueKeys } from '@/hooks/useIssuesQuery';
 import { buildIssuesListPageContext } from '@/fleetgraph/page-context';
-import { projectKeys, useProjectsQuery } from '@/hooks/useProjectsQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
-import { useSprintsQuery } from '@/hooks/useWeeksQuery';
+import { useProjectsQuery } from '@/hooks/useProjectsQuery';
 import { useColumnVisibility } from '@/hooks/useColumnVisibility';
-import { useListFilters, type ViewMode } from '@/hooks/useListFilters';
+import { useListFilters } from '@/hooks/useListFilters';
 import { useGlobalListNavigation } from '@/hooks/useGlobalListNavigation';
 import { IssuesListSkeleton } from '@/components/ui/Skeleton';
-import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/cn';
-import { FilterTabs, type FilterTab } from '@/components/FilterTabs';
-import { apiPost, readJson } from '@/lib/api';
-import type { LegacyErrorResponse } from '@/api/schemas';
+import { FilterTabs } from '@/components/FilterTabs';
 import { ConversionDialog } from '@/components/dialogs/ConversionDialog';
 import { BacklogPickerModal } from '@/components/dialogs/BacklogPickerModal';
-import { useSelectionPersistenceOptional } from '@/contexts/SelectionPersistenceContext';
-import type { UseSelectionReturn } from '@/components/SelectableList';
 import { ALL_COLUMNS, DEFAULT_FILTER_TABS, SORT_OPTIONS } from '@/components/issues/issues-list-constants';
 import { IssuesTableView } from '@/components/issues/IssuesTableView';
 import { IssuesKanbanView } from '@/components/issues/IssuesKanbanView';
@@ -36,52 +24,15 @@ import { IssuesListFilterCombobox, IssuesListHeader } from '@/components/issues/
 import { useIssuesListFilters } from '@/hooks/useIssuesListFilters';
 import { useIssuesBulkActions } from '@/hooks/useIssuesBulkActions';
 import { useFleetGraphPageContextRegistration } from '@/contexts/FleetGraphPageContext';
+import type { IssuesListProps } from '@/components/issues/issues-list-props';
+import { useIssuesListData } from '@/hooks/useIssuesListData';
+import { useIssuesListActions } from '@/hooks/useIssuesListActions';
+import { useIssuesListSelection } from '@/hooks/useIssuesListSelection';
 
 export type { IssueListItem, Issue } from '@/contexts/IssuesContext';
+export type { IssuesListProps } from '@/components/issues/issues-list-props';
 export { StatusBadge, PriorityBadge } from '@/components/issues/issue-badges';
 export { ALL_COLUMNS, DEFAULT_FILTER_TABS, SORT_OPTIONS } from '@/components/issues/issues-list-constants';
-
-export interface IssuesListProps {
-  issues?: IssueListItem[];
-  loading?: boolean;
-  onUpdateIssue?: (id: string, updates: Partial<Issue>) => Promise<Issue | null>;
-  onCreateIssue?: () => Promise<Issue | null>;
-  onRefreshIssues?: () => Promise<void>;
-  storageKeyPrefix?: string;
-  filterTabs?: FilterTab[] | null;
-  initialStateFilter?: string;
-  onStateFilterChange?: (filter: string) => void;
-  urlParamPrefix?: string;
-  showProgramFilter?: boolean;
-  showProjectFilter?: boolean;
-  showSprintFilter?: boolean;
-  lockedProgramId?: string;
-  lockedProjectId?: string;
-  lockedSprintId?: string;
-  inheritedContext?: {
-    programId?: string;
-    projectId?: string;
-    sprintId?: string;
-    assigneeId?: string;
-  };
-  showCreateButton?: boolean;
-  createButtonLabel?: string;
-  createButtonTestId?: string;
-  viewModes?: ViewMode[];
-  initialViewMode?: ViewMode;
-  defaultColumns?: string[];
-  enableKeyboardNavigation?: boolean;
-  emptyState?: React.ReactNode;
-  showPromoteToProject?: boolean;
-  className?: string;
-  headerContent?: React.ReactNode;
-  hideHeader?: boolean;
-  toolbarContent?: React.ReactNode;
-  selectionPersistenceKey?: string;
-  enableInlineSprintAssignment?: boolean;
-  showBacklogPicker?: boolean;
-  allowShowAllIssues?: boolean;
-}
 
 export function IssuesList({
   issues: issuesProp,
@@ -121,83 +72,47 @@ export function IssuesList({
 }: IssuesListProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const updateIssueMutation = useUpdateIssue();
   const { data: teamMembers = [] } = useAssignableMembersQuery();
   const { data: projects = [] } = useProjectsQuery();
-  const { showToast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: sprintsData } = useSprintsQuery(lockedProgramId);
-  const availableSprints = useMemo(() => {
-    if (!sprintsData?.weeks) return [];
-    return sprintsData.weeks.map(s => ({ id: s.id, name: s.name }));
-  }, [sprintsData]);
+  const {
+    issues,
+    loading,
+    shouldSelfFetch,
+    showAllIssues,
+    setShowAllIssues,
+    effectiveContext,
+    buildBelongsTo,
+    inContextIds,
+    availableSprints,
+  } = useIssuesListData({
+    issuesProp,
+    loadingProp,
+    lockedProgramId,
+    lockedProjectId,
+    lockedSprintId,
+    inheritedContext,
+    allowShowAllIssues,
+  });
 
-  const shouldSelfFetch = Boolean(lockedProgramId || lockedProjectId || lockedSprintId);
-  const [showAllIssues, setShowAllIssues] = useState(false);
-
-  const { data: fetchedIssues, isLoading: isFetchingIssues } = useIssuesQuery(
-    shouldSelfFetch ? {
-      programId: lockedProgramId,
-      projectId: lockedProjectId,
-      sprintId: lockedSprintId,
-    } : {},
-    { enabled: shouldSelfFetch }
-  );
-
-  const { data: allIssuesData, isLoading: isLoadingAllIssues } = useIssuesQuery(
-    {},
-    { enabled: allowShowAllIssues && showAllIssues && shouldSelfFetch }
-  );
-
-  const createIssueMutation = useCreateIssue();
-
-  const effectiveContext = useMemo(() => {
-    const projectId = inheritedContext?.projectId ?? lockedProjectId;
-    const sprintId = inheritedContext?.sprintId ?? lockedSprintId;
-    let programId = inheritedContext?.programId ?? lockedProgramId;
-
-    if (projectId && !programId) {
-      const project = projects.find(p => p.id === projectId);
-      if (project?.program_id) {
-        programId = project.program_id;
-      }
-    }
-
-    return {
-      programId,
-      projectId,
-      sprintId,
-      assigneeId: inheritedContext?.assigneeId,
-    };
-  }, [inheritedContext, lockedProgramId, lockedProjectId, lockedSprintId, projects]);
-
-  const buildBelongsTo = useCallback((): BelongsTo[] => {
-    const belongs_to: BelongsTo[] = [];
-    if (effectiveContext.programId) {
-      belongs_to.push({ id: effectiveContext.programId, type: 'program' });
-    }
-    if (effectiveContext.projectId) {
-      belongs_to.push({ id: effectiveContext.projectId, type: 'project' });
-    }
-    if (effectiveContext.sprintId) {
-      belongs_to.push({ id: effectiveContext.sprintId, type: 'sprint' });
-    }
-    return belongs_to;
-  }, [effectiveContext]);
-
-  const inContextIssues = shouldSelfFetch ? (fetchedIssues ?? []) : (issuesProp ?? []);
-  const loading = shouldSelfFetch ? (isFetchingIssues || (showAllIssues && isLoadingAllIssues)) : loadingProp;
-
-  const inContextIds = useMemo(() => new Set(inContextIssues.map(i => i.id)), [inContextIssues]);
-
-  const issues = useMemo(() => {
-    if (!showAllIssues || !allIssuesData) {
-      return inContextIssues;
-    }
-    const outOfContextIssues = allIssuesData.filter(issue => !inContextIds.has(issue.id));
-    return [...inContextIssues, ...outOfContextIssues];
-  }, [showAllIssues, inContextIssues, allIssuesData, inContextIds]);
+  const {
+    canCreateIssue,
+    handleCreateIssue,
+    handleAddIssueToContext,
+    handleUpdateIssue,
+    handlePromoteToProject,
+    executeConversion,
+    convertingIssue,
+    isConverting,
+    setConvertingIssue,
+  } = useIssuesListActions({
+    shouldSelfFetch,
+    buildBelongsTo,
+    effectiveContext,
+    onCreateIssue,
+    onUpdateIssue,
+  });
 
   const { sortBy, setSortBy, viewMode, setViewMode } = useListFilters({
     sortOptions: SORT_OPTIONS,
@@ -232,31 +147,23 @@ export function IssuesList({
     urlParamPrefix,
   });
 
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; selection: UseSelectionReturn } | null>(null);
-  const [convertingIssue, setConvertingIssue] = useState<IssueListItem | null>(null);
-  const [isConverting, setIsConverting] = useState(false);
   const [isBacklogPickerOpen, setIsBacklogPickerOpen] = useState(false);
 
-  const selectionPersistence = useSelectionPersistenceOptional();
-  const getInitialSelection = useCallback((): Set<string> => {
-    if (selectionPersistenceKey && selectionPersistence) {
-      return selectionPersistence.getSelection(selectionPersistenceKey).selectedIds;
-    }
-    return new Set();
-  }, [selectionPersistenceKey, selectionPersistence]);
-
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(getInitialSelection);
-  const selectionRef = useRef<UseSelectionReturn | null>(null);
-  const [, forceUpdate] = useState(0);
-
-  useEffect(() => {
-    if (selectionPersistenceKey && selectionPersistence) {
-      selectionPersistence.setSelection(selectionPersistenceKey, {
-        selectedIds,
-        lastSelectedId: null,
-      });
-    }
-  }, [selectedIds, selectionPersistenceKey, selectionPersistence]);
+  const {
+    selectedIds,
+    selectionRef,
+    contextMenu,
+    clearSelection,
+    handleSelectionChange,
+    handleKanbanCheckboxClick,
+    handleKanbanContextMenu,
+    handleContextMenu,
+    closeContextMenu,
+    setContextMenu,
+  } = useIssuesListSelection({
+    selectionPersistenceKey,
+    stateFilterChanged,
+  });
 
   const scopedIssuesList = Boolean(lockedProjectId || lockedProgramId || lockedSprintId);
   const fleetGraphPageContext = useMemo(() => buildIssuesListPageContext({
@@ -282,9 +189,6 @@ export function IssuesList({
     filteredIssues,
     issues.length,
     location,
-    lockedProgramId,
-    lockedProjectId,
-    lockedSprintId,
     programFilter,
     projectFilter,
     scopedIssuesList,
@@ -297,18 +201,6 @@ export function IssuesList({
   ]);
 
   useFleetGraphPageContextRegistration(fleetGraphPageContext);
-
-  const clearSelection = useCallback(() => {
-    setSelectedIds(new Set());
-    selectionRef.current?.clearSelection();
-    setContextMenu(null);
-  }, []);
-
-  useEffect(() => {
-    if (stateFilterChanged) {
-      clearSelection();
-    }
-  }, [stateFilterChanged, clearSelection]);
 
   const {
     bulkUpdate,
@@ -333,93 +225,10 @@ export function IssuesList({
     projects,
   });
 
-  const handleCreateIssue = useCallback(async () => {
-    if (shouldSelfFetch) {
-      const belongs_to = buildBelongsTo();
-      const issue = await createIssueMutation.mutateAsync({ belongs_to });
-      if (issue) {
-        navigate(`/documents/${issue.id}`);
-      }
-      return;
-    }
-    if (!onCreateIssue) return;
-    const issue = await onCreateIssue();
-    if (issue) {
-      navigate(`/documents/${issue.id}`);
-    }
-  }, [shouldSelfFetch, buildBelongsTo, createIssueMutation, onCreateIssue, navigate]);
-
-  const handleAddIssueToContext = useCallback(async (issue: IssueListItem) => {
-    const existingBelongsTo = issue.belongs_to || [];
-    const newBelongsTo = [...existingBelongsTo];
-
-    if (effectiveContext.sprintId && !existingBelongsTo.some(b => b.id === effectiveContext.sprintId)) {
-      newBelongsTo.push({ id: effectiveContext.sprintId, type: 'sprint' });
-    }
-    if (effectiveContext.projectId && !existingBelongsTo.some(b => b.id === effectiveContext.projectId)) {
-      newBelongsTo.push({ id: effectiveContext.projectId, type: 'project' });
-    }
-    if (effectiveContext.programId && !existingBelongsTo.some(b => b.id === effectiveContext.programId)) {
-      newBelongsTo.push({ id: effectiveContext.programId, type: 'program' });
-    }
-
-    try {
-      await updateIssueMutation.mutateAsync({ id: issue.id, updates: { belongs_to: newBelongsTo } });
-      showToast(`Added "${issue.title}" to context`, 'success');
-      if (effectiveContext.sprintId) {
-        queryClient.invalidateQueries({ queryKey: issueKeys.list({ sprintId: effectiveContext.sprintId }) });
-      }
-      if (effectiveContext.projectId) {
-        queryClient.invalidateQueries({ queryKey: issueKeys.list({ projectId: effectiveContext.projectId }) });
-      }
-    } catch {
-      showToast('Failed to add issue', 'error');
-    }
-  }, [effectiveContext, updateIssueMutation, queryClient, showToast]);
-
-  const handleUpdateIssue = useCallback(async (id: string, updates: { state: IssueState }) => {
-    if (onUpdateIssue) {
-      await onUpdateIssue(id, updates);
-    }
-  }, [onUpdateIssue]);
-
-  const handlePromoteToProject = useCallback((issue: IssueListItem) => {
-    setConvertingIssue(issue);
+  const handlePromoteWithMenuClose = useCallback((issue: IssueListItem) => {
+    handlePromoteToProject(issue);
     setContextMenu(null);
-  }, []);
-
-  const executeConversion = useCallback(async () => {
-    if (!convertingIssue) return;
-    setIsConverting(true);
-    try {
-      const res = await apiPost(`/api/documents/${convertingIssue.id}/convert`, { target_type: 'project' });
-      if (res.ok) {
-        const data = await readJson<{ id: string }>(res);
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
-          queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
-        ]);
-        showToast(`Issue promoted to project: ${convertingIssue.title}`, 'success');
-        navigate(`/documents/${data.id}`, { replace: true });
-      } else {
-        const error = await readJson<LegacyErrorResponse>(res);
-        showToast(error.error || 'Failed to convert issue to project', 'error');
-        setIsConverting(false);
-        setConvertingIssue(null);
-      }
-    } catch (err) {
-      console.error('Failed to convert issue:', err);
-      showToast('Failed to convert issue to project', 'error');
-      setIsConverting(false);
-      setConvertingIssue(null);
-    }
-  }, [convertingIssue, navigate, showToast, queryClient]);
-
-  const handleSelectionChange = useCallback((newSelectedIds: Set<string>, newSelection: UseSelectionReturn) => {
-    setSelectedIds(newSelectedIds);
-    selectionRef.current = newSelection;
-    forceUpdate(n => n + 1);
-  }, []);
+  }, [handlePromoteToProject, setContextMenu]);
 
   useGlobalListNavigation({
     selection: selectionRef.current,
@@ -429,52 +238,6 @@ export function IssuesList({
       navigate(`/documents/${focusedId}`);
     }, [navigate]),
   });
-
-  const handleKanbanCheckboxClick = useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  }, []);
-
-  const handleKanbanContextMenu = useCallback((event: { x: number; y: number; issueId: string }) => {
-    if (!selectedIds.has(event.issueId)) {
-      setSelectedIds(new Set([event.issueId]));
-    }
-    const effectiveIds = selectedIds.has(event.issueId) ? selectedIds : new Set([event.issueId]);
-    const mockSelection: UseSelectionReturn = {
-      selectedIds: effectiveIds,
-      focusedId: event.issueId,
-      selectedCount: effectiveIds.size,
-      hasSelection: effectiveIds.size > 0,
-      isSelected: (id: string) => effectiveIds.has(id),
-      isFocused: (id: string) => id === event.issueId,
-      toggleSelection: () => {},
-      toggleInGroup: () => {},
-      selectAll: () => {},
-      clearSelection: () => setSelectedIds(new Set()),
-      selectRange: () => {},
-      setFocusedId: () => {},
-      moveFocus: () => {},
-      extendSelection: () => {},
-      handleClick: () => {},
-      handleKeyDown: () => {},
-    };
-    selectionRef.current = mockSelection;
-    setContextMenu({ x: event.x, y: event.y, selection: mockSelection });
-  }, [selectedIds]);
-
-  const handleContextMenu = useCallback((e: React.MouseEvent, _item: IssueListItem, selection: UseSelectionReturn) => {
-    selectionRef.current = selection;
-    setContextMenu({ x: e.clientX, y: e.clientY, selection });
-  }, []);
-
-  const canCreateIssue = Boolean(onCreateIssue || shouldSelfFetch);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -643,12 +406,12 @@ export function IssuesList({
           selection={contextMenu.selection}
           filteredIssues={filteredIssues}
           showPromoteToProject={showPromoteToProject}
-          onClose={() => setContextMenu(null)}
+          onClose={closeContextMenu}
           onArchive={handleBulkArchive}
           onDelete={handleBulkDelete}
           onChangeStatus={handleBulkChangeStatus}
           onMoveToSprint={handleBulkMoveToSprint}
-          onPromoteToProject={handlePromoteToProject}
+          onPromoteToProject={handlePromoteWithMenuClose}
         />
       )}
 

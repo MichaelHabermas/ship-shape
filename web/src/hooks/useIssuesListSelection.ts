@@ -66,13 +66,7 @@ export function useIssuesListSelection({
 
   const handleKanbanContextMenu = useCallback((event: { x: number; y: number; issueId: string }) => {
     setSelectedIds(prev => {
-      if (!prev.has(event.issueId)) {
-        return new Set([event.issueId]);
-      }
-      return prev;
-    });
-    setSelectedIds(current => {
-      const effectiveIds = current.has(event.issueId) ? current : new Set([event.issueId]);
+      const effectiveIds = prev.has(event.issueId) ? prev : new Set([event.issueId]);
       const mockSelection: UseSelectionReturn = {
         selectedIds: effectiveIds,
         focusedId: event.issueId,
@@ -93,7 +87,7 @@ export function useIssuesListSelection({
       };
       selectionRef.current = mockSelection;
       setContextMenu({ x: event.x, y: event.y, selection: mockSelection });
-      return current.has(event.issueId) ? current : new Set([event.issueId]);
+      return effectiveIds;
     });
   }, []);
 
