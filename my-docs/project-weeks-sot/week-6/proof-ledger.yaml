@@ -2035,13 +2035,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: partial
-    proof_command: pnpm plugforge:integrations:check && pnpm drill ttfe && pnpm plugforge:developer-ops-e2e
-    proof_files: integrations, scripts/ci/check-integration-boundary.mjs, scripts/drill.mjs, e2e/developer-ops.spec.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:integrations
+    proof_files: scripts/ci/plugforge-integrations.mjs, my-docs/evidence/plugforge-integrations/matrix.json, integrations, e2e/plugforge-acceptance.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: CLI, refresh, and idempotency are strong; Slack, browser demo, and GitLab are not final end-to-end proofs.
+    gap: none
   - id: W6-INT-002
     source: PRD.md:553-557; Plugforge-specs.txt:357-358
     section: Selected Integrations and Drills
@@ -2063,13 +2063,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: partial
-    proof_command: pnpm --filter @ship/slack-integration check
-    proof_files: integrations/slack
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:integrations -- --flow slack
+    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/slack, my-docs/evidence/plugforge-integrations/slack.json
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Slack code checks exist, but no signed webhook acceptance proof exists.
+    gap: none
   - id: W6-INT-004
     source: PRD.md:558-565; Plugforge-specs.txt:360-361
     section: Selected Integrations and Drills
@@ -2077,13 +2077,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: partial
-    proof_command: pnpm --filter @ship/slack-integration check
-    proof_files: integrations/slack
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:integrations -- --flow slack
+    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/slack, my-docs/evidence/plugforge-integrations/slack.json
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No final acceptance proof posts document.created through Slack OAuth.
+    gap: none
   - id: W6-INT-005
     source: PRD.md:558-565; Plugforge-specs.txt:360-361
     section: Selected Integrations and Drills
@@ -2091,13 +2091,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: partial
-    proof_command: pnpm --filter @ship/slack-integration check
-    proof_files: integrations/slack
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:integrations -- --flow slack
+    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/slack, my-docs/evidence/plugforge-integrations/slack.json
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No final acceptance proof posts issue.assigned through Slack OAuth.
+    gap: none
   - id: W6-INT-006
     source: PRD.md:558-565; Plugforge-specs.txt:360-361
     section: Selected Integrations and Drills
@@ -2105,13 +2105,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: partial
-    proof_command: pnpm --filter @ship/slack-integration check
-    proof_files: integrations/slack
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:integrations -- --flow slack
+    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/slack, my-docs/evidence/plugforge-integrations/slack.json
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Slack OAuth wiring is not proven in a final acceptance run.
+    gap: none
   - id: W6-INT-007
     source: PRD.md:600-603; Plugforge-specs.txt:518-520
     section: Selected Integrations and Drills
@@ -2133,13 +2133,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: partial
-    proof_command: pnpm --filter @ship/web exec vitest run src/pages/SdkDemo.test.tsx
-    proof_files: web/src/pages/SdkDemo.tsx, web/src/pages/SdkDemo.test.tsx
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:integrations -- --flow browser
+    proof_files: web/src/pages/SdkDemo.tsx, e2e/plugforge-acceptance.spec.ts, scripts/ci/plugforge-integrations.mjs, my-docs/evidence/plugforge-integrations/browser.json
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Component proof exists, but no running-browser PKCE callback acceptance proof exists.
+    gap: none
   - id: W6-INT-009
     source: PRD.md:567-572; Plugforge-specs.txt:362
     section: Selected Integrations and Drills
@@ -2147,13 +2147,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: partial
-    proof_command: pnpm --filter @ship/web exec vitest run src/pages/SdkDemo.test.tsx
-    proof_files: web/src/pages/SdkDemo.tsx, web/src/pages/SdkDemo.test.tsx
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:integrations -- --flow browser
+    proof_files: web/src/pages/SdkDemo.tsx, e2e/plugforge-acceptance.spec.ts, scripts/ci/plugforge-integrations.mjs, my-docs/evidence/plugforge-integrations/browser.json
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Component proof exists, but no full browser acceptance proof lists authenticated documents.
+    gap: none
   - id: W6-INT-010
     source: PRD.md:574-579; Plugforge-specs.txt:363
     section: Selected Integrations and Drills
@@ -2161,13 +2161,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: partial
-    proof_command: pnpm --filter @ship/gitlab-integration check
-    proof_files: integrations/gitlab
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:integrations -- --flow gitlab
+    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/gitlab, my-docs/evidence/plugforge-integrations/gitlab.json
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: GitLab checks exist, but no final issue-to-MR linking acceptance proof exists.
+    gap: none
   - id: W6-INT-011
     source: PRD.md:574-579; Plugforge-specs.txt:363
     section: Selected Integrations and Drills
@@ -2175,13 +2175,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: partial
-    proof_command: pnpm --filter @ship/gitlab-integration check
-    proof_files: integrations/gitlab
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:integrations -- --flow gitlab
+    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/gitlab, my-docs/evidence/plugforge-integrations/gitlab.json
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Ship webhook origin and GitLab App wiring are not proven end-to-end.
+    gap: none
   - id: W6-INT-012
     source: PRD.md:581-584; Plugforge-specs.txt:364
     section: Selected Integrations and Drills

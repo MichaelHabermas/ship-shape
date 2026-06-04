@@ -16,12 +16,13 @@ export function createSlackIntegrationServer(options = {}) {
   const installStore = options.installStore ?? createInstallStore(env);
   const processedKeys = options.processedKeys ?? new Set();
   const pendingStates = options.pendingStates ?? new Set();
+  const webhookSecrets = options.webhookSecrets ?? parseWebhookSecrets(env);
   const config = {
     clientId: env.SLACK_CLIENT_ID,
     clientSecret: env.SLACK_CLIENT_SECRET,
     redirectUri: env.SLACK_REDIRECT_URI,
     channelId: env.SLACK_CHANNEL_ID,
-    webhookSecret: env.SHIP_WEBHOOK_SECRET,
+    webhookSecrets,
     botToken: env.SLACK_BOT_TOKEN,
   };
 
@@ -111,9 +112,9 @@ async function handleCallback(url, res, deps) {
 }
 
 async function handleWebhook(req, res, deps) {
-  requireConfig(deps.config.webhookSecret, 'SHIP_WEBHOOK_SECRET');
+  if (deps.config.webhookSecrets.length === 0) throw new Error('SHIP_WEBHOOK_SECRET or SHIP_WEBHOOK_SECRETS is required');
   const rawBody = await readRequestBody(req);
-  if (!verifyWebhook(req.headers, rawBody, deps.config.webhookSecret)) {
+  if (!deps.config.webhookSecrets.some((secret) => verifyWebhook(req.headers, rawBody, secret))) {
     sendJson(res, 400, { ok: false, error: 'invalid_signature' });
     return;
   }
@@ -231,6 +232,12 @@ function sendJson(res, status, body) {
 
 function requireConfig(value, name) {
   if (!value) throw new Error(`${name}_REQUIRED`);
+}
+
+function parseWebhookSecrets(env) {
+  return [env.SHIP_WEBHOOK_SECRET, ...(env.SHIP_WEBHOOK_SECRETS ?? '').split(',')]
+    .map((secret) => secret?.trim())
+    .filter(Boolean);
 }
 
 function headerValue(headers, name) {

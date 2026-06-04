@@ -466,5 +466,15 @@ function randomBase64Url(byteLength: number): string {
 }
 
 function base64Url(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString('base64url');
+  const bufferCtor = (globalThis as typeof globalThis & {
+    Buffer?: { from(input: Uint8Array): { toString(encoding: 'base64url'): string } };
+  }).Buffer;
+  if (bufferCtor) return bufferCtor.from(bytes).toString('base64url');
+  if (typeof globalThis.btoa !== 'function') {
+    throw new ShipError({ kind: 'auth', message: 'base64url encoding is unavailable' });
+  }
+
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return globalThis.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/u, '');
 }

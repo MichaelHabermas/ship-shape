@@ -22,7 +22,7 @@ Current placed anchors:
 - `integrations/cli` ships `@ship/cli`; it imports Ship only through `@ship/sdk`, keeps SDK as a peer dependency for packed installs, and implements login/docs/issues/sprints/fleetgraph/webhooks commands.
 - `integrations/README.md` and `scripts/ci/check-integration-boundary.mjs` enforce external integration boundaries. Slack/GitLab/browser SDK references should use public API/SDK, not internal app modules.
 - `my-docs/project-weeks-sot/week-6/proof-ledger.yaml` is the Week 6 atom ledger. `scripts/ci/check-plugforge-proof-ledger.mjs` validates IDs, proof paths, covered-by targets, and pending TODO/fixme traceability.
-- `api/src/platform/plugforge-acceptance.todo.test.ts` and `e2e/plugforge-acceptance.fixme.spec.ts` are intentional pending inventories, not passing proof. Do not delete a TODO/fixme until the matching ledger atom is proven by an executable command.
+- `api/src/platform/plugforge-acceptance.todo.test.ts` is the remaining PlugForge pending inventory for global closure. The browser SDK fixme was retired into `e2e/plugforge-acceptance.spec.ts` after W6-INT-008/009 were proven. Do not delete a TODO/fixme until the matching ledger atom is proven by an executable command.
 - Metric probes live under `scripts/plugforge-metrics/` and must fail closed when they cannot measure. `pnpm plugforge:metrics` covers TTFE stages/flake, OAuth P95, webhook P95, SDK size, verifier speed, and baseline drift.
 - `docs/architecture.md` is intentionally deferred for this group; do not spend agent-cycle on it until the final architecture/docs pass.
 
@@ -78,10 +78,10 @@ Plugforge anchor files must say whether they are exact canon, intentionally part
 
 - Use `pnpm plugforge:ledger` for structural ledger validation. Global `pnpm plugforge:ledger:enforce` is expected to fail while unrelated P0/P1 atoms remain missing/partial.
 - Use scoped ledger enforcement as closure signal: `pnpm plugforge:ledger:enforce -- --area OAUTH,API,PORTAL,SDK,CLI,AGENT --status missing,partial` and `pnpm plugforge:ledger:enforce -- --area WEBHOOK,METRIC --status missing,partial`.
-- Current closure proof pack is targeted API coverage for apps/OAuth/public-api fitness/route metadata/middleware/webhooks, SDK+CLI tests/checks, `pnpm plugforge:oauth-e2e`, `pnpm plugforge:developer-ops-e2e`, `pnpm plugforge:llm-boundary`, `pnpm plugforge:verify`, `pnpm plugforge:metrics`, and `pnpm test:e2e:smoke`.
+- Current closure proof pack is targeted API coverage for apps/OAuth/public-api fitness/route metadata/middleware/webhooks, SDK+CLI tests/checks, `pnpm plugforge:oauth-e2e`, `pnpm plugforge:developer-ops-e2e`, `pnpm plugforge:llm-boundary`, `pnpm plugforge:verify`, `pnpm plugforge:metrics`, `pnpm plugforge:integrations`, and `pnpm test:e2e:smoke`.
 - Direct Vitest defaults can target `ship_dev`; prefer `scripts/run-api-tests.sh -- ...` or resolve `ship_test_audit` explicitly. If `ship_test_audit` is stale, migrate it before blaming OAuth/public API tests.
 - `pnpm plugforge:metrics` writes local JSON under `my-docs/evidence/plugforge-metrics/`; CI uploads clean per-run artifacts from `my-docs/evidence/plugforge-metrics-ci/**`.
-- Keep `W6-INT-*` pending until Slack/GitLab/browser SDK reference acceptance is proven.
+- INT closure is `pnpm plugforge:integrations` plus scoped enforcement: `pnpm plugforge:ledger:enforce -- --area INT --status missing,partial`. The harness writes current-run Slack/GitLab/browser/matrix JSON under `my-docs/evidence/plugforge-integrations/`.
 
 ## Leverage Points
 

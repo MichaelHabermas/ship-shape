@@ -7,11 +7,12 @@ import { cn } from '@/lib/cn';
 
 const apiUrl = envString(import.meta.env.VITE_API_URL).replace(/\/+$/, '');
 const defaultClientId = envString(import.meta.env.VITE_SHIP_DEMO_CLIENT_ID);
+const clientIdStorageKey = 'ship.sdkDemo.clientId';
 const tokenStore = new BrowserTokenStore('ship.sdkDemo.tokens');
 const demoScope = 'documents:read documents:write issues:read sprints:read';
 
 export function SdkDemoPage() {
-  const [clientId, setClientId] = useState<string>(defaultClientId);
+  const [clientId, setClientId] = useState<string>(() => defaultClientId || storedClientId());
   const [documents, setDocuments] = useState<PublicDocument[]>([]);
   const [issues, setIssues] = useState<PublicIssue[]>([]);
   const [title, setTitle] = useState<string>('hello');
@@ -37,9 +38,15 @@ export function SdkDemoPage() {
 
     setIsBusy(true);
     try {
+      const effectiveClientId = clientId.trim() || storedClientId();
+      if (!effectiveClientId) {
+        setStatus('Client ID is required.');
+        return;
+      }
+      setClientId(effectiveClientId);
       const authorizedClient = await ShipClient.authorizationCodeFlow({
         baseUrl: resolveApiBaseUrl(),
-        clientId: clientId.trim(),
+        clientId: effectiveClientId,
         redirectUri: `${window.location.origin}/sdk-demo`,
         scope: demoScope,
         tokenStore,
@@ -62,6 +69,7 @@ export function SdkDemoPage() {
     }
     setIsBusy(true);
     try {
+      window.sessionStorage.setItem(clientIdStorageKey, clientId.trim());
       await ShipClient.authorizationCodeFlow({
         baseUrl: resolveApiBaseUrl(),
         clientId: clientId.trim(),
@@ -212,4 +220,9 @@ function envString(value: unknown): string {
 
 function resolveApiBaseUrl(): string {
   return apiUrl || window.location.origin;
+}
+
+function storedClientId(): string {
+  if (typeof window === 'undefined') return '';
+  return window.sessionStorage.getItem(clientIdStorageKey) ?? '';
 }

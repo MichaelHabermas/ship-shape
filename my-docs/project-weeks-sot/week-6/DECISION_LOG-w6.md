@@ -125,3 +125,11 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Metric probes now fail closed: TTFE canonical stages, TTFE flake/P95, OAuth P95, webhook P95, SDK size, verifier speed, and baseline comparator all emit gated JSON.
 - `pnpm plugforge:metrics` is the aggregate metric gate. Local runs refresh checked-in evidence under `my-docs/evidence/plugforge-metrics/`; CI writes and uploads a clean per-run `my-docs/evidence/plugforge-metrics-ci/**` directory so stale committed JSON cannot masquerade as current proof.
 - The scoped closure signal is `pnpm plugforge:ledger:enforce -- --area WEBHOOK,METRIC --status missing,partial`; `W6-INT-*` remains pending for Reference Integration Acceptance Closure.
+
+## 2026-06-04 — Reference Integration Acceptance Closure
+
+- `pnpm plugforge:integrations` is the INT acceptance harness. It proves Slack, GitLab, Browser SDK demo, existing integration boundary checks, and the final six-flow matrix with current-run JSON under `my-docs/evidence/plugforge-integrations/`.
+- Slack acceptance now proves Slack OAuth callback, two SDK-created Ship webhook subscriptions targeting one local receiver with separate secrets, signed `document.created` and `issue.assigned` delivery, two deterministic Slack posts, and replay dedupe.
+- GitLab acceptance stays on the public issue seam: deterministic MR webhook -> `client.issues.upsertExternalLink()` -> public `/api/v1/issues/:id` readback. No API internals and no schema change.
+- Browser SDK acceptance is a real Playwright flow through `/sdk-demo`: Authorization Code + PKCE, consent, callback, token exchange, and authenticated document listing through `@ship/sdk`.
+- The final INT closure signal is `pnpm plugforge:ledger:enforce -- --area INT --status missing,partial`; global enforcement remains intentionally out of scope until unrelated gaps close.

@@ -347,3 +347,16 @@ The transferable rules:
 - Add wall-clock timeouts and deterministic database resolution so a hung or misdirected proof fails honestly.
 
 ShipShape example (2026-06): PlugForge OAuth and webhook P95 scripts originally emitted placeholder JSON while returning success. Replacing them with gated OAuth, webhook, TTFE, SDK size, verifier-speed, baseline probes, clean CI artifact directories, subprocess timeouts, and deterministic `ship_test_audit` resolution made `pnpm plugforge:metrics` the proof boundary instead of a transcript generator.
+
+## 28. Browser SDK Acceptance Must Exercise The Browser Runtime
+
+SDK unit tests can green-light Node behavior that breaks in the browser. Anything that claims browser-client acceptance must run through a real page, a real redirect, persisted client state, browser crypto/base64 APIs, and the public SDK surface.
+
+The transferable rules:
+
+- Put browser SDK acceptance behind one command that fails closed and writes bounded current-run evidence.
+- Make the proof walk the actual OAuth redirect/callback/token path, not a seeded token shortcut.
+- Keep flow-level evidence separate from runner summaries so child transcripts cannot be overwritten by aggregate status files.
+- Treat package checks as prerequisites, not substitutes, for reference integration acceptance.
+
+ShipShape example (2026-06): `pnpm plugforge:integrations` caught `Buffer is not defined` in the browser PKCE path and a callback-state gap in `/sdk-demo`; the final proof now runs Slack, GitLab, Browser SDK, boundary checks, and the six-flow matrix with JSON evidence under `my-docs/evidence/plugforge-integrations/`.
