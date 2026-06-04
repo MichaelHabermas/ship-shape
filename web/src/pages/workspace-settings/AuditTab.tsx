@@ -1,6 +1,6 @@
-import type { AuditLog } from '@/lib/api';
+import type { AuditLogResponse } from '@ship/shared';
 
-export function AuditTab({ auditLogs }: { auditLogs: AuditLog[] }) {
+export function AuditTab({ auditLogs }: { auditLogs: AuditLogResponse[] }) {
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <table className="w-full">

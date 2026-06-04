@@ -2,12 +2,13 @@ import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UnifiedEditor } from '@/components/UnifiedEditor';
-import type { UnifiedDocument, SidebarData } from '@/components/UnifiedEditor';
+import type { SidebarData } from '@/components/UnifiedEditor';
 import { useAuth } from '@/hooks/useAuth';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { apiPatch, apiDelete, readJson } from '@/lib/api';
 import type { DocumentTabProps } from '@/lib/document-tabs';
 import { getProgramView } from '@/lib/document-view-mapper';
+import type { UnifiedDocumentView } from '@ship/shared';
 
 /**
  * ProgramOverviewTab - Renders the program document in the UnifiedEditor
@@ -30,12 +31,12 @@ export default function ProgramOverviewTab({ documentId, document }: DocumentTab
 
   // Update mutation with optimistic updates
   const updateMutation = useMutation({
-    mutationFn: async (updates: Partial<UnifiedDocument>) => {
+    mutationFn: async (updates: Partial<UnifiedDocumentView>) => {
       const response = await apiPatch(`/api/documents/${documentId}`, updates);
       if (!response.ok) {
         throw new Error('Failed to update document');
       }
-      return readJson<UnifiedDocument>(response);
+      return readJson<UnifiedDocumentView>(response);
     },
     onMutate: async (updates) => {
       // Cancel any outgoing refetches
@@ -85,7 +86,7 @@ export default function ProgramOverviewTab({ documentId, document }: DocumentTab
   }, [navigate]);
 
   // Handle update
-  const handleUpdate = useCallback(async (updates: Partial<UnifiedDocument>) => {
+  const handleUpdate = useCallback(async (updates: Partial<UnifiedDocumentView>) => {
     await updateMutation.mutateAsync(updates);
   }, [updateMutation]);
 
@@ -101,7 +102,7 @@ export default function ProgramOverviewTab({ documentId, document }: DocumentTab
   }), [teamMembers]);
 
   // Transform to UnifiedDocument format
-  const unifiedDocument: UnifiedDocument = useMemo(() => getProgramView(document), [document]);
+  const unifiedDocument: UnifiedDocumentView = useMemo(() => getProgramView(document), [document]);
 
   if (!user) return null;
 

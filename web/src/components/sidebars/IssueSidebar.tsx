@@ -9,7 +9,7 @@ import type { IncompleteChild, BelongsToType } from '@ship/shared';
 import { ISSUE_STATE_OPTIONS, ISSUE_PRIORITY_OPTIONS_FULL } from '@ship/shared';
 import { apiPost, apiDelete } from '@/lib/api';
 import { readJson } from '@/api/read-json';
-import type { SprintsResponse } from '@/hooks/useWeeksQuery';
+import type { ProgramSprintsResponse } from '@/api/schemas';
 import { formatDateRange } from '@/lib/date-utils';
 import {
   IssueBlockedPanel,
@@ -197,9 +197,9 @@ export function IssueSidebar({
     let cancelled = false;
 
     fetch(`${API_URL}/api/programs/${programId}/sprints`, { credentials: 'include' })
-      .then(async (res): Promise<SprintsResponse> => {
+      .then(async (res): Promise<ProgramSprintsResponse> => {
         if (!res.ok) return { weeks: [], workspace_sprint_start_date: '' };
-        return readJson<SprintsResponse>(res);
+        return readJson<ProgramSprintsResponse>(res);
       })
       .then(data => {
         if (!cancelled) {

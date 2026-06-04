@@ -2,11 +2,10 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Project } from '@/components/ProjectCombobox';
 import { useAuth } from '@/hooks/useAuth';
 import { apiPost, apiGet, apiDelete, readJson } from '@/lib/api';
+import type { TeamAssignment, TeamGridResponse } from '@/api/schemas';
 import type {
-  Assignment,
   AssignmentResponse,
   ProgramGroup,
-  TeamGridData,
 } from './team-mode-types';
 
 const SPRINTS_PER_LOAD = 5;
@@ -14,9 +13,9 @@ const SCROLL_THRESHOLD = 200;
 
 export function useTeamModeGrid() {
   const { user } = useAuth();
-  const [data, setData] = useState<TeamGridData | null>(null);
+  const [data, setData] = useState<TeamGridResponse | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [assignments, setAssignments] = useState<Record<string, Record<number, Assignment>>>({});
+  const [assignments, setAssignments] = useState<Record<string, Record<number, TeamAssignment>>>({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState<'left' | 'right' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -193,7 +192,7 @@ export function useTeamModeGrid() {
       const url = `/api/team/grid${params.toString() ? `?${params}` : ''}`;
       const res = await apiGet(url);
       if (!res.ok) throw new Error('Failed to fetch team grid');
-      const json = await readJson<TeamGridData>(res);
+      const json = await readJson<TeamGridResponse>(res);
 
       if (json.weeks.length > 0) {
         setSprintRange({
@@ -224,7 +223,7 @@ export function useTeamModeGrid() {
     try {
       const res = await apiGet(`/api/team/assignments`);
       if (res.ok) {
-        const json = await readJson<Record<string, Record<number, Assignment>>>(res);
+        const json = await readJson<Record<string, Record<number, TeamAssignment>>>(res);
         setAssignments(json);
       }
     } catch (err) {
@@ -347,7 +346,7 @@ export function useTeamModeGrid() {
     sprintNumber: number,
     sprintName: string,
     newProjectId: string | null,
-    currentAssignment: Assignment | null
+    currentAssignment: TeamAssignment | null
   ) => {
     // Same project - no change
     if (newProjectId === currentAssignment?.projectId) {
@@ -391,7 +390,7 @@ export function useTeamModeGrid() {
 
       const res = await apiGet(`/api/team/grid?${params}`);
       if (!res.ok) throw new Error('Failed to fetch more sprints');
-      const newData = await readJson<TeamGridData>(res);
+      const newData = await readJson<TeamGridResponse>(res);
 
       const scrollContainer = scrollContainerRef.current;
       const prevScrollLeft = scrollContainer?.scrollLeft || 0;

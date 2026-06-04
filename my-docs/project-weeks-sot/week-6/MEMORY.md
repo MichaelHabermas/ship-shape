@@ -16,6 +16,7 @@ Current placed anchors:
 - `scripts/drill.mjs` builds and packs `@ship/shared`, `@ship/sdk`, and `@ship/cli`, installs the tarballs into a fresh temp project, and then runs the real CLI against the local API. That packed-install path is the proof; workspace symlinks are not.
 - `api/src/platform/scopes/registry.ts` with exact initial public scopes.
 - `api/src/platform/webhooks/events.ts` with exact initial event names.
+- `shared/src/public-api-webhooks.ts` with public webhook delivery payload schemas for document, issue, and sprint events.
 - `api/src/platform/webhooks/retry-schedule.ts` with exact retry delays and max attempts.
 - `api/src/platform/webhooks/signature.ts` with `Ship-Signature`, `v1`, and default tolerance `300`.
 - `api/src/platform/webhooks/headers.ts` with `Idempotency-Key`.
@@ -67,7 +68,7 @@ Current placed anchors:
 - `scripts/ci/check-plugforge-proof-ledger.mjs` validates ledger IDs, required fields, proof file paths, covered-by targets, and ensures every missing/partial testable P0/P1 atom names a pending test file that mentions the same requirement ID.
 - `api/src/platform/plugforge-acceptance.todo.test.ts` and `e2e/plugforge-acceptance.fixme.spec.ts` are intentional pending acceptance inventories, not passing proof. Current structural inventory is 54 Vitest todos and 15 Playwright fixmes. Do not delete a TODO/fixme until the corresponding ledger atom is proven by an executable command.
 - `api/src/platform/api/v1/public-api-fitness.test.ts` is the public API fitness suite for exact ApiError drift, list envelopes, auth-failure rate-limit headers, and cursor helper malformed-input behavior.
-- Metric probes live under `scripts/plugforge-metrics/`: TTFE timing, TTFE flake loop, OAuth Auth Code P95 placeholder, webhook P95 placeholder, and SDK minified+gzip size.
+- Metric probes live under `scripts/plugforge-metrics/`: TTFE timing/stage proof, TTFE flake loop, OAuth Auth Code P95, webhook P95, SDK minified+gzip size, webhook verifier speed, baseline comparator, and aggregate `all.mjs`. Metric probes must fail closed when they cannot measure.
 - `pnpm plugforge:developer-ops-e2e` runs only `e2e/developer-ops.spec.ts`; `pnpm plugforge:final` now includes that targeted Playwright proof instead of relying on the full profiled E2E suite to incidentally cover it.
 
 ## Product And System Invariants
@@ -159,6 +160,8 @@ After the proof-ledger slice on 2026-06-03, structural proof is `pnpm plugforge:
 After the External Developer Trust Boundary closure on 2026-06-04, scoped proof is `pnpm plugforge:ledger:enforce -- --area OAUTH,API,PORTAL,SDK,CLI,AGENT --status missing,partial`. The closure proof pack is the targeted API suite for apps/OAuth/public-api fitness/route metadata/middleware, SDK+CLI tests and checks, `pnpm plugforge:oauth-e2e`, `pnpm plugforge:developer-ops-e2e`, `pnpm plugforge:llm-boundary`, `pnpm plugforge:verify`, and `pnpm test:e2e:smoke`.
 
 The are-you-sure pass on 2026-06-04 tightened the closure proof without expanding to global Week 6: migration 059 backfills already-orphaned third-party OAuth apps, force-rotation invalidates exchangeable auth-code/device credentials, public API audit wraps pre-auth rate limiting in production order, portal storage checks raw secrets after create/rotate, consent CSRF failure is browser-proven, and SDK/OpenAPI parity is enforced by SDK type-check. Do not run global `pnpm plugforge:ledger:enforce` as a closure signal for this epic; it is expected to fail on unrelated metrics/docs/integration gaps.
+
+After the Webhook + Metrics Proof Closure on 2026-06-04, scoped proof is `pnpm plugforge:ledger:enforce -- --area WEBHOOK,METRIC --status missing,partial`. `pnpm plugforge:metrics` is the aggregate metric gate and writes local JSON under `my-docs/evidence/plugforge-metrics/`; CI uploads a clean per-run `my-docs/evidence/plugforge-metrics-ci/**` directory. It covers TTFE stages/flake, OAuth P95, webhook P95, SDK size, verifier speed, and baseline drift. Keep `W6-INT-*` pending until Slack/GitLab/browser SDK reference acceptance is proven.
 
 ## Leverage Points
 

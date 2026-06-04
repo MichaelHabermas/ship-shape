@@ -8,8 +8,6 @@ export type SimpleErrorBody = { error: string };
 
 export type ApiErrorEnvelope = { error: { code?: string; message?: string } };
 
-export type ApiDocument = ApiId;
-
 export type ApiDocumentWithVisibility = ApiId & {
   title?: string;
   visibility?: string;
@@ -21,9 +19,7 @@ export type PersonDocument = ApiId & {
 
 export type IssueCreateResponse = ApiId & { ticket_number?: number };
 
-export type WeekWithId = { id: string };
-
-export type WeeksWithIdListResponse = { weeks: WeekWithId[] };
+export type WeeksWithIdListResponse = { weeks: ApiId[] };
 
 export type WeeklyDocumentProperties = {
   person_id: string;
@@ -247,8 +243,6 @@ export type TeamPerson = {
   user_id: string | null;
   name?: string;
 };
-
-export type TeamProgram = { id: string };
 
 export type WeeksListResponse = { weeks: Array<{ sprint_number: number }> };
 

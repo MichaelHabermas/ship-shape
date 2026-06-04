@@ -1,12 +1,20 @@
 {
-  "metric": "webhook-p95",
-  "status": "not_measured",
-  "ok": false,
-  "generatedAt": "2026-06-03T23:41:33.778Z",
-  "reason": "A robust webhook P95 needs an instrumented receiver, deterministic event generation, retry isolation, and delivery timestamps from enqueue to verified receipt. This placeholder is report-only and does not create webhook traffic.",
-  "proposedMeasurement": {
-    "sampleSize": 100,
-    "path": "create document events, collect webhook_deliveries timing, verify receiver signatures, then compute delivery p95",
-    "statistic": "p95 enqueue-to-verified-receipt latency in milliseconds, with retry and failure counts reported separately"
-  }
+  "metric": "webhook-first-attempt-p95",
+  "status": "measured",
+  "ok": true,
+  "generatedAt": "2026-06-04T03:53:16.278Z",
+  "durationMs": 1873,
+  "targets": {
+    "maxP95Ms": 2000,
+    "samples": 25
+  },
+  "result": {
+    "samplesSucceeded": 25,
+    "samplesFailed": 0,
+    "minMs": 5,
+    "maxMs": 20,
+    "p50Ms": 6,
+    "p95Ms": 9
+  },
+  "failures": []
 }

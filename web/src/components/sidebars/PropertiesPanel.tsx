@@ -19,17 +19,11 @@ import type { Person } from '@/components/PersonCombobox';
 import type {
   ApprovalTracking,
   IssueDocumentView,
-  PanelDocumentType,
   ProgramDocumentView,
   ProjectDocumentView,
   SprintDocumentView,
   WikiDocumentView,
 } from '@ship/shared';
-
-export type { PanelDocumentType };
-
-type WikiDocument = WikiDocumentView;
-type IssueDocument = IssueDocumentView;
 
 type ProjectDocument = ProjectDocumentView & {
   plan_approval?: ApprovalTracking | null;
@@ -45,8 +39,6 @@ type SprintDocument = SprintDocumentView & {
   accountable_id?: string | null;
   has_review?: boolean;
 };
-
-type ProgramDocument = ProgramDocumentView;
 
 interface WeeklyPlanDocument {
   id: string;
@@ -79,7 +71,7 @@ interface WeeklyRetroDocument {
 }
 
 // Union type for all documents
-export type PanelDocument = WikiDocument | IssueDocument | ProjectDocument | SprintDocument | ProgramDocument | WeeklyPlanDocument | WeeklyRetroDocument;
+export type PanelDocument = WikiDocumentView | IssueDocumentView | ProjectDocument | SprintDocument | ProgramDocumentView | WeeklyPlanDocument | WeeklyRetroDocument;
 
 // Props for wiki panel
 interface WikiPanelProps {
@@ -510,11 +502,8 @@ export function PropertiesPanel({
 
 // Re-export types for convenience
 export type {
-  WikiDocument,
-  IssueDocument,
   ProjectDocument,
   SprintDocument,
-  ProgramDocument,
   WikiPanelProps,
   IssuePanelProps,
   ProjectPanelProps,

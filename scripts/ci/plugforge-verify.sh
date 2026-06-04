@@ -34,6 +34,7 @@ node --test ./scripts/ci/check-integration-boundary.test.mjs
   src/platform/webhooks/event-bus.test.ts \
   src/platform/webhooks/service.test.ts \
   src/services/issue-mutations/webhook-events.test.ts \
+  src/services/document-mutations/webhook-events.test.ts \
   src/platform/apps/routes.test.ts \
   src/platform/oauth/agent-token-broker.test.ts \
   src/platform/plugforge-acceptance.todo.test.ts

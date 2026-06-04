@@ -1,4 +1,6 @@
+// Document update service owns generic document patches and post-update side effects.
 import type { DocumentVisibility } from '@ship/shared';
+import type { PoolClient } from 'pg';
 import { pool } from '../../db/client.js';
 import {
   handleVisibilityChange,
@@ -23,6 +25,10 @@ import { getDocumentAccessContext, getReadableDocument } from '../document-acces
 import { authorizeDocumentMutation } from '../../security/capabilities.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../../fleetgraph/events.js';
 import {
+  commitDomainWebhooks,
+  publishDomainWebhookInTransaction,
+} from '../../platform/webhooks/mutation-publisher.js';
+import {
   collectTopLevelProperties,
   defaultWriteCapability,
   extractedContentProperties,
@@ -39,6 +45,11 @@ import {
   type PersonOwnerRow,
   type UpdateDocumentInput,
 } from './types.js';
+import {
+  buildDocumentUpdatedWebhookEvent,
+  buildSprintCompletedWebhookEvent,
+  buildSprintStartedWebhookEvent,
+} from './webhook-events.js';
 
 function flattenDocumentResponse(updatedDoc: DocumentAccessRow, owner: PersonOwnerRow | null) {
   const props = updatedDoc.properties || {};
@@ -84,7 +95,7 @@ export async function updateDocumentMutation({
   let resubmissionTarget: { sprintId: string; reviewerUserId: string | null } | null = null;
 
   try {
-    const existing = await loadAccessibleDocument(client, principal, documentId, { includeArchived: true });
+    let existing = await loadAccessibleDocument(client, principal, documentId, { includeArchived: true });
     if (!existing) {
       return { ok: false, status: 404, body: { error: 'Document not found' } };
     }
@@ -175,6 +186,12 @@ export async function updateDocumentMutation({
     }
 
     await client.query('BEGIN');
+    const lockedExisting = await loadDocumentForUpdate(client, actor.workspaceId, documentId);
+    if (!lockedExisting) {
+      await client.query('ROLLBACK');
+      return { ok: false, status: 404, body: { error: 'Document not found' } };
+    }
+    existing = lockedExisting;
 
     const updates: string[] = [];
     const values: unknown[] = [];
@@ -307,6 +324,11 @@ export async function updateDocumentMutation({
       `UPDATE documents SET ${updates.join(', ')} WHERE id = $${paramIndex} AND workspace_id = $${paramIndex + 1} RETURNING *`,
       [...values, documentId, actor.workspaceId]
     );
+    const updatedDoc = result.rows[0];
+    if (!updatedDoc) {
+      await client.query('ROLLBACK');
+      return { ok: false, status: 404, body: { error: 'Document not found' } };
+    }
 
     if (contentUpdated) {
       resubmissionTarget = await resetWeeklyApprovalAfterResubmission(client, actor, existing);
@@ -338,7 +360,25 @@ export async function updateDocumentMutation({
       });
     }
 
+    const webhookDeliveryIds: string[] = [];
+    const documentWebhook = await publishDomainWebhookInTransaction(
+      buildDocumentUpdatedWebhookEvent({
+        workspaceId: actor.workspaceId,
+        actorUserId: actor.userId,
+        row: updatedDoc,
+      }),
+      client
+    );
+    webhookDeliveryIds.push(...documentWebhook.deliveryIds);
+
+    const sprintLifecycleEvent = sprintLifecycleWebhookEvent(existing, updatedDoc, actor.workspaceId, actor.userId);
+    if (sprintLifecycleEvent) {
+      const sprintWebhook = await publishDomainWebhookInTransaction(sprintLifecycleEvent, client);
+      webhookDeliveryIds.push(...sprintWebhook.deliveryIds);
+    }
+
     await client.query('COMMIT');
+    commitDomainWebhooks(webhookDeliveryIds);
     await upsertDocumentSearchIndex(documentId);
 
     if (contentUpdated) {
@@ -364,10 +404,6 @@ export async function updateDocumentMutation({
       }
     }
 
-    const updatedDoc = result.rows[0];
-    if (!updatedDoc) {
-      return { ok: false, status: 404, body: { error: 'Document not found' } };
-    }
     const owner = updatedDoc.document_type === 'project'
       ? await projectOwnerForResponse(updatedDoc.properties?.owner_id, actor.workspaceId)
       : null;
@@ -379,4 +415,46 @@ export async function updateDocumentMutation({
   } finally {
     client.release();
   }
+}
+
+function sprintLifecycleWebhookEvent(
+  existing: DocumentAccessRow,
+  updated: DocumentAccessRow,
+  workspaceId: string,
+  actorUserId: string
+) {
+  if (existing.document_type !== 'sprint' || updated.document_type !== 'sprint') return null;
+
+  const previousStatus = sprintStatus(existing.properties?.status);
+  const nextStatus = sprintStatus(updated.properties?.status);
+  if (previousStatus !== 'active' && nextStatus === 'active') {
+    return buildSprintStartedWebhookEvent({ workspaceId, actorUserId, row: updated });
+  }
+  if (previousStatus !== 'completed' && nextStatus === 'completed') {
+    return buildSprintCompletedWebhookEvent({ workspaceId, actorUserId, row: updated });
+  }
+  return null;
+}
+
+function sprintStatus(value: unknown): 'planning' | 'active' | 'completed' {
+  return value === 'active' || value === 'completed' || value === 'planning'
+    ? value
+    : 'planning';
+}
+
+async function loadDocumentForUpdate(
+  client: PoolClient,
+  workspaceId: string,
+  documentId: string
+): Promise<DocumentAccessRow | null> {
+  const result = await client.query<DocumentAccessRow>(
+    `SELECT id, workspace_id, document_type, title, parent_id, position, ticket_number,
+            properties, content, created_at, updated_at, created_by, visibility,
+            archived_at, deleted_at, converted_to_id, converted_by
+       FROM documents
+      WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
+      FOR UPDATE`,
+    [documentId, workspaceId]
+  );
+  return result.rows[0] ?? null;
 }

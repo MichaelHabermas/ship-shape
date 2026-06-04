@@ -1,5 +1,6 @@
 // Shared PlugForge metric helpers centralize subprocess execution and JSON evidence writing.
 import { spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -36,7 +37,7 @@ export function nowIso() {
 export async function writeJsonReport(defaultName, report, args = {}) {
   const outputPath = args.output
     ? path.resolve(rootDir, args.output)
-    : path.join(evidenceDir, defaultName);
+    : path.join(args['output-dir'] ? path.resolve(rootDir, args['output-dir']) : evidenceDir, defaultName);
 
   if (args['no-write']) {
     return null;
@@ -50,12 +51,24 @@ export async function writeJsonReport(defaultName, report, args = {}) {
 export function runProcess(command, args, options = {}) {
   const startedAt = Date.now();
   return new Promise((resolve) => {
+    const timeoutMs = requireNumber(options.timeoutMs, 15 * 60_000);
+    let timedOut = false;
+    let forceKillTimer = null;
     const child = spawn(command, args, {
       cwd: options.cwd ?? rootDir,
       env: options.env ?? process.env,
       shell: false,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+    const timeoutTimer = timeoutMs > 0
+      ? setTimeout(() => {
+        timedOut = true;
+        child.kill('SIGTERM');
+        forceKillTimer = setTimeout(() => child.kill('SIGKILL'), 5_000);
+        forceKillTimer.unref?.();
+      }, timeoutMs)
+      : null;
+    timeoutTimer?.unref?.();
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', chunk => {
@@ -67,26 +80,34 @@ export function runProcess(command, args, options = {}) {
       if (options.forwardOutput) process.stderr.write(chunk);
     });
     child.on('error', error => {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
       resolve({
         command,
         args,
-        exitCode: null,
+        exitCode: timedOut ? 124 : null,
         signal: null,
         stdout,
         stderr,
-        error: error instanceof Error ? error.message : String(error),
+        error: timedOut ? `Process timed out after ${timeoutMs}ms` : error instanceof Error ? error.message : String(error),
+        timedOut,
+        timeoutMs,
         durationMs: Date.now() - startedAt,
       });
     });
     child.on('close', (exitCode, signal) => {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
       resolve({
         command,
         args,
-        exitCode,
+        exitCode: timedOut ? 124 : exitCode,
         signal,
         stdout,
         stderr,
-        error: null,
+        error: timedOut ? `Process timed out after ${timeoutMs}ms` : null,
+        timedOut,
+        timeoutMs,
         durationMs: Date.now() - startedAt,
       });
     });
@@ -110,4 +131,22 @@ export function percentile(values, p) {
   const sorted = [...values].sort((left, right) => left - right);
   const rank = Math.ceil((p / 100) * sorted.length) - 1;
   return sorted[Math.max(0, Math.min(sorted.length - 1, rank))];
+}
+
+export function requireNumber(value, fallback) {
+  const parsed = Number(value ?? fallback);
+  if (!Number.isFinite(parsed)) return fallback;
+  return parsed;
+}
+
+export function resolveMetricDatabaseUrl(name = 'ship_test_audit') {
+  return process.env.PLUGFORGE_METRICS_DATABASE_URL
+    ?? execFileSync(path.join(rootDir, 'scripts', 'resolve-database-url.sh'), [name], {
+      cwd: rootDir,
+      encoding: 'utf8',
+    }).trim();
+}
+
+export function relativeMetricPath(outputPath) {
+  return outputPath ? path.relative(rootDir, outputPath) : null;
 }

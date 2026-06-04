@@ -3,7 +3,7 @@ import { test, expect } from './fixtures/isolated-env';
 import { getCsrfToken, login } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
 import type {
-  ApiDocument,
+  ApiId,
   AuthMeResponse,
   PersonDocument,
   TeamReviewsResponse,
@@ -51,7 +51,7 @@ async function createReviewArtifacts(
     },
   });
   expect(programRes.ok()).toBe(true);
-  const program = await readJsonAs<ApiDocument>(programRes);
+  const program = await readJsonAs<ApiId>(programRes);
 
   const projectRes = await page.request.post(`${apiUrl}/api/projects`, {
     headers: { 'x-csrf-token': csrf },
@@ -62,7 +62,7 @@ async function createReviewArtifacts(
     },
   });
   expect(projectRes.ok()).toBe(true);
-  const project = await readJsonAs<ApiDocument>(projectRes);
+  const project = await readJsonAs<ApiId>(projectRes);
 
   const sprintRes = await page.request.post(`${apiUrl}/api/documents`, {
     headers: { 'x-csrf-token': csrf },
@@ -79,7 +79,7 @@ async function createReviewArtifacts(
     },
   });
   expect(sprintRes.ok()).toBe(true);
-  const sprint = await readJsonAs<ApiDocument>(sprintRes);
+  const sprint = await readJsonAs<ApiId>(sprintRes);
   const sprintId = sprint.id;
 
   const planRes = await page.request.post(`${apiUrl}/api/weekly-plans`, {

@@ -6,11 +6,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useReviewQueue } from '@/contexts/ReviewQueueContext';
 import type { QueueItem } from '@/contexts/ReviewQueueContext';
 import {
-  type ReviewsData,
   type ProgramGroup,
   type SelectedCell,
   type BatchMode,
 } from './reviews/reviews-types.js';
+import type { ReviewsResponse } from '@/api/schemas';
 import { needsPlanReview, needsRetroReview } from './reviews/reviews-status.js';
 import { ReviewsPageLayout } from './reviews/ReviewsPageLayout.js';
 
@@ -18,7 +18,7 @@ export function ReviewsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const reviewQueue = useReviewQueue();
-  const [data, setData] = useState<ReviewsData | null>(null);
+  const [data, setData] = useState<ReviewsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<'my-team' | 'everyone' | null>(null);
@@ -163,7 +163,7 @@ export function ReviewsPage() {
       setLoading(true);
       const res = await apiGet(`/api/team/reviews?sprint_count=8`);
       if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
-      const json = await readJson<ReviewsData>(res);
+      const json = await readJson<ReviewsResponse>(res);
       setData(json);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load reviews');

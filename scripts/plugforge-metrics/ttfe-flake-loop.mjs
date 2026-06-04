@@ -1,16 +1,17 @@
 #!/usr/bin/env node
-// Report-only TTFE flake probe: runs the TTFE timing wrapper N times and summarizes pass rate plus timing percentiles.
+// Gated TTFE flake probe runs the timing wrapper repeatedly and fails on any flaky run.
 import process from 'node:process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { nowIso, parseArgs, parseTrailingJson, percentile, rootDir, runProcess, writeJsonReport } from './lib.mjs';
+import { nowIso, parseArgs, parseTrailingJson, percentile, requireNumber, rootDir, runProcess, writeJsonReport } from './lib.mjs';
 
 const args = parseArgs(process.argv.slice(2));
-const runs = Number.parseInt(String(args.runs ?? args.n ?? '5'), 10);
+const runs = Number.parseInt(String(args.runs ?? args.n ?? '20'), 10);
 if (!Number.isInteger(runs) || runs < 1) {
   console.error('Usage: node scripts/plugforge-metrics/ttfe-flake-loop.mjs --runs <positive integer>');
   process.exit(2);
 }
+const maxP95Ms = requireNumber(args['max-p95-ms'], 60_000);
 
 const startedAt = Date.now();
 const wrapperPath = fileURLToPath(new URL('./ttfe-timing.mjs', import.meta.url));
@@ -37,12 +38,18 @@ const successfulRuns = results.filter(run => run.ok);
 const totalTimings = successfulRuns
   .map(run => run.timings.find(timing => timing.name === 'total' || timing.stage === 'total')?.ms)
   .filter(value => typeof value === 'number');
+const totalP95 = percentile(totalTimings, 95);
+const ok = successfulRuns.length === runs && typeof totalP95 === 'number' && totalP95 < maxP95Ms;
 const report = {
   metric: 'ttfe-flake-loop',
-  status: successfulRuns.length === runs ? 'measured' : 'failed',
-  ok: successfulRuns.length === runs,
+  status: ok ? 'measured' : 'failed',
+  ok,
   generatedAt: nowIso(),
   durationMs: Date.now() - startedAt,
+  targets: {
+    maxP95Ms,
+    maxFailedRuns: 0,
+  },
   requestedRuns: runs,
   passedRuns: successfulRuns.length,
   failedRuns: runs - successfulRuns.length,
@@ -51,7 +58,7 @@ const report = {
     min: totalTimings.length ? Math.min(...totalTimings) : null,
     max: totalTimings.length ? Math.max(...totalTimings) : null,
     p50: percentile(totalTimings, 50),
-    p95: percentile(totalTimings, 95),
+    p95: totalP95,
   },
   runs: results,
 };

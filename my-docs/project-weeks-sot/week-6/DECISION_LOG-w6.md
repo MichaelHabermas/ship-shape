@@ -116,3 +116,12 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Refresh-token theft proof now exercises `/oauth/token`: rotate once, reuse the stolen old token, invalidate the family, revoke issued access tokens, and assert `/api/v1/me` rejects them.
 - Replay proof now includes a signed SDK-verifying subscriber that processes the first delivery, dedupes replay, and observes the same `Idempotency-Key`.
 - FleetGraph public-source read proof now mints a delegated `ship-agent` OAuth token, calls through `@ship/sdk` and `/api/v1`, and asserts `public_api_audit_logs` rows.
+
+## 2026-06-04 — Webhook + Metrics Proof Closure
+
+- Metrics closure means platform-path metrics over OAuth, CLI, SDK, public API, and webhooks; it does not claim final Slack/GitLab/reference-integration acceptance.
+- Webhook event contracts are specific Zod schemas for all eight event types; `document.updated`, `document.deleted`, `sprint.started`, and `sprint.completed` are no longer generic payload records.
+- Sprint lifecycle events publish from document mutation services when sprint status moves to `active` or `completed`; no public sprint write route was added for this proof.
+- Metric probes now fail closed: TTFE canonical stages, TTFE flake/P95, OAuth P95, webhook P95, SDK size, verifier speed, and baseline comparator all emit gated JSON.
+- `pnpm plugforge:metrics` is the aggregate metric gate. Local runs refresh checked-in evidence under `my-docs/evidence/plugforge-metrics/`; CI writes and uploads a clean per-run `my-docs/evidence/plugforge-metrics-ci/**` directory so stale committed JSON cannot masquerade as current proof.
+- The scoped closure signal is `pnpm plugforge:ledger:enforce -- --area WEBHOOK,METRIC --status missing,partial`; `W6-INT-*` remains pending for Reference Integration Acceptance Closure.

@@ -1,0 +1,783 @@
+{
+  "metric": "ttfe-flake-loop",
+  "status": "measured",
+  "ok": true,
+  "generatedAt": "2026-06-04T03:53:12.253Z",
+  "durationMs": 233640,
+  "targets": {
+    "maxP95Ms": 60000,
+    "maxFailedRuns": 0
+  },
+  "requestedRuns": 20,
+  "passedRuns": 20,
+  "failedRuns": 0,
+  "passRate": 1,
+  "totalTimingMs": {
+    "min": 11006,
+    "max": 11559,
+    "p50": 11135,
+    "p95": 11535
+  },
+  "runs": [
+    {
+      "run": 1,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11923,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 3354
+        },
+        {
+          "stage": "login",
+          "ms": 5355
+        },
+        {
+          "stage": "subscription",
+          "ms": 147
+        },
+        {
+          "stage": "create",
+          "ms": 194
+        },
+        {
+          "stage": "receipt",
+          "ms": 1
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11535
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 2,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11574,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2936
+        },
+        {
+          "stage": "login",
+          "ms": 5491
+        },
+        {
+          "stage": "subscription",
+          "ms": 151
+        },
+        {
+          "stage": "create",
+          "ms": 197
+        },
+        {
+          "stage": "receipt",
+          "ms": 1
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11182
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 3,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11832,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 3229
+        },
+        {
+          "stage": "login",
+          "ms": 5462
+        },
+        {
+          "stage": "subscription",
+          "ms": 152
+        },
+        {
+          "stage": "create",
+          "ms": 197
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11447
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 4,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11459,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2932
+        },
+        {
+          "stage": "login",
+          "ms": 5329
+        },
+        {
+          "stage": "subscription",
+          "ms": 148
+        },
+        {
+          "stage": "create",
+          "ms": 198
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11074
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 5,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11546,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2985
+        },
+        {
+          "stage": "login",
+          "ms": 5425
+        },
+        {
+          "stage": "subscription",
+          "ms": 149
+        },
+        {
+          "stage": "create",
+          "ms": 197
+        },
+        {
+          "stage": "receipt",
+          "ms": 1
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11153
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 6,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11395,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2924
+        },
+        {
+          "stage": "login",
+          "ms": 5349
+        },
+        {
+          "stage": "subscription",
+          "ms": 150
+        },
+        {
+          "stage": "create",
+          "ms": 197
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11006
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 7,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11518,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2946
+        },
+        {
+          "stage": "login",
+          "ms": 5432
+        },
+        {
+          "stage": "subscription",
+          "ms": 160
+        },
+        {
+          "stage": "create",
+          "ms": 202
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11132
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 8,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11944,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 3288
+        },
+        {
+          "stage": "login",
+          "ms": 5380
+        },
+        {
+          "stage": "subscription",
+          "ms": 150
+        },
+        {
+          "stage": "create",
+          "ms": 197
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11559
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 9,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11503,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 3021
+        },
+        {
+          "stage": "login",
+          "ms": 5357
+        },
+        {
+          "stage": "subscription",
+          "ms": 151
+        },
+        {
+          "stage": "create",
+          "ms": 195
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11122
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 10,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11699,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 3072
+        },
+        {
+          "stage": "login",
+          "ms": 5352
+        },
+        {
+          "stage": "subscription",
+          "ms": 149
+        },
+        {
+          "stage": "create",
+          "ms": 196
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11309
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 11,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11510,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2945
+        },
+        {
+          "stage": "login",
+          "ms": 5428
+        },
+        {
+          "stage": "subscription",
+          "ms": 149
+        },
+        {
+          "stage": "create",
+          "ms": 198
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11118
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 12,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11459,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2974
+        },
+        {
+          "stage": "login",
+          "ms": 5364
+        },
+        {
+          "stage": "subscription",
+          "ms": 149
+        },
+        {
+          "stage": "create",
+          "ms": 201
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11078
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 13,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11475,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2967
+        },
+        {
+          "stage": "login",
+          "ms": 5325
+        },
+        {
+          "stage": "subscription",
+          "ms": 148
+        },
+        {
+          "stage": "create",
+          "ms": 197
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11089
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 14,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11520,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2996
+        },
+        {
+          "stage": "login",
+          "ms": 5369
+        },
+        {
+          "stage": "subscription",
+          "ms": 151
+        },
+        {
+          "stage": "create",
+          "ms": 198
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11135
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 15,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11698,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 3024
+        },
+        {
+          "stage": "login",
+          "ms": 5342
+        },
+        {
+          "stage": "subscription",
+          "ms": 152
+        },
+        {
+          "stage": "create",
+          "ms": 196
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11310
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 16,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11508,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2985
+        },
+        {
+          "stage": "login",
+          "ms": 5341
+        },
+        {
+          "stage": "subscription",
+          "ms": 150
+        },
+        {
+          "stage": "create",
+          "ms": 193
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11122
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 17,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11883,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 3161
+        },
+        {
+          "stage": "login",
+          "ms": 5517
+        },
+        {
+          "stage": "subscription",
+          "ms": 151
+        },
+        {
+          "stage": "create",
+          "ms": 200
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11492
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 18,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11419,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2973
+        },
+        {
+          "stage": "login",
+          "ms": 5348
+        },
+        {
+          "stage": "subscription",
+          "ms": 150
+        },
+        {
+          "stage": "create",
+          "ms": 197
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11035
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 19,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11698,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 3141
+        },
+        {
+          "stage": "login",
+          "ms": 5331
+        },
+        {
+          "stage": "subscription",
+          "ms": 147
+        },
+        {
+          "stage": "create",
+          "ms": 198
+        },
+        {
+          "stage": "receipt",
+          "ms": 0
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11312
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "run": 20,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11663,
+      "timings": [
+        {
+          "stage": "install",
+          "ms": 2987
+        },
+        {
+          "stage": "login",
+          "ms": 5493
+        },
+        {
+          "stage": "subscription",
+          "ms": 153
+        },
+        {
+          "stage": "create",
+          "ms": 195
+        },
+        {
+          "stage": "receipt",
+          "ms": 1
+        },
+        {
+          "stage": "verification",
+          "ms": 0
+        },
+        {
+          "stage": "total",
+          "ms": 11279
+        }
+      ],
+      "stderrTail": "",
+      "stdoutTail": null
+    }
+  ]
+}

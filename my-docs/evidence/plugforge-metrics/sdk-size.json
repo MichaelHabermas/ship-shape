@@ -2,8 +2,11 @@
   "metric": "sdk-minified-gzip-size",
   "status": "measured",
   "ok": true,
-  "generatedAt": "2026-06-03T23:41:34.042Z",
-  "durationMs": 46,
+  "generatedAt": "2026-06-04T03:53:16.389Z",
+  "durationMs": 27,
+  "targets": {
+    "maxGzipBytes": 256000
+  },
   "input": {
     "entryPoint": "sdk/src/index.ts",
     "bundler": "esbuild",
@@ -15,8 +18,8 @@
     ]
   },
   "result": {
-    "minifiedBytes": 20373,
-    "gzipBytes": 7208
+    "minifiedBytes": 21116,
+    "gzipBytes": 7422
   },
   "metafile": {
     "inputs": {
@@ -26,12 +29,12 @@
         "format": "esm"
       },
       "sdk/src/errors.ts": {
-        "bytes": 903,
+        "bytes": 1535,
         "imports": [],
         "format": "esm"
       },
       "sdk/src/http.ts": {
-        "bytes": 6075,
+        "bytes": 6473,
         "imports": [
           {
             "path": "sdk/src/errors.ts",
@@ -58,7 +61,7 @@
         "format": "esm"
       },
       "sdk/src/token-store.ts": {
-        "bytes": 3506,
+        "bytes": 3822,
         "imports": [
           {
             "path": "sdk/src/errors.ts",
@@ -158,7 +161,7 @@
         "format": "esm"
       },
       "sdk/src/index.ts": {
-        "bytes": 15121,
+        "bytes": 16027,
         "imports": [
           {
             "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js",
@@ -265,22 +268,22 @@
         "entryPoint": "sdk/src/index.ts",
         "inputs": {
           "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js": {
-            "bytesInOutput": 2035
+            "bytesInOutput": 2036
           },
           "sdk/src/index.ts": {
-            "bytesInOutput": 5968
+            "bytesInOutput": 6374
           },
           "sdk/src/errors.ts": {
             "bytesInOutput": 262
           },
           "sdk/src/http.ts": {
-            "bytesInOutput": 2901
+            "bytesInOutput": 3068
           },
           "sdk/src/resources.ts": {
             "bytesInOutput": 2096
           },
           "sdk/src/token-store.ts": {
-            "bytesInOutput": 1433
+            "bytesInOutput": 1601
           },
           "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/hmac.js": {
             "bytesInOutput": 1318
@@ -289,13 +292,13 @@
             "bytesInOutput": 1610
           },
           "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/sha2.js": {
-            "bytesInOutput": 1711
+            "bytesInOutput": 1712
           },
           "sdk/src/webhook.ts": {
             "bytesInOutput": 774
           }
         },
-        "bytes": 20373
+        "bytes": 21116
       }
     }
   }

@@ -20,6 +20,7 @@ if (drillName !== 'ttfe') {
 }
 
 const timings = [];
+const debugTimings = [];
 const startedAt = Date.now();
 let apiProcess = null;
 let fixtures = null;
@@ -28,7 +29,7 @@ let databaseUrl = '';
 try {
   await runTtfeDrill();
   stage('total', startedAt);
-  console.log(JSON.stringify({ ok: true, timings }, null, 2));
+  console.log(JSON.stringify({ ok: true, timings, debugTimings }, null, 2));
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
@@ -52,14 +53,14 @@ async function runTtfeDrill() {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ship-ttfe-'));
   const tokenPath = path.join(tempDir, 'tokens.json');
 
-  await timed('migrate', () => run('pnpm', ['--filter', '@ship/api', 'db:migrate'], {
+  await debugTimed('migrate', () => run('pnpm', ['--filter', '@ship/api', 'db:migrate'], {
     cwd: rootDir,
     env: { ...process.env, DATABASE_URL: databaseUrl },
   }));
-  fixtures = await timed('seed', () => seedFixtures(databaseUrl));
+  fixtures = await debugTimed('seed', () => seedFixtures(databaseUrl));
   const artifactDir = path.join(tempDir, 'artifacts');
   await fs.mkdir(artifactDir, { recursive: true });
-  await timed('pack', async () => {
+  await timed('install', async () => {
     await run('pnpm', ['--filter', '@ship/shared', 'build'], { cwd: rootDir });
     await run('pnpm', ['--filter', '@ship/sdk', 'build'], { cwd: rootDir });
     const sharedTarball = await packWorkspace('@ship/shared', artifactDir);
@@ -84,7 +85,7 @@ async function runTtfeDrill() {
   });
   apiProcess.stdout.on('data', chunk => process.stderr.write(`[api] ${chunk}`));
   apiProcess.stderr.on('data', chunk => process.stderr.write(`[api] ${chunk}`));
-  await timed('api-ready', () => waitForHttp(`${apiUrl}/api/v1/openapi.json`, 30_000));
+  await debugTimed('api-ready', () => waitForHttp(`${apiUrl}/api/v1/openapi.json`, 30_000));
 
   const shipBin = path.join(tempDir, 'node_modules', '.bin', 'ship');
   await timed('login', () => runLoginAndApprove({
@@ -114,9 +115,9 @@ async function runTtfeDrill() {
   });
   tail.stderr.on('data', chunk => process.stderr.write(`[tail] ${chunk}`));
   const tailOutput = collectOutput(tail.stdout);
-  await waitForOutput(tail.stderr, /Subscribed /, 10_000);
+  await timed('subscription', () => waitForOutput(tail.stderr, /Subscribed /, 10_000));
 
-  await timed('docs-create', () => run(shipBin, [
+  await timed('create', () => run(shipBin, [
     'docs',
     'create',
     '--api-url',
@@ -129,7 +130,7 @@ async function runTtfeDrill() {
     'hello',
   ], { cwd: tempDir }));
 
-  await timed('webhook-verified', async () => {
+  await timed('receipt', async () => {
     try {
       await onceExit(tail, 35_000);
     } catch (error) {
@@ -138,6 +139,9 @@ async function runTtfeDrill() {
       }));
       throw new Error(`${error instanceof Error ? error.message : String(error)}; deliveries=${JSON.stringify(diagnostics)}`);
     }
+  });
+
+  await timed('verification', async () => {
     const lines = (await tailOutput).trim().split('\n').filter(Boolean);
     const event = lines.map(line => parseJson(line)).find(line => line?.event === 'document.created');
     if (!event) throw new Error(`ship webhooks tail did not receive document.created. Output: ${lines.join('\n')}`);
@@ -340,10 +344,23 @@ async function timed(name, fn) {
   return result;
 }
 
+async function debugTimed(name, fn) {
+  const start = Date.now();
+  const result = await fn();
+  debugStage(name, start);
+  return result;
+}
+
 function stage(name, start) {
   const ms = Date.now() - start;
   timings.push({ stage: name, ms });
   console.error(`[ttfe] ${name}: ${ms}ms`);
+}
+
+function debugStage(name, start) {
+  const ms = Date.now() - start;
+  debugTimings.push({ stage: name, ms });
+  console.error(`[ttfe:debug] ${name}: ${ms}ms`);
 }
 
 function freePort() {

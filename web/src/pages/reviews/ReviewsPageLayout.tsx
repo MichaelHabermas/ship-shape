@@ -1,12 +1,13 @@
 // ReviewsPageLayout renders the review grid, selection state, and side review panel.
 import { cn } from '@/lib/cn';
 import { formatDateRange } from '@/lib/date-utils';
-import { REVIEW_COLORS, REVIEW_STATUS_TEXT, type ReviewsData, type SelectedCell, type BatchMode } from './reviews-types.js';
+import { REVIEW_COLORS, REVIEW_STATUS_TEXT, type SelectedCell, type BatchMode } from './reviews-types.js';
+import type { ReviewsResponse } from '@/api/schemas';
 import { getPlanStatus, getRetroStatus } from './reviews-status.js';
 import { ReviewPanel } from './ReviewPanel.js';
 
 export type ReviewsPageLayoutProps = {
-  data: ReviewsData;
+  data: ReviewsResponse;
   hasDirectReports: boolean;
   filterMode: 'my-team' | 'everyone' | null;
   setFilterMode: (mode: 'my-team' | 'everyone') => void;
@@ -14,7 +15,7 @@ export type ReviewsPageLayoutProps = {
   collapsedPrograms: Set<string>;
   toggleProgram: (programId: string | null) => void;
   scrollContainerRef: React.RefObject<HTMLDivElement>;
-  weeksDescending: ReviewsData['weeks'];
+  weeksDescending: ReviewsResponse['weeks'];
   weekReviewCounts: Record<number, { plans: number; retros: number }>;
   effectivePlanWeek: number;
   effectiveRetroWeek: number;

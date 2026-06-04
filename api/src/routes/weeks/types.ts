@@ -1,6 +1,5 @@
+// Week route row and helper types model API-local PostgreSQL query results.
 import type { CanonicalWeekProperties, SprintRouteProperties } from '@ship/shared';
-
-export type { CanonicalWeekProperties, SprintRouteProperties };
 
 export type SprintRow = {
   id: string;
@@ -134,10 +133,6 @@ export type WorkspaceSprintStartRow = {
   sprint_start_date: Date | string | null;
 };
 
-export type SprintIssueIdRow = { id: string };
-
-export type UserIdRow = { id: string };
-
 export type MaxSprintNumberRow = {
   max_sprint: number | string | null;
 };
@@ -154,8 +149,6 @@ export type SprintExistsRow = {
   program_id?: string | null;
   sprint_start_date?: Date | string | null;
 };
-
-export type ProgramExistsRow = { id: string };
 
 export type SprintPrefixRow = {
   id: string;

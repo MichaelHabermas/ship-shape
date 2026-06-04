@@ -358,3 +358,31 @@ The transferable rules:
 - Let metric probes report `not_measured` when calibration is missing instead of faking a green threshold.
 
 ShipShape example (2026-06): Week 6 PlugForge proof work upgraded `proof-ledger.yaml` into an atom ledger, with a checker that validates IDs/proof paths/covered-by targets/pending markers, Vitest and Playwright pending inventories, scoped enforcement filters, and report-first metric probes. The result is not "everything passes"; it is a reviewer-visible map of exactly what is proven, partial, manual, non-scope, open, and still missing.
+
+## 30. Metric Scripts Must Fail When They Do Not Measure
+
+A script that prints `not_measured` and exits zero is worse than no script: it gives CI a green square while preserving the risk. Metric probes need a shared report shape, real traffic or a declared deterministic workload, explicit thresholds, archived evidence, and nonzero exits on missing measurement.
+
+The transferable rules:
+
+- Distinguish report-only inventory from gated proof in the command name or exit behavior.
+- Put thresholds in code and in the emitted JSON, not only in docs.
+- Aggregate metric probes through one runner that rejects malformed child reports.
+- Archive metric artifacts even on failure so the failed run is debuggable.
+- Let scoped ledgers close only after the executable proof command fails closed.
+
+ShipShape example (2026-06): PlugForge OAuth and webhook P95 scripts originally emitted placeholder JSON while returning success. Replacing them with gated OAuth, webhook, TTFE, SDK size, verifier-speed, and baseline probes made `pnpm plugforge:metrics` the proof boundary instead of a transcript generator.
+
+## 31. Proof Artifacts Must Be Fresh, And Events Must Be Uniquely Real
+
+Checked-in metric JSON is useful evidence, but CI must not upload it as if it came from the current run. Likewise, update webhooks are real events, not state snapshots; their idempotency keys must be unique per committed mutation, and transition events must compare against locked current state.
+
+The transferable rules:
+
+- Write CI metric artifacts into a clean per-run directory, then upload that directory.
+- Add wall-clock timeouts around metric subprocesses so a hung proof becomes a failed report.
+- Keep metric database resolution deterministic; do not let ambient `DATABASE_URL` redirect destructive fixture setup.
+- Use event-unique keys for update/lifecycle webhooks when dedupe is keyed by idempotency.
+- Compute lifecycle deltas from the row locked inside the write transaction, not from a pre-transaction read.
+
+ShipShape example (2026-06): The PlugForge are-you-sure pass moved CI metric upload to `my-docs/evidence/plugforge-metrics-ci`, added metric subprocess timeouts, forced probes onto `ship_test_audit` unless `PLUGFORGE_METRICS_DATABASE_URL` is explicit, replaced baseline envelopes with measured values, and fixed document/sprint webhook publication to avoid millisecond idempotency collapse and stale sprint transition reads.

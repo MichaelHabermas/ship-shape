@@ -4,10 +4,12 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/hooks/useAuth';
-import { api, WorkspaceMember, WorkspaceInvite, AuditLog, ApiToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import type { ApiToken } from '@/lib/api';
 import { archivedPersonsKey } from '@/contexts/ArchivedPersonsContext';
 import { DeveloperSettingsTab } from '@/pages/DeveloperSettingsTab';
 import { cn } from '@/lib/cn';
+import type { AuditLogResponse, WorkspaceInviteResponse, WorkspaceMemberResponse } from '@ship/shared';
 import { TabButton } from '@/pages/workspace-settings/TabButton';
 import { MembersTab } from '@/pages/workspace-settings/MembersTab';
 import { InvitesTab } from '@/pages/workspace-settings/InvitesTab';
@@ -30,10 +32,10 @@ export function WorkspaceSettingsPage() {
   const handleTabChange = useCallback((tab: Tab) => {
     setSearchParams({ tab }, { replace: true });
   }, [setSearchParams]);
-  const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [invites, setInvites] = useState<WorkspaceInvite[]>([]);
+  const [members, setMembers] = useState<WorkspaceMemberResponse[]>([]);
+  const [invites, setInvites] = useState<WorkspaceInviteResponse[]>([]);
   const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteSubjectDn, setInviteSubjectDn] = useState('');

@@ -1,16 +1,17 @@
 #!/usr/bin/env node
-// Report-only SDK bundle probe: uses esbuild when installed, then records minified and gzipped byte sizes.
+// Gated SDK bundle probe uses esbuild to record and enforce minified/gzipped byte sizes.
 import { gzipSync } from 'node:zlib';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { nowIso, parseArgs, rootDir, writeJsonReport } from './lib.mjs';
+import { nowIso, parseArgs, requireNumber, rootDir, writeJsonReport } from './lib.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const startedAt = Date.now();
 const entryPoint = path.join(rootDir, 'sdk', 'src', 'index.ts');
 const requireFromRoot = createRequire(path.join(rootDir, 'package.json'));
+const maxGzipBytes = requireNumber(args['max-gzip-bytes'], 250 * 1024);
 
 let report;
 
@@ -43,10 +44,13 @@ try {
 
   report = {
     metric: 'sdk-minified-gzip-size',
-    status: 'measured',
-    ok: true,
+    status: gzipBytes < maxGzipBytes ? 'measured' : 'failed',
+    ok: gzipBytes < maxGzipBytes,
     generatedAt: nowIso(),
     durationMs: Date.now() - startedAt,
+    targets: {
+      maxGzipBytes,
+    },
     input: {
       entryPoint: path.relative(rootDir, entryPoint),
       bundler: 'esbuild',
@@ -63,7 +67,7 @@ try {
 } catch (error) {
   report = {
     metric: 'sdk-minified-gzip-size',
-    status: 'not_measured',
+    status: 'failed',
     ok: false,
     generatedAt: nowIso(),
     durationMs: Date.now() - startedAt,
@@ -79,4 +83,4 @@ try {
 const outputPath = await writeJsonReport('sdk-size.json', report, args);
 if (outputPath) report.outputPath = path.relative(rootDir, outputPath);
 console.log(JSON.stringify(report, null, 2));
-process.exitCode = 0;
+process.exitCode = report.ok ? 0 : 1;

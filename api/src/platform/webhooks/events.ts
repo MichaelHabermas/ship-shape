@@ -2,9 +2,13 @@
 import { z } from 'zod';
 import {
   DocumentCreatedWebhookPayloadSchema,
+  DocumentDeletedWebhookPayloadSchema,
+  DocumentUpdatedWebhookPayloadSchema,
   IssueAssignedWebhookPayloadSchema,
   IssueCreatedWebhookPayloadSchema,
   IssueStatusChangedWebhookPayloadSchema,
+  SprintCompletedWebhookPayloadSchema,
+  SprintStartedWebhookPayloadSchema,
   type DocumentType,
   type PublicApiScope,
   type WebhookEvent,
@@ -12,17 +16,15 @@ import {
   WebhookEventResourceSchema,
 } from '@ship/shared';
 
-const genericWebhookPayloadSchema = z.record(z.unknown());
-
 export const WEBHOOK_EVENT_SCHEMAS = {
   'document.created': DocumentCreatedWebhookPayloadSchema,
-  'document.updated': genericWebhookPayloadSchema,
-  'document.deleted': genericWebhookPayloadSchema,
+  'document.updated': DocumentUpdatedWebhookPayloadSchema,
+  'document.deleted': DocumentDeletedWebhookPayloadSchema,
   'issue.created': IssueCreatedWebhookPayloadSchema,
   'issue.assigned': IssueAssignedWebhookPayloadSchema,
   'issue.status_changed': IssueStatusChangedWebhookPayloadSchema,
-  'sprint.started': genericWebhookPayloadSchema,
-  'sprint.completed': genericWebhookPayloadSchema,
+  'sprint.started': SprintStartedWebhookPayloadSchema,
+  'sprint.completed': SprintCompletedWebhookPayloadSchema,
 } satisfies Record<WebhookEventType, z.ZodTypeAny>;
 
 export function parseWebhookEvent(event: WebhookEvent): WebhookEvent {

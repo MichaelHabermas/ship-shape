@@ -5,11 +5,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
+METRICS_OUTPUT_DIR="${PLUGFORGE_METRICS_OUTPUT_DIR:-my-docs/evidence/plugforge-metrics-ci}"
+
 pnpm plugforge:verify
-pnpm plugforge:metrics:ttfe
-pnpm plugforge:metrics:oauth-p95
-pnpm plugforge:metrics:webhook-p95
-pnpm plugforge:metrics:sdk-size
+rm -rf "${METRICS_OUTPUT_DIR}"
+pnpm plugforge:metrics -- --output-dir "${METRICS_OUTPUT_DIR}"
 
 pnpm --filter @ship/shared build
 pnpm --filter @ship/sdk build

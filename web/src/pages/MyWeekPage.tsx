@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useMyWeekQuery } from '@/hooks/useMyWeekQuery';
-import type { StandupSlot } from '@/hooks/useMyWeekQuery';
+import type { StandupSlot } from '@/api/schemas';
 import { apiPost, readJson } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { buildMyWeekPageContext } from '@/fleetgraph/page-context';

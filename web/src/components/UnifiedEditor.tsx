@@ -19,8 +19,6 @@ import { ResilientSection } from '@/components/ui/ResilientSection';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import type { Person } from '@/components/PersonCombobox';
 
-export type UnifiedDocument = UnifiedDocumentView;
-
 // Sidebar data types
 interface WikiSidebarData {
   teamMembers: Person[];
@@ -61,11 +59,11 @@ export type SidebarData = WikiSidebarData | IssueSidebarData | ProjectSidebarDat
 
 interface UnifiedEditorProps {
   /** The document to edit */
-  document: UnifiedDocument;
+  document: UnifiedDocumentView;
   /** Type-specific sidebar data */
   sidebarData?: SidebarData;
   /** Handler for document updates */
-  onUpdate: (updates: Partial<UnifiedDocument>) => Promise<void>;
+  onUpdate: (updates: Partial<UnifiedDocumentView>) => Promise<void>;
   /** Handler for back navigation */
   onBack?: () => void;
   /** Label for back button */
@@ -432,11 +430,3 @@ function getDefaultPlaceholder(documentType: EditorDocumentType): string {
 
 // Re-export PropertiesPanel as the unified entry point for sidebars
 export { PropertiesPanel } from '@/components/sidebars/PropertiesPanel';
-export type {
-  PanelDocument,
-  PanelDocumentType,
-  WikiPanelProps,
-  IssuePanelProps,
-  ProjectPanelProps,
-  SprintPanelProps,
-} from '@/components/sidebars/PropertiesPanel';

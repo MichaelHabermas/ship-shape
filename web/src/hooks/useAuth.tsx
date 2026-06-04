@@ -7,8 +7,10 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
-import { api, UserInfo, Workspace } from '@/lib/api';
-import { useWorkspace, WorkspaceWithRole } from '@/contexts/WorkspaceContext';
+import { api } from '@/lib/api';
+import type { UserInfo } from '@/lib/api';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import type { WorkspaceResponse, WorkspaceWithRoleResponse } from '@ship/shared';
 import { queryClient } from '@/lib/queryClient';
 import { documentKeys, type WikiDocument } from '@/hooks/useDocumentsQuery';
 import { programKeys, type Program } from '@/hooks/useProgramsQuery';
@@ -22,8 +24,8 @@ const AUTH_CACHE_KEY = 'ship:auth-cache';
 
 interface CachedAuth {
   user: UserInfo;
-  currentWorkspace: Workspace | null;
-  workspaces: WorkspaceWithRole[];
+  currentWorkspace: WorkspaceResponse | null;
+  workspaces: WorkspaceWithRoleResponse[];
   impersonating?: { userId: string; userName: string };
   timestamp: number;
 }

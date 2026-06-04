@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { WorkspaceInvite } from '@/lib/api';
+import type { WorkspaceInviteResponse } from '@ship/shared';
 import { cn } from '@/lib/cn';
 
 export function InvitesTab({
@@ -16,7 +16,7 @@ export function InvitesTab({
   onInvite,
   onRevoke,
 }: {
-  invites: WorkspaceInvite[];
+  invites: WorkspaceInviteResponse[];
   inviteEmail: string;
   setInviteEmail: (v: string) => void;
   inviteSubjectDn: string;
@@ -31,7 +31,7 @@ export function InvitesTab({
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  function handleCopyLink(invite: WorkspaceInvite) {
+  function handleCopyLink(invite: WorkspaceInviteResponse) {
     const url = `${window.location.origin}/invite/${invite.token}`;
     navigator.clipboard.writeText(url);
     setCopiedId(invite.id);

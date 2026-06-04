@@ -2,13 +2,14 @@ import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UnifiedEditor } from '@/components/UnifiedEditor';
-import type { UnifiedDocument, SidebarData } from '@/components/UnifiedEditor';
+import type { SidebarData } from '@/components/UnifiedEditor';
 import { useAuth } from '@/hooks/useAuth';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { useActiveWeeksQuery } from '@/hooks/useWeeksQuery';
 import { apiPatch, apiDelete, readJson } from '@/lib/api';
 import type { DocumentTabProps } from '@/lib/document-tabs';
 import { getSprintView } from '@/lib/document-view-mapper';
+import type { UnifiedDocumentView } from '@ship/shared';
 
 /**
  * SprintOverviewTab - Renders the sprint document in the UnifiedEditor
@@ -38,12 +39,12 @@ export default function SprintOverviewTab({ documentId, document }: DocumentTabP
 
   // Update mutation with optimistic updates
   const updateMutation = useMutation({
-    mutationFn: async (updates: Partial<UnifiedDocument>) => {
+    mutationFn: async (updates: Partial<UnifiedDocumentView>) => {
       const response = await apiPatch(`/api/documents/${documentId}`, updates);
       if (!response.ok) {
         throw new Error('Failed to update document');
       }
-      return readJson<UnifiedDocument>(response);
+      return readJson<UnifiedDocumentView>(response);
     },
     onMutate: async (updates) => {
       // Cancel any outgoing refetches
@@ -93,7 +94,7 @@ export default function SprintOverviewTab({ documentId, document }: DocumentTabP
   }, [navigate]);
 
   // Handle update
-  const handleUpdate = useCallback(async (updates: Partial<UnifiedDocument>) => {
+  const handleUpdate = useCallback(async (updates: Partial<UnifiedDocumentView>) => {
     await updateMutation.mutateAsync(updates);
   }, [updateMutation]);
 
@@ -110,7 +111,7 @@ export default function SprintOverviewTab({ documentId, document }: DocumentTabP
   }), [people, existingSprints]);
 
   // Transform to UnifiedDocument format
-  const unifiedDocument: UnifiedDocument = useMemo(() => getSprintView(document), [document]);
+  const unifiedDocument: UnifiedDocumentView = useMemo(() => getSprintView(document), [document]);
 
   if (!user) return null;
 

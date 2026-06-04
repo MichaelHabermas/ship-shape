@@ -9,8 +9,6 @@ import type {
 } from '@/api/schemas';
 
 export type { Project, ProjectIssueListItem, ProjectWeekListItem };
-export type ProjectIssue = ProjectIssueListItem;
-export type ProjectWeek = ProjectWeekListItem;
 
 // Query keys
 export const projectKeys = {
@@ -263,7 +261,7 @@ export function useProjects() {
 }
 
 // Fetch project issues
-async function fetchProjectIssues(projectId: string): Promise<ProjectIssue[]> {
+async function fetchProjectIssues(projectId: string): Promise<ProjectIssueListItem[]> {
   const result = await apiClient.GET('/projects/{id}/issues', {
     params: { path: { id: projectId } },
   });
@@ -284,7 +282,7 @@ export function useProjectIssuesQuery(projectId: string | undefined) {
 }
 
 // Fetch project weeks
-async function fetchProjectWeeks(projectId: string): Promise<ProjectWeek[]> {
+async function fetchProjectWeeks(projectId: string): Promise<ProjectWeekListItem[]> {
   const result = await apiClient.GET('/projects/{id}/weeks', {
     params: { path: { id: projectId } },
   });

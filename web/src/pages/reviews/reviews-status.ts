@@ -1,4 +1,5 @@
-import type { ReviewCell, ReviewStatus } from './reviews-types.js';
+import type { ReviewCell } from '@/api/schemas';
+import type { ReviewStatus } from './reviews-types.js';
 
 export function needsPlanReview(cell: ReviewCell | undefined): boolean {
   if (!cell?.sprintId || !cell.hasPlan) return false;

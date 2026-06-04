@@ -12,12 +12,12 @@ import { test, expect, Page } from './fixtures/isolated-env'
 import { loginAsSuperAdmin, getCsrfToken } from './fixtures/api-auth'
 import { readJsonAs } from './fixtures/typed-json';
 import type {
+  ApiId,
   AssignResponse,
   InviteCreateResponse,
   TeamAssignmentsResponse,
   TeamGridResponse,
   TeamPerson,
-  TeamProgram,
 } from './fixtures/e2e-api-types';
 import { sprintAssignmentForPerson } from './fixtures/e2e-api-types';
 
@@ -222,7 +222,7 @@ test.describe('Pending Invites in Allocation Grid', () => {
     // Get a program ID
     const programsResponse = await page.request.get('/api/team/programs')
     expect(programsResponse.status()).toBe(200)
-    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
+    const programs = await readJsonAs<ApiId[]>(programsResponse)
     expect(programs.length).toBeGreaterThan(0)
     const programId = programs[0].id
 
@@ -354,7 +354,7 @@ test.describe('Pending Invite Acceptance Flow', () => {
 
     // Get a program
     const programsResponse = await page.request.get('/api/team/programs')
-    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
+    const programs = await readJsonAs<ApiId[]>(programsResponse)
     expect(programs.length).toBeGreaterThan(0)
     const programId = programs[0].id
 
@@ -429,7 +429,7 @@ test.describe('Full Pending User Allocation Flow (Story 7)', () => {
 
     // Step 3: Assign a program to the pending user using personId
     const programsResponse = await page.request.get('/api/team/programs')
-    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
+    const programs = await readJsonAs<ApiId[]>(programsResponse)
     expect(programs.length).toBeGreaterThan(0)
     const programId = programs[0].id
     const sprintNumber = 97 // Use high number to avoid conflicts

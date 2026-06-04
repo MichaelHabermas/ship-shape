@@ -1,0 +1,100 @@
+{
+  "metric": "plugforge-metrics-summary",
+  "status": "measured",
+  "ok": true,
+  "generatedAt": "2026-06-04T03:53:18.550Z",
+  "durationMs": 251685,
+  "probes": [
+    {
+      "name": "ttfe",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 11679,
+      "metric": "ttfe-timing",
+      "status": "measured",
+      "outputPath": "my-docs/evidence/plugforge-metrics/ttfe-timing.json",
+      "malformed": false,
+      "timedOut": false,
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "name": "ttfe-flake-loop",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 233713,
+      "metric": "ttfe-flake-loop",
+      "status": "measured",
+      "outputPath": "my-docs/evidence/plugforge-metrics/ttfe-flake-loop.json",
+      "malformed": false,
+      "timedOut": false,
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "name": "oauth-p95",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 2045,
+      "metric": "oauth-auth-code-p95",
+      "status": "measured",
+      "outputPath": "my-docs/evidence/plugforge-metrics/oauth-p95.json",
+      "malformed": false,
+      "timedOut": false,
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "name": "webhook-p95",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 1990,
+      "metric": "webhook-first-attempt-p95",
+      "status": "measured",
+      "outputPath": "my-docs/evidence/plugforge-metrics/webhook-p95.json",
+      "malformed": false,
+      "timedOut": false,
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "name": "sdk-size",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 102,
+      "metric": "sdk-minified-gzip-size",
+      "status": "measured",
+      "outputPath": "my-docs/evidence/plugforge-metrics/sdk-size.json",
+      "malformed": false,
+      "timedOut": false,
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "name": "verify-webhook-speed",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 228,
+      "metric": "verify-webhook-speed",
+      "status": "measured",
+      "outputPath": "my-docs/evidence/plugforge-metrics/verify-webhook-speed.json",
+      "malformed": false,
+      "timedOut": false,
+      "stderrTail": "",
+      "stdoutTail": null
+    },
+    {
+      "name": "baseline-comparator",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 1926,
+      "metric": "plugforge-baseline-comparator",
+      "status": "measured",
+      "outputPath": "my-docs/evidence/plugforge-metrics/baseline-comparator.json",
+      "malformed": false,
+      "timedOut": false,
+      "stderrTail": "",
+      "stdoutTail": null
+    }
+  ]
+}

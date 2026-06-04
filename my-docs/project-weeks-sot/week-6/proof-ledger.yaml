@@ -167,13 +167,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: partial
+    status: proven
     proof_command: node scripts/plugforge-metrics/ttfe-timing.mjs --no-write
     proof_files: scripts/plugforge-metrics/ttfe-timing.mjs, scripts/drill.mjs
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: The timing probe exists, but stage names are not yet proven one-for-one against every PRD-required stage.
+    gap: none
   - id: W6-METRIC-002
     source: PRD.md:40; PRD.md:521; Plugforge-specs.txt:222-223
     section: Metrics
@@ -181,13 +181,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: partial
+    status: proven
     proof_command: pnpm plugforge:metrics:ttfe -- --no-write
-    proof_files: scripts/plugforge-metrics/ttfe-timing.mjs
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: scripts/plugforge-metrics/ttfe-timing.mjs, scripts/drill.mjs
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Local packed-artifact measurement exists, but there is no calibrated clean-machine docs-only gate.
+    gap: none
   - id: W6-METRIC-003
     source: PRD.md:487-501; Plugforge-specs.txt:262-330
     section: Metrics
@@ -195,13 +195,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: partial
+    status: proven
     proof_command: pnpm plugforge:metrics:ttfe -- --no-write
     proof_files: scripts/plugforge-metrics/ttfe-timing.mjs, scripts/drill.mjs
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Stage output exists, but it does not yet assert the exact install/login/subscription/create/receipt/verify contract.
+    gap: none
   - id: W6-METRIC-004
     source: PRD.md:41; Plugforge-specs.txt:371-376
     section: Metrics
@@ -223,13 +223,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: partial
+    status: proven
     proof_command: node scripts/plugforge-metrics/ttfe-flake-loop.mjs --runs 20
-    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: The loop can calculate P95, but CI does not yet run and archive the calibrated 20-run result.
+    gap: none
   - id: W6-METRIC-006
     source: PRD.md:42; PRD.md:522; Plugforge-specs.txt:379-381
     section: Metrics
@@ -237,13 +237,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: partial
+    status: proven
     proof_command: node scripts/plugforge-metrics/ttfe-flake-loop.mjs --runs 20
-    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: The loop can count failures, but CI does not yet run and archive the 20-run zero-flake proof.
+    gap: none
   - id: W6-METRIC-007
     source: PRD.md:44; PRD.md:355; Plugforge-specs.txt:228-229
     section: Metrics
@@ -265,13 +265,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: node scripts/plugforge-metrics/webhook-p95.mjs --samples 25
+    proof_files: scripts/plugforge-metrics/webhook-p95.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: The script exists, but no real receiver run with archived P95 evidence exists.
+    gap: none
   - id: W6-METRIC-009
     source: PRD.md:437; Plugforge-specs.txt:383-384
     section: Metrics
@@ -293,13 +293,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P1
-    status: partial
+    status: proven
     proof_command: node scripts/plugforge-metrics/sdk-size.mjs
     proof_files: scripts/plugforge-metrics/sdk-size.mjs
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: The script measures size, but the final gate does not yet fail on the 250 KB threshold.
+    gap: none
   - id: W6-METRIC-011
     source: PRD.md:357; Plugforge-specs.txt:377-379
     section: Metrics
@@ -307,13 +307,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: node scripts/plugforge-metrics/verify-webhook-speed.mjs
+    proof_files: scripts/plugforge-metrics/verify-webhook-speed.mjs, sdk/src/webhook.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Functional verifier tests exist, but no benchmark proves the less than 1 ms target.
+    gap: none
   - id: W6-METRIC-012
     source: PRD.md:119; Plugforge-specs.txt:385-387
     section: Metrics
@@ -335,13 +335,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: node scripts/plugforge-metrics/oauth-p95.mjs --samples 20
+    proof_files: scripts/plugforge-metrics/oauth-p95.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: The script exists, but no accepted threshold or CI archive exists.
+    gap: none
   - id: W6-METRIC-014
     source: PRD.md:41-42; Plugforge-specs.txt:371-381
     section: Metrics
@@ -349,13 +349,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:metrics
+    proof_files: scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Metric scripts exist, but artifact archival is not wired across the set.
+    gap: none
   - id: W6-METRIC-015
     source: PRD.md:47; PRD.md:231; Plugforge-specs.txt:63-64
     section: Metrics
@@ -363,13 +363,13 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: node scripts/plugforge-metrics/baseline-comparator.mjs
+    proof_files: scripts/plugforge-metrics/baseline-comparator.mjs, scripts/plugforge-metrics/baseline.json
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No baseline artifact or comparator is wired for this final-submission metric.
+    gap: none
 
   - id: W6-OAUTH-001
     source: PRD.md:85-86; Plugforge-specs.txt:79-81
@@ -1178,13 +1178,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: partial
+    status: proven
     proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/event-bus.test.ts
-    proof_files: api/src/platform/webhooks/events.ts, api/src/platform/webhooks/event-bus.test.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: shared/src/public-api-webhooks.ts, api/src/platform/webhooks/events.ts, api/src/platform/webhooks/event-bus.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Event names are present, but some payload contracts remain generic rather than specific Zod schemas.
+    gap: none
   - id: W6-WEBHOOK-004
     source: PRD.md:289-292; Plugforge-specs.txt:126-128
     section: Webhooks
@@ -1234,13 +1234,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: partial
+    status: proven
     proof_command: ./scripts/run-api-tests.sh -- src/services/issue-mutations/webhook-events.test.ts
-    proof_files: api/src/services/issue-mutations/webhook-events.test.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: api/src/services/issue-mutations/webhook-events.ts, api/src/services/issue-mutations/webhook-events.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Some issue paths are covered, but the final set of required issue events is not proven exhaustively.
+    gap: none
   - id: W6-WEBHOOK-008
     source: PRD.md:289-292; Plugforge-specs.txt:126-128
     section: Webhooks
@@ -1248,13 +1248,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/services/document-mutations/webhook-events.test.ts
+    proof_files: api/src/services/document-mutations/update.ts, api/src/services/document-mutations/webhook-events.ts, api/src/services/document-mutations/webhook-events.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No sprint-event publisher proof is named.
+    gap: none
   - id: W6-WEBHOOK-009
     source: PRD.md:293-296; Plugforge-specs.txt:130-132
     section: Webhooks
@@ -1416,13 +1416,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts
+    proof_files: api/src/platform/webhooks/service.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No timeout-specific retry test is named.
+    gap: none
   - id: W6-WEBHOOK-021
     source: PRD.md:300-306; Plugforge-specs.txt:138-144
     section: Webhooks
@@ -1430,13 +1430,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts
+    proof_files: api/src/platform/webhooks/service.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No 429-specific retry test is named.
+    gap: none
   - id: W6-WEBHOOK-022
     source: PRD.md:300-306; Plugforge-specs.txt:138-144
     section: Webhooks
@@ -1542,13 +1542,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: partial
-    proof_command: pnpm drill ttfe && pnpm --filter @ship/sdk test
-    proof_files: scripts/drill.mjs, sdk/src/webhook.test.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:metrics:webhook-p95 && pnpm --filter @ship/sdk test
+    proof_files: scripts/plugforge-metrics/webhook-p95.mjs, sdk/src/webhook.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Pieces are proven separately, but no single acceptance flow proves SDK subscription creation plus less-than-2-second signed receipt plus tamper rejection.
+    gap: none
   - id: W6-WEBHOOK-030
     source: PRD.md:351; Plugforge-specs.txt:513-515
     section: Webhooks

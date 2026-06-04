@@ -2,7 +2,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
 import { apiGet, apiPatch, apiPost, readJson } from '@/lib/api';
-import type { SprintsResponse, Sprint as WeekSprint } from '@/hooks/useWeeksQuery';
+import type { Sprint as WeekSprint } from '@/hooks/useWeeksQuery';
+import type { ProgramSprintsResponse } from '@/api/schemas';
 import { priorityColors } from '@/lib/statusColors';
 
 interface Issue {
@@ -84,7 +85,7 @@ export function WeekReconciliation({
       const response = await apiGet(`/api/programs/${programId}/sprints`);
       if (!response.ok) return null;
 
-      const data = await readJson<SprintsResponse>(response);
+      const data = await readJson<ProgramSprintsResponse>(response);
       const sprints = data.weeks || [];
       const next = sprints.find(s => s.sprint_number === sprintNumber + 1);
       return next || null;

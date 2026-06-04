@@ -1,16 +1,20 @@
 {
-  "metric": "oauth-p95",
-  "status": "not_measured",
-  "ok": false,
-  "generatedAt": "2026-06-03T23:41:33.563Z",
-  "reason": "A robust OAuth Auth Code + PKCE P95 needs controlled load, stable app fixtures, browser/consent timing, and endpoint-level timing around authorization and token exchange. This placeholder is report-only and does not synthesize traffic.",
-  "proposedMeasurement": {
-    "sampleSize": 100,
-    "endpoints": [
-      "GET /oauth/authorize",
-      "POST /oauth/consent/approve",
-      "POST /oauth/token"
-    ],
-    "statistic": "p95 browser round-trip latency in milliseconds for successful Authorization Code + PKCE flows, with failure count reported separately"
-  }
+  "metric": "oauth-auth-code-p95",
+  "status": "measured",
+  "ok": true,
+  "generatedAt": "2026-06-04T03:53:14.291Z",
+  "durationMs": 1960,
+  "targets": {
+    "maxP95Ms": 3000,
+    "samples": 20
+  },
+  "result": {
+    "samplesSucceeded": 20,
+    "samplesFailed": 0,
+    "minMs": 9,
+    "maxMs": 33,
+    "p50Ms": 10,
+    "p95Ms": 13
+  },
+  "failures": []
 }

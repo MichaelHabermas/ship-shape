@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UnifiedEditor } from '@/components/UnifiedEditor';
-import type { UnifiedDocument, SidebarData } from '@/components/UnifiedEditor';
+import type { SidebarData } from '@/components/UnifiedEditor';
 import { useAuth } from '@/hooks/useAuth';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { useProgramsQuery } from '@/hooks/useProgramsQuery';
@@ -13,7 +13,7 @@ import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys } from '@/hooks/useProjectsQuery';
 import type { DocumentTabProps } from '@/lib/document-tabs';
 import { getProjectView } from '@/lib/document-view-mapper';
-import { computeICEScore } from '@ship/shared';
+import { computeICEScore, type UnifiedDocumentView } from '@ship/shared';
 
 /**
  * ProjectDetailsTab - Renders the project document in the UnifiedEditor
@@ -50,7 +50,7 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
 
   // Update mutation with optimistic updates
   const updateMutation = useMutation({
-    mutationFn: async (updates: Partial<UnifiedDocument>) => {
+    mutationFn: async (updates: Partial<UnifiedDocumentView>) => {
       const response = await apiPatch(`/api/documents/${documentId}`, updates);
       if (!response.ok) {
         throw new Error('Failed to update document');
@@ -180,7 +180,7 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
   }, [navigate]);
 
   // Handle update
-  const handleUpdate = useCallback(async (updates: Partial<UnifiedDocument>) => {
+  const handleUpdate = useCallback(async (updates: Partial<UnifiedDocumentView>) => {
     await updateMutation.mutateAsync(updates);
   }, [updateMutation]);
 
@@ -201,7 +201,7 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
   }), [programs, teamMembers, handleConvert, handleUndoConversion, isConverting, isUndoing]);
 
   // Transform to UnifiedDocument format
-  const unifiedDocument: UnifiedDocument = useMemo(() => getProjectView(document), [document]);
+  const unifiedDocument: UnifiedDocumentView = useMemo(() => getProjectView(document), [document]);
 
   if (!user) return null;
 

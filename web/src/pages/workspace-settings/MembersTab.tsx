@@ -1,4 +1,4 @@
-import type { WorkspaceMember } from '@/lib/api';
+import type { WorkspaceMemberResponse } from '@ship/shared';
 import { cn } from '@/lib/cn';
 
 export function MembersTab({
@@ -10,7 +10,7 @@ export function MembersTab({
   onArchiveMember,
   onRestoreMember,
 }: {
-  members: WorkspaceMember[];
+  members: WorkspaceMemberResponse[];
   currentUserId?: string;
   showArchived: boolean;
   onShowArchivedChange: (show: boolean) => void;

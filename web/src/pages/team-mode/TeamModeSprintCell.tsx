@@ -1,7 +1,7 @@
 import { ReactElement } from 'react';
 import { ProjectCombobox, Project } from '@/components/ProjectCombobox';
 import { cn } from '@/lib/cn';
-import type { Assignment } from './team-mode-types';
+import type { TeamAssignment } from '@/api/schemas';
 
 export function SprintCell({
   assignment,
@@ -13,8 +13,8 @@ export function SprintCell({
   onChange,
   onNavigate,
 }: {
-  assignment?: Assignment;
-  previousWeekAssignment?: Assignment;
+  assignment?: TeamAssignment;
+  previousWeekAssignment?: TeamAssignment;
   projects: Project[];
   isCurrent: boolean;
   loading: boolean;

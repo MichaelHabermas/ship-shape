@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { api, Workspace, AuditLog, UserInfo } from '@/lib/api';
+import { api } from '@/lib/api';
+import type { UserInfo } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import type { AuditLogResponse, WorkspaceResponse } from '@ship/shared';
 
 type Tab = 'workspaces' | 'users' | 'audit';
 
 const VALID_TABS: Tab[] = ['workspaces', 'users', 'audit'];
 
-interface WorkspaceWithCount extends Workspace {
+interface WorkspaceWithCount extends WorkspaceResponse {
   memberCount: number;
 }
 
@@ -30,7 +32,7 @@ export function AdminDashboardPage() {
   }, [setSearchParams]);
   const [workspaces, setWorkspaces] = useState<WorkspaceWithCount[]>([]);
   const [users, setUsers] = useState<UserWithWorkspaces[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
@@ -407,7 +409,7 @@ function AuditLogsTab({
   auditLogs,
   onExport,
 }: {
-  auditLogs: AuditLog[];
+  auditLogs: AuditLogResponse[];
   onExport: () => void;
 }) {
   return (

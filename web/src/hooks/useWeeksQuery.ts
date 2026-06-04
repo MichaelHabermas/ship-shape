@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient, assertApiData, assertApiSuccess } from '@/api/client';
 import { createOptimisticProgramSprint } from '@/api/optimistic-stubs';
 import type {
-  ActiveWeekItem,
   ActiveWeeksResponse,
   ProgramSprintListItem,
   ProgramSprintsResponse,
@@ -11,7 +10,6 @@ import type {
 } from '@/api/schemas';
 
 export type {
-  ActiveWeekItem,
   ActiveWeeksResponse,
   ProgramSprintListItem,
   ProgramSprintsResponse,
@@ -23,11 +21,6 @@ export type Sprint = ProgramSprintListItem & {
   is_complete?: boolean | null;
   missing_fields?: string[];
 };
-/** @deprecated Use ActiveWeekItem from @/api/schemas */
-export type ActiveWeek = ActiveWeekItem;
-/** @deprecated Use ProgramSprintsResponse from @/api/schemas */
-export type SprintsResponse = ProgramSprintsResponse;
-
 // Query keys
 export const sprintKeys = {
   all: ['sprints'] as const,
@@ -46,7 +39,7 @@ async function fetchActiveWeeks(): Promise<ActiveWeeksResponse> {
   return assertApiData(result, 'Failed to fetch active sprints');
 }
 
-async function fetchSprints(programId: string): Promise<SprintsResponse> {
+async function fetchSprints(programId: string): Promise<ProgramSprintsResponse> {
   const result = await apiClient.GET('/programs/{id}/sprints', {
     params: { path: { id: programId } },
   });
@@ -112,14 +105,14 @@ export function useCreateSprint() {
     onMutate: async (newSprint) => {
       const programId = newSprint.program_id;
       await queryClient.cancelQueries({ queryKey: sprintKeys.list(programId) });
-      const previousData = queryClient.getQueryData<SprintsResponse>(sprintKeys.list(programId));
+      const previousData = queryClient.getQueryData<ProgramSprintsResponse>(sprintKeys.list(programId));
 
       const optimisticSprint = createOptimisticProgramSprint({
         title: newSprint.title,
         sprint_number: newSprint.sprint_number,
       });
 
-      queryClient.setQueryData<SprintsResponse>(
+      queryClient.setQueryData<ProgramSprintsResponse>(
         sprintKeys.list(programId),
         (old) => old ? {
           ...old,
@@ -157,12 +150,12 @@ export function useUpdateSprint() {
       updateSprintApi(id, updates),
     onMutate: async ({ id, updates }) => {
       // Find which program's cache this sprint is in
-      const allProgramCaches = queryClient.getQueriesData<SprintsResponse>({
+      const allProgramCaches = queryClient.getQueriesData<ProgramSprintsResponse>({
         queryKey: sprintKeys.lists(),
       });
 
       let programId: string | undefined;
-      let previousData: SprintsResponse | undefined;
+      let previousData: ProgramSprintsResponse | undefined;
 
       for (const [queryKey, data] of allProgramCaches) {
         if (data?.weeks.some(s => s.id === id)) {
@@ -178,7 +171,7 @@ export function useUpdateSprint() {
 
       await queryClient.cancelQueries({ queryKey: sprintKeys.list(programId) });
 
-      queryClient.setQueryData<SprintsResponse>(
+      queryClient.setQueryData<ProgramSprintsResponse>(
         sprintKeys.list(programId),
         (old) => old ? {
           ...old,
@@ -214,12 +207,12 @@ export function useDeleteSprint() {
     mutationFn: (id: string) => deleteSprintApi(id),
     onMutate: async (id) => {
       // Find which program's cache this sprint is in
-      const allProgramCaches = queryClient.getQueriesData<SprintsResponse>({
+      const allProgramCaches = queryClient.getQueriesData<ProgramSprintsResponse>({
         queryKey: sprintKeys.lists(),
       });
 
       let programId: string | undefined;
-      let previousData: SprintsResponse | undefined;
+      let previousData: ProgramSprintsResponse | undefined;
 
       for (const [queryKey, data] of allProgramCaches) {
         if (data?.weeks.some(s => s.id === id)) {
@@ -235,7 +228,7 @@ export function useDeleteSprint() {
 
       await queryClient.cancelQueries({ queryKey: sprintKeys.list(programId) });
 
-      queryClient.setQueryData<SprintsResponse>(
+      queryClient.setQueryData<ProgramSprintsResponse>(
         sprintKeys.list(programId),
         (old) => old ? {
           ...old,
@@ -323,9 +316,6 @@ export function useSprints(programId: string | undefined) {
     refreshSprints,
   };
 }
-
-/** @deprecated Use ProjectWeekListItem from @/api/schemas */
-export type ProjectSprint = ProjectWeekListItem;
 
 // Fetch sprints for a project
 async function fetchProjectSprints(projectId: string): Promise<ProjectWeekListItem[]> {

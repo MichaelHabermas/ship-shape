@@ -8,3 +8,4 @@ Non-canonical implementation memory only. Canon remains `Plugforge-specs.txt` / 
 - 2026-06-02: `docs/architecture.md` is intentionally deferred until the last docs pass for this group.
 - 2026-06-03: External client proof pack is one gate: `pnpm plugforge:final`.
 - 2026-06-03: GitLab links existing Ship issues through public `issue external_links` metadata and `@ship/sdk`; it does not import internals or create issues for missing markers.
+- 2026-06-04: Webhook + Metrics closure is scoped to `W6-WEBHOOK-*` and `W6-METRIC-*`; keep `W6-INT-*` pending for reference integration acceptance.

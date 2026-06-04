@@ -342,13 +342,6 @@ async function request<T>(
   return data;
 }
 
-// Types for workspace management (wire shapes from HTTP JSON)
-export type Workspace = WorkspaceResponse;
-export type WorkspaceMembership = WorkspaceMembershipResponse;
-export type WorkspaceInvite = WorkspaceInviteResponse;
-export type AuditLog = AuditLogResponse;
-export type WorkspaceMember = WorkspaceMemberResponse;
-
 export interface ApiToken {
   id: string;
   name: string;
@@ -384,15 +377,15 @@ export interface AccountabilityItem {
 
 export interface LoginResponse {
   user: UserInfo;
-  currentWorkspace: Workspace;
-  workspaces: Array<Workspace & { role: 'admin' | 'member' }>;
+  currentWorkspace: WorkspaceResponse;
+  workspaces: Array<WorkspaceResponse & { role: 'admin' | 'member' }>;
   pendingAccountabilityItems?: AccountabilityItem[];
 }
 
 export interface MeResponse {
   user: UserInfo;
-  currentWorkspace: Workspace | null;
-  workspaces: Array<Workspace & { role: 'admin' | 'member' }>;
+  currentWorkspace: WorkspaceResponse | null;
+  workspaces: Array<WorkspaceResponse & { role: 'admin' | 'member' }>;
   impersonating?: {
     userId: string;
     userName: string;
@@ -429,13 +422,13 @@ export const api = {
   workspaces: {
     // User-facing workspace operations
     list: () =>
-      request<Array<Workspace & { role: 'admin' | 'member' }>>('/api/workspaces'),
+      request<Array<WorkspaceResponse & { role: 'admin' | 'member' }>>('/api/workspaces'),
 
     getCurrent: () =>
-      request<Workspace>('/api/workspaces/current'),
+      request<WorkspaceResponse>('/api/workspaces/current'),
 
     switch: (workspaceId: string) =>
-      request<{ workspace: Workspace }>(`/api/workspaces/${workspaceId}/switch`, {
+      request<{ workspace: WorkspaceResponse }>(`/api/workspaces/${workspaceId}/switch`, {
         method: 'POST',
       }),
 
@@ -444,17 +437,17 @@ export const api = {
       const params = new URLSearchParams();
       if (options?.includeArchived) params.set('includeArchived', 'true');
       const query = params.toString();
-      return request<{ members: WorkspaceMember[] }>(`/api/workspaces/${workspaceId}/members${query ? `?${query}` : ''}`);
+      return request<{ members: WorkspaceMemberResponse[] }>(`/api/workspaces/${workspaceId}/members${query ? `?${query}` : ''}`);
     },
 
     addMember: (workspaceId: string, data: { userId?: string; email?: string; role: 'admin' | 'member' }) =>
-      request<WorkspaceMembership>(`/api/workspaces/${workspaceId}/members`, {
+      request<WorkspaceMembershipResponse>(`/api/workspaces/${workspaceId}/members`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),
 
     updateMember: (workspaceId: string, userId: string, data: { role: 'admin' | 'member' }) =>
-      request<WorkspaceMembership>(`/api/workspaces/${workspaceId}/members/${userId}`, {
+      request<WorkspaceMembershipResponse>(`/api/workspaces/${workspaceId}/members/${userId}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
@@ -471,10 +464,10 @@ export const api = {
 
     // Invite management (workspace admin)
     getInvites: (workspaceId: string) =>
-      request<{ invites: WorkspaceInvite[] }>(`/api/workspaces/${workspaceId}/invites`),
+      request<{ invites: WorkspaceInviteResponse[] }>(`/api/workspaces/${workspaceId}/invites`),
 
     createInvite: (workspaceId: string, data: { email: string; x509SubjectDn?: string; role?: 'admin' | 'member' }) =>
-      request<{ invite: WorkspaceInvite }>(`/api/workspaces/${workspaceId}/invites`, {
+      request<{ invite: WorkspaceInviteResponse }>(`/api/workspaces/${workspaceId}/invites`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -486,7 +479,7 @@ export const api = {
 
     // Audit logs (workspace admin)
     getAuditLogs: (workspaceId: string, params?: { limit?: number; offset?: number }) =>
-      request<{ logs: AuditLog[] }>(
+      request<{ logs: AuditLogResponse[] }>(
         `/api/workspaces/${workspaceId}/audit-logs${params ? `?${new URLSearchParams(params as Record<string, string>)}` : ''}`
       ),
   },

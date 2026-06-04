@@ -3,9 +3,9 @@ import { test, expect, Page, type APIRequestContext } from './fixtures/isolated-
 import { login } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
 import type {
+  ApiId,
   CsrfTokenResponse,
   ProgramSprintsResponse,
-  TeamProgram,
   WeekResponse,
 } from './fixtures/e2e-api-types';
 
@@ -34,7 +34,7 @@ async function cleanupExtraSprints(request: APIRequestContext) {
 
     const sprintsResponse = await request.get('/api/programs')
     if (sprintsResponse.ok()) {
-      const programs = await readJsonAs<TeamProgram[]>(sprintsResponse)
+      const programs = await readJsonAs<ApiId[]>(sprintsResponse)
       for (const program of programs) {
         const programSprintsResponse = await request.get(`/api/programs/${program.id}/sprints`)
         if (programSprintsResponse.ok()) {

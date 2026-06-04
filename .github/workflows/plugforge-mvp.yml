@@ -52,6 +52,14 @@ jobs:
       - name: PlugForge final proof pack
         run: pnpm plugforge:final
 
+      - name: Upload PlugForge metric artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugforge-metrics
+          path: my-docs/evidence/plugforge-metrics-ci/**
+          if-no-files-found: warn
+
   plugforge-oauth-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
