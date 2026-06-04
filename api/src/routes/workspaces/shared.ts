@@ -16,9 +16,7 @@ export type UserSuperAdminRow = {
   is_super_admin: boolean;
 };
 
-export type IdRow = {
-  id: string;
-};
+export type IdRow = { id: string };
 
 export type WorkspaceSwitchRow = {
   id: string;
