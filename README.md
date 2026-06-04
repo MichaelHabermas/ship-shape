@@ -269,12 +269,15 @@ Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-do
 | TTFE drill (the signature proof) | `pnpm drill ttfe` |
 | MVP/platform parity (local) | `pnpm plugforge:verify` and `pnpm plugforge:oauth-e2e` |
 | Final external-client proof pack | `pnpm plugforge:final` |
+| Final submission evidence gate | `pnpm plugforge:submission` |
 | Slack reference integration | [`integrations/slack`](./integrations/slack) |
 | GitLab reference integration | [`integrations/gitlab`](./integrations/gitlab) |
 
-Demo login remains `dev@ship.local` / `admin123`. Create OAuth apps (and capture the one-time secret) via the Developer tab; this branch does not seed a fixed public demo client. Run the drill live — it produces the verified signed webhook that is the actual acceptance bar.
+Demo login remains `dev@ship.local` / `admin123`. Create OAuth apps (and capture the one-time secret) via the Developer tab. For grader read-only review, create an app with `documents:read`, `issues:read`, and `sprints:read`; the public repo may list `client_id`, redirect URI, and scopes, but raw `client_secret` values are shown once and should be delivered through the private submission channel or regenerated in the portal. Run the drill live — it produces the verified signed webhook that is the actual acceptance bar.
 
 `pnpm plugforge:final` runs the MVP gate, TTFE drill, refresh-token theft drill, webhook replay/idempotency drill, SDK/OpenAPI parity checks, integration boundary enforcement, FleetGraph public audit proof, Slack/GitLab package checks, and strict docs drift checks. The public GitLab link seam is `POST /api/v1/issues/:id/external-links` plus `client.issues.upsertExternalLink()`, stored as issue document metadata in `properties.external_links`.
+
+`pnpm plugforge:submission` validates Week 6 evidence files, checks the public OpenAPI artifact for drift, verifies deployed reviewer URLs, and reports legacy Week 4 `submission:*` drift without letting archived screenshot gaps block PlugForge. Use `pnpm plugforge:submission -- --allow-manual-pending` before the grader OAuth app note, video, saved conversation, and social screenshot are attached; the strict form should pass only for final handoff.
 
 ---
 

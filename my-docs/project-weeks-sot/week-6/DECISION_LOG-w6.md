@@ -133,3 +133,13 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - GitLab acceptance stays on the public issue seam: deterministic MR webhook -> `client.issues.upsertExternalLink()` -> public `/api/v1/issues/:id` readback. No API internals and no schema change.
 - Browser SDK acceptance is a real Playwright flow through `/sdk-demo`: Authorization Code + PKCE, consent, callback, token exchange, and authenticated document listing through `@ship/sdk`.
 - The final INT closure signal is `pnpm plugforge:ledger:enforce -- --area INT --status missing,partial`; global enforcement remains intentionally out of scope until unrelated gaps close.
+
+## 2026-06-04 — Final Submission Evidence Decisions
+
+- Final deployment host is Render for this submission. Public URL names are `https://ship-shape-web.onrender.com/` for web and `https://ship-shape-api.onrender.com/` for API; live OpenAPI is `https://ship-shape-api.onrender.com/api/v1/openapi.json`.
+- Grader credential delivery uses public README credentials for the Ship demo session and private submission-channel delivery or portal regeneration for any raw OAuth `client_secret`. The public repository can safely include `client_id`, redirect URI, and scopes, but not a reusable raw secret.
+- Reviewer read-only OAuth app shape is `documents:read`, `issues:read`, and `sprints:read`. Reviewers can create/regenerate it from Workspace Settings -> Developer; confidential one-time secrets are not durable public evidence.
+- API versioning beyond `/api/v1` remains explicitly deferred. The Week 6 contract is additive within `/api/v1`; breaking changes require a future `/api/v2` decision, not final-submission work.
+- Webhook delivery-log retention for final evidence is 30 days with a target cap of 10,000 delivery rows per app. A production archival/pruning policy can be decided after the submission.
+- `pnpm plugforge:submission` is the final submission evidence gate. `--allow-manual-pending` is only for pre-handoff checks before grader OAuth app delivery notes, video, saved AI conversation, and social screenshot attachments exist.
+- Do not mark `W6-GLOBAL-001` proven until `pnpm plugforge:submission` passes without `--allow-manual-pending` and global `pnpm plugforge:ledger:enforce` passes.
