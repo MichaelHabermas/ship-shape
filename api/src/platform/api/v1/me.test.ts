@@ -141,7 +141,7 @@ describe('GET /api/v1/me', () => {
     });
   });
 
-  it('returns an expired-token reason for expired bearer tokens', async () => {
+  it('returns expired_token for expired bearer tokens', async () => {
     const requestId = `${testRunId}-expired`;
     const response = await request(app)
       .get('/api/v1/me')
@@ -149,8 +149,9 @@ describe('GET /api/v1/me', () => {
       .set('Authorization', `Bearer ${expiredToken}`);
 
     const body = expectJsonBody(response, 401, PublicApiErrorSchema);
-    expect(body.code).toBe('unauthorized');
-    expect(body.details).toEqual({ reason: 'access_token_expired' });
+    expect(body.code).toBe('expired_token');
+    expect(body.message).toBe('Bearer token expired');
+    expect(body.details).toBeUndefined();
 
     const audit = await waitForAuditRow(requestId);
     expect(audit).toMatchObject({
@@ -162,7 +163,7 @@ describe('GET /api/v1/me', () => {
       route: '/api/v1/me',
       scope_used: null,
       status: 401,
-      error_code: 'unauthorized',
+      error_code: 'expired_token',
     });
   });
 

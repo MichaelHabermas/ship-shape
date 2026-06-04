@@ -21,6 +21,7 @@ export const PUBLIC_API_SCOPES = [
 
 export const PUBLIC_API_ERROR_CODES = [
   'unauthorized',
+  'expired_token',
   'forbidden',
   'not_found',
   'validation_failed',

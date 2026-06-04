@@ -33,6 +33,7 @@ import {
 
 const EXACT_API_ERROR_CODES = [
   'unauthorized',
+  'expired_token',
   'forbidden',
   'not_found',
   'validation_failed',
@@ -49,6 +50,7 @@ describe('public API v1 fitness', () => {
   const app = createApp();
   let ctx: PublicApiTestContext;
   let allScopesToken: string;
+  let expiredScopesToken: string;
   let sprintId: string;
 
   beforeAll(async () => {
@@ -59,6 +61,7 @@ describe('public API v1 fitness', () => {
       workspaceExtras: { sprintStartDate: '2026-01-05' },
     });
     allScopesToken = await ctx.issueToken([...PUBLIC_API_SCOPES]);
+    expiredScopesToken = await ctx.issueExpiredToken([...PUBLIC_API_SCOPES]);
     sprintId = await insertSprint(ctx.workspaceId, ctx.adminUserId);
   });
 
@@ -102,6 +105,23 @@ describe('public API v1 fitness', () => {
       expect(response.headers[headerKey(RATE_LIMIT_HEADER_LIMIT)], route.operationId).toBeDefined();
       expect(response.headers[headerKey(RATE_LIMIT_HEADER_REMAINING)], route.operationId).toBeDefined();
       expect(response.headers[headerKey(RATE_LIMIT_HEADER_RESET)], route.operationId).toBeDefined();
+    }
+  });
+
+  it('returns expired_token for every registered OAuth route with an expired bearer', async () => {
+    for (const route of publicApiV1RouteRegistry) {
+      if (route.auth !== 'oauth') continue;
+
+      const requestId = `${ctx.testRunId}-expired-${route.operationId.replace(/\W/g, '-')}`;
+      const response = await publicRouteRequest(route, placeholderPathForRoute(route))
+        .set('x-request-id', requestId)
+        .set('Authorization', `Bearer ${expiredScopesToken}`);
+      const body = expectJsonBody(response, 401, PublicApiErrorSchema);
+
+      expect(Object.keys(body).sort(), route.operationId).toEqual(['code', 'message', 'request_id']);
+      expect(body.code, route.operationId).toBe('expired_token');
+      expect(body.message, route.operationId).toBe('Bearer token expired');
+      expect(body.request_id, route.operationId).toBe(requestId);
     }
   });
 

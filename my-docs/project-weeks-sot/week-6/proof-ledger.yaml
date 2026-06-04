@@ -631,8 +631,8 @@ requirements:
     testability: api
     priority: P0
     status: proven
-    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/me.test.ts src/platform/api/v1/middleware.test.ts
-    proof_files: api/src/platform/api/v1/me.test.ts, api/src/platform/api/v1/middleware.test.ts
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/me.test.ts src/platform/api/v1/public-api-fitness.test.ts
+    proof_files: api/src/platform/api/v1/me.test.ts, api/src/platform/api/v1/public-api-fitness.test.ts
     pending_test: none
     manual_evidence: none
     covered_by: none
@@ -982,8 +982,8 @@ requirements:
     testability: api
     priority: P0
     status: proven
-    proof_command: node scripts/ci/validate-public-openapi.mjs
-    proof_files: scripts/ci/validate-public-openapi.mjs, docs/openapi.json, api/src/scripts/generate-public-openapi.ts
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-openapi-schema.test.ts && node scripts/ci/validate-public-openapi.mjs
+    proof_files: scripts/lib/validate-public-openapi-document.mjs, scripts/ci/validate-public-openapi.mjs, api/src/platform/api/v1/public-openapi-schema.test.ts, docs/openapi.json, api/src/scripts/generate-public-openapi.ts
     pending_test: none
     manual_evidence: none
     covered_by: none

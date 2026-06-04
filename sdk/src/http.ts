@@ -166,7 +166,13 @@ function publicApiErrorKind(code: string | undefined, status: number) {
   if (code === 'rate_limited' || status === 429) return 'rate_limit';
   if (code === 'not_found' || status === 404) return 'not_found';
   if (code === 'validation_failed' || status === 400) return 'validation';
-  if (code === 'forbidden' || code === 'unauthorized' || status === 401 || status === 403) return 'auth';
+  if (
+    code === 'forbidden'
+    || code === 'unauthorized'
+    || code === 'expired_token'
+    || status === 401
+    || status === 403
+  ) return 'auth';
   return 'server';
 }
 

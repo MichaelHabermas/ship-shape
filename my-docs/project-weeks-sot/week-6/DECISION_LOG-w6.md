@@ -83,7 +83,7 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 ## 2026-06-03 — Public API Follow-Up Hardening
 
 - Public `PATCH /api/v1/issues/:id` keeps HTTP `409` for parent close attempts with incomplete children, but canon wins: the public `ApiError.code` is `validation_failed` and the machine conflict reason lives in `details.reason: "incomplete_children"`.
-- `conflict` is not a public `PUBLIC_API_ERROR_CODES` value; the exact public union is `unauthorized | forbidden | not_found | validation_failed | rate_limited | server_error`.
+- `conflict` is not a public `PUBLIC_API_ERROR_CODES` value; the exact public union is `unauthorized | expired_token | forbidden | not_found | validation_failed | rate_limited | server_error`.
 - `pnpm drill ttfe` always resolves `ship_test_audit` via `resolve-database-url.sh`; only `TTFE_DATABASE_URL` overrides. Shell `DATABASE_URL` is ignored so fixtures and API cannot diverge.
 - Plugforge CI regenerates `docs/openapi.json` and fails on drift; registry `operationId`s must match `route-openapi-contracts.ts` keys and the committed spec operation set.
 - `exchangeAuthorizationCode` is exported from `provider.ts` via `refresh-rotation.ts` (not re-exported through `authorization-code.ts`).
@@ -103,6 +103,11 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 ## 2026-06-03 — External Client Proof Pack
 
 - The final bar is `pnpm plugforge:final`: MVP verify, TTFE, refresh-token theft drill, webhook replay/idempotency drill, SDK/OpenAPI parity, integration boundary proof, FleetGraph public audit proof, Slack/GitLab checks, and docs drift checks.
+
+## 2026-06-04 — Reviewer API contract closure
+
+- Expired OAuth bearer tokens on `/api/v1/*` return HTTP `401` with top-level `ApiError.code: "expired_token"` (not `unauthorized` + `details.reason`).
+- `docs/openapi.json` is validated against the OpenAPI 3.1 JSON Schema via `@seriousme/openapi-schema-validator` in `api/src/platform/api/v1/public-openapi-schema.test.ts` and `scripts/lib/validate-public-openapi-document.mjs`.
 
 ## 2026-06-04 — External Developer Trust Boundary Closure
 

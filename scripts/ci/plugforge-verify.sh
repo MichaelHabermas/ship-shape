@@ -19,6 +19,7 @@ node --test ./scripts/ci/check-integration-boundary.test.mjs
   src/platform/oauth/tokens.test.ts \
   src/platform/oauth/refresh-theft-drill.test.ts \
   src/platform/api/v1/route-metadata.test.ts \
+  src/platform/api/v1/public-openapi-schema.test.ts \
   src/platform/api/v1/public-api-fitness.test.ts \
   src/platform/api/v1/middleware.test.ts \
   src/platform/api/v1/me.test.ts \

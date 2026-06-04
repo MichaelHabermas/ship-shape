@@ -325,6 +325,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -353,7 +354,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -363,6 +364,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -401,6 +403,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -439,6 +442,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -477,6 +481,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -515,6 +520,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -638,6 +644,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -666,7 +673,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -676,6 +683,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -714,6 +722,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -752,6 +761,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -790,6 +800,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -828,6 +839,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1026,6 +1038,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1054,7 +1067,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1064,6 +1077,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1102,6 +1116,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1140,6 +1155,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1178,6 +1194,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1216,6 +1233,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1406,6 +1424,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1434,7 +1453,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1444,6 +1463,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1482,6 +1502,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1520,6 +1541,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1558,6 +1580,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1596,6 +1619,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1747,6 +1771,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1775,7 +1800,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1785,6 +1810,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1823,6 +1849,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1861,6 +1888,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1899,6 +1927,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -1937,6 +1966,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -2363,6 +2393,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -2391,7 +2422,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2401,6 +2432,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -2439,6 +2471,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -2477,6 +2510,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -2515,6 +2549,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -2553,6 +2588,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -2949,6 +2985,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -2977,7 +3014,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2987,6 +3024,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -3025,6 +3063,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -3063,6 +3102,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -3101,6 +3141,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -3139,6 +3180,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -3455,6 +3497,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -3483,7 +3526,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3493,6 +3536,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -3531,6 +3575,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -3569,6 +3614,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -3607,6 +3653,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -3645,6 +3692,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4031,6 +4079,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4059,7 +4108,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -4069,6 +4118,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4107,6 +4157,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4145,6 +4196,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4183,6 +4235,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4280,6 +4333,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4318,6 +4372,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4548,6 +4603,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4576,7 +4632,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -4586,6 +4642,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4624,6 +4681,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4662,6 +4720,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4700,6 +4759,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -4738,6 +4798,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5033,6 +5094,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5061,7 +5123,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -5071,6 +5133,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5109,6 +5172,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5147,6 +5211,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5185,6 +5250,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5223,6 +5289,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5491,6 +5558,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5519,7 +5587,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -5529,6 +5597,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5567,6 +5636,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5605,6 +5675,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5643,6 +5714,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -5681,6 +5753,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6107,6 +6180,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6135,7 +6209,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -6145,6 +6219,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6183,6 +6258,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6221,6 +6297,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6259,6 +6336,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6297,6 +6375,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6434,6 +6513,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6462,7 +6542,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -6472,6 +6552,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6510,6 +6591,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6548,6 +6630,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6586,6 +6669,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6624,6 +6708,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6758,6 +6843,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6786,7 +6872,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -6796,6 +6882,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6834,6 +6921,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6872,6 +6960,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6910,6 +6999,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -6948,6 +7038,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7129,6 +7220,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7157,7 +7249,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -7167,6 +7259,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7205,6 +7298,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7243,6 +7337,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7281,6 +7376,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7319,6 +7415,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7473,6 +7570,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7501,7 +7599,7 @@
             }
           },
           "401": {
-            "description": "Missing, invalid, revoked, or expired bearer token",
+            "description": "Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)",
             "content": {
               "application/json": {
                 "schema": {
@@ -7511,6 +7609,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7549,6 +7648,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7587,6 +7687,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7625,6 +7726,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",
@@ -7663,6 +7765,7 @@
                       "type": "string",
                       "enum": [
                         "unauthorized",
+                        "expired_token",
                         "forbidden",
                         "not_found",
                         "validation_failed",

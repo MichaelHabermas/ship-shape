@@ -12,6 +12,7 @@ export type PublicApiTestContext = {
   memberUserId: string | null;
   appId: string;
   issueToken: (scopes: PublicApiScope[], userId?: string) => Promise<string>;
+  issueExpiredToken: (scopes: PublicApiScope[], userId?: string) => Promise<string>;
   cleanup: () => Promise<void>;
 };
 
@@ -105,6 +106,16 @@ export async function createPublicApiTestContext(
     })).token;
   };
 
+  const issueExpiredToken = async (scopes: PublicApiScope[], userId?: string) => {
+    return (await seedOAuthAccessToken({
+      appId,
+      userId: userId ?? adminUserId,
+      workspaceId,
+      grantedScopes: scopes,
+      expiresAt: new Date(Date.now() - 60 * 1000),
+    })).token;
+  };
+
   const cleanup = async () => {
     await deletePublicApiAuditRows({ workspaceId, clientId });
     await pool.query('DELETE FROM oauth_access_tokens WHERE workspace_id = $1', [workspaceId]);
@@ -125,6 +136,7 @@ export async function createPublicApiTestContext(
     memberUserId,
     appId,
     issueToken,
+    issueExpiredToken,
     cleanup,
   };
 }
