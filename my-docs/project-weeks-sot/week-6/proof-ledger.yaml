@@ -1,9 +1,41 @@
 # PlugForge Week 6 atom proof ledger.
 # Structural mode proves every atom is classified and traceable.
 # Enforcement mode proves P0/P1 unit, api, e2e, and metric atoms are closed.
-schema_version: 2
+schema_version: 3
 generated_from: my-docs/project-weeks-sot/week-6/PRD.md and my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt
 status_values: proven, partial, missing, manual_pending, open_decision, non_scope, covered_by
+proof_tier_values: live_required, unit_ok, not_applicable
+#
+# === LIVE PROOF POLICY (honesty reset 2026-06-04) ===
+# Atoms with proof_tier live_required MUST NOT use status proven until a real external system
+# or human-verifiable deployed surface participated. Disqualifiers include:
+#   - injected mock fetch for Slack/GitLab/other SaaS APIs
+#   - DB-seeded OAuth access tokens skipping real authorization
+#   - synthetic webhook payloads not originating from the real provider
+#   - script-self-written evidence JSON with status passed but no inspectable external artifact
+#   - TTFE device-code approval via direct SQL instead of /oauth/device UI (for login live claims)
+# proof_tier unit_ok: unit tests, static checks, and "script exists" metrics — never closes live_required atoms.
+# proof_tier not_applicable: platform internals with no external SaaS (e.g. refresh-token rotation API test).
+#
+# Must be proven live before integration matrix (W6-INT-001) may return to proven:
+live_proof_required_atoms:
+  - W6-INT-001
+  - W6-INT-002
+  - W6-INT-003
+  - W6-INT-004
+  - W6-INT-005
+  - W6-INT-006
+  - W6-INT-008
+  - W6-INT-009
+  - W6-INT-010
+  - W6-INT-011
+  - W6-CLI-002
+  - W6-CLI-003
+  - W6-CLI-006
+  - W6-CLI-007
+  - W6-CLI-011
+  - W6-CLI-012
+  - W6-CLI-013
 requirements:
   - id: W6-GLOBAL-001
     source: PRD.md:39; Plugforge-specs.txt:43-66
@@ -18,7 +50,7 @@ requirements:
     pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: Enforcement exists, but it intentionally fails while P0 and P1 atoms remain partial or missing.
+    gap: Enforcement intentionally fails while live_required integration and TTFE login atoms remain partial or missing after mock-proof demotion.
   - id: W6-GLOBAL-002
     source: PRD.md:40; PRD.md:521; Plugforge-specs.txt:222-223
     section: Global Pass Criteria
@@ -168,6 +200,7 @@ requirements:
     testability: metric
     priority: P0
     status: proven
+    proof_tier: unit_ok
     proof_command: node scripts/plugforge-metrics/ttfe-timing.mjs --no-write
     proof_files: scripts/plugforge-metrics/ttfe-timing.mjs, scripts/drill.mjs
     pending_test: none
@@ -181,13 +214,14 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: proven
+    status: partial
+    proof_tier: live_required
     proof_command: pnpm plugforge:metrics:ttfe -- --no-write
     proof_files: scripts/plugforge-metrics/ttfe-timing.mjs, scripts/drill.mjs
-    pending_test: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: TTFE timing gate uses approveDeviceCode SQL shortcut; clean-machine live login with UI approval not yet proven.
   - id: W6-METRIC-003
     source: PRD.md:487-501; Plugforge-specs.txt:262-330
     section: Metrics
@@ -195,13 +229,14 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: proven
+    status: partial
+    proof_tier: live_required
     proof_command: pnpm plugforge:metrics:ttfe -- --no-write
     proof_files: scripts/plugforge-metrics/ttfe-timing.mjs, scripts/drill.mjs
-    pending_test: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Stage timings exist but login stage auto-approves device code via SQL, not live /oauth/device UI.
   - id: W6-METRIC-004
     source: PRD.md:41; Plugforge-specs.txt:371-376
     section: Metrics
@@ -223,13 +258,14 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: proven
+    status: partial
+    proof_tier: live_required
     proof_command: node scripts/plugforge-metrics/ttfe-flake-loop.mjs --runs 20
     proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
-    pending_test: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: P95 gate runs automated TTFE with DB device approval shortcut, not live login path.
   - id: W6-METRIC-006
     source: PRD.md:42; PRD.md:522; Plugforge-specs.txt:379-381
     section: Metrics
@@ -237,13 +273,14 @@ requirements:
     requirement_class: metric
     testability: metric
     priority: P0
-    status: proven
+    status: partial
+    proof_tier: live_required
     proof_command: node scripts/plugforge-metrics/ttfe-flake-loop.mjs --runs 20
     proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
-    pending_test: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Flake loop runs automated TTFE with DB device approval shortcut, not live login path.
   - id: W6-METRIC-007
     source: PRD.md:44; PRD.md:355; Plugforge-specs.txt:228-229
     section: Metrics
@@ -1838,13 +1875,14 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: proven
-    proof_command: pnpm --filter @ship/cli check && pnpm drill ttfe
-    proof_files: integrations/cli/src/index.mjs, integrations/cli/test, scripts/drill.mjs
-    pending_test: none
+    status: partial
+    proof_tier: unit_ok
+    proof_command: pnpm --filter @ship/cli check
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Packed install works; live TTFE end-to-end with UI device approval not yet proven.
   - id: W6-CLI-002
     source: PRD.md:465-470; Plugforge-specs.txt:247-261
     section: CLI and Time-to-First-Event Drill
@@ -1852,13 +1890,14 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: proven
-    proof_command: pnpm --filter @ship/cli test && pnpm drill ttfe
-    proof_files: integrations/cli/src/index.mjs, integrations/cli/test, scripts/drill.mjs
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Live ship login with Device Grant UI approval on /oauth/device not recorded as evidence.
   - id: W6-CLI-003
     source: PRD.md:465-470; Plugforge-specs.txt:247-261
     section: CLI and Time-to-First-Event Drill
@@ -1866,13 +1905,14 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: proven
-    proof_command: pnpm drill ttfe
-    proof_files: integrations/cli/src/index.mjs, scripts/drill.mjs
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: pnpm drill ttfe auto-approves device code via SQL; live Device Grant flow not proven.
   - id: W6-CLI-004
     source: PRD.md:465-470; Plugforge-specs.txt:247-261
     section: CLI and Time-to-First-Event Drill
@@ -1881,6 +1921,7 @@ requirements:
     testability: unit
     priority: P0
     status: proven
+    proof_tier: unit_ok
     proof_command: pnpm --filter @ship/cli test
     proof_files: integrations/cli/src/index.mjs, integrations/cli/test
     pending_test: none
@@ -1895,6 +1936,7 @@ requirements:
     testability: unit
     priority: P0
     status: proven
+    proof_tier: unit_ok
     proof_command: pnpm --filter @ship/cli test
     proof_files: integrations/cli/src/index.mjs, integrations/cli/test
     pending_test: none
@@ -1908,13 +1950,14 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: proven
-    proof_command: pnpm --filter @ship/cli test && pnpm drill ttfe
-    proof_files: integrations/cli/src/index.mjs, integrations/cli/test, scripts/drill.mjs
-    pending_test: none
+    status: partial
+    proof_tier: live_required
+    proof_command: pnpm --filter @ship/cli test
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Unit tests pass; live docs create through authenticated CLI session not proven without device UI shortcut.
   - id: W6-CLI-007
     source: PRD.md:465-470; Plugforge-specs.txt:247-261
     section: CLI and Time-to-First-Event Drill
@@ -1922,13 +1965,14 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: proven
-    proof_command: pnpm --filter @ship/cli test && pnpm drill ttfe
-    proof_files: integrations/cli/src/index.mjs, integrations/cli/test, scripts/drill.mjs
-    pending_test: none
+    status: partial
+    proof_tier: live_required
+    proof_command: pnpm --filter @ship/cli test
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Automated TTFE verifies webhooks but uses DB device approval; live tail with human-inspectable verified JSON not archived.
   - id: W6-CLI-008
     source: PRD.md:465-470; Plugforge-specs.txt:247-261
     section: CLI and Time-to-First-Event Drill
@@ -1937,6 +1981,7 @@ requirements:
     testability: unit
     priority: P0
     status: proven
+    proof_tier: unit_ok
     proof_command: pnpm --filter @ship/cli test
     proof_files: integrations/cli/src/index.mjs, integrations/cli/test/token-store.test.mjs
     pending_test: none
@@ -1964,13 +2009,14 @@ requirements:
     requirement_class: metric
     testability: none
     priority: P0
-    status: covered_by
+    status: partial
+    proof_tier: live_required
     proof_command: none
     proof_files: none
-    pending_test: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
-    covered_by: W6-METRIC-003
-    gap: none
+    covered_by: none
+    gap: TTFE stages measured with device-code SQL shortcut; live UI approval path not proven.
   - id: W6-CLI-011
     source: PRD.md:487-501; Plugforge-specs.txt:262-330
     section: CLI and Time-to-First-Event Drill
@@ -1978,13 +2024,14 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: proven
-    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/route-metadata.test.ts && pnpm drill ttfe
-    proof_files: api/src/platform/api/v1/route-metadata.test.ts, scripts/drill.mjs, sdk/src/index.ts
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Live TTFE with real OAuth login and ShipClient.webhooks.create not proven without SQL device shortcut.
   - id: W6-CLI-012
     source: PRD.md:487-501; Plugforge-specs.txt:262-330
     section: CLI and Time-to-First-Event Drill
@@ -1992,13 +2039,14 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: proven
-    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/route-metadata.test.ts && pnpm drill ttfe
-    proof_files: api/src/platform/api/v1/route-metadata.test.ts, scripts/drill.mjs, sdk/src/index.ts
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Live TTFE document create via authenticated CLI session not proven without SQL device shortcut.
   - id: W6-CLI-013
     source: PRD.md:487-501; Plugforge-specs.txt:262-330
     section: CLI and Time-to-First-Event Drill
@@ -2006,13 +2054,14 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: proven
-    proof_command: pnpm drill ttfe
-    proof_files: scripts/drill.mjs
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Verified document.created webhook JSON not archived from live CLI tail; automated drill output not retained.
   - id: W6-CLI-014
     source: PRD.md:487-501; Plugforge-specs.txt:262-330
     section: CLI and Time-to-First-Event Drill
@@ -2020,14 +2069,14 @@ requirements:
     requirement_class: metric
     testability: none
     priority: P0
-    status: covered_by
+    status: partial
+    proof_tier: live_required
     proof_command: none
     proof_files: none
-    pending_test: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
-    covered_by: W6-METRIC-005
-    gap: none
-
+    covered_by: none
+    gap: 60s runtime gate uses automated TTFE with DB device approval, not live login path.
   - id: W6-INT-001
     source: PRD.md:553-590; Plugforge-specs.txt:357-366
     section: Selected Integrations and Drills
@@ -2035,13 +2084,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: proven
-    proof_command: pnpm plugforge:integrations
-    proof_files: scripts/ci/plugforge-integrations.mjs, my-docs/evidence/plugforge-integrations/matrix.json, integrations, e2e/plugforge-acceptance.spec.ts
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Matrix runner mocked Slack API, seeded OAuth tokens, and synthesized GitLab webhooks; prior passed JSON invalidated.
   - id: W6-INT-002
     source: PRD.md:553-557; Plugforge-specs.txt:357-358
     section: Selected Integrations and Drills
@@ -2049,13 +2099,14 @@ requirements:
     requirement_class: functional
     testability: none
     priority: P0
-    status: covered_by
+    status: missing
+    proof_tier: live_required
     proof_command: none
     proof_files: none
-    pending_test: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
-    covered_by: W6-CLI-010
-    gap: none
+    covered_by: none
+    gap: CLI login, create, subscription, receipt, and verification not proven live without device-code SQL shortcut.
   - id: W6-INT-003
     source: PRD.md:558-565; Plugforge-specs.txt:360-361
     section: Selected Integrations and Drills
@@ -2063,13 +2114,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: proven
-    proof_command: pnpm plugforge:integrations -- --flow slack
-    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/slack, my-docs/evidence/plugforge-integrations/slack.json
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Prior proof used DB-seeded Ship token and mocked Slack; no live signed webhook to real integration subscriber.
   - id: W6-INT-004
     source: PRD.md:558-565; Plugforge-specs.txt:360-361
     section: Selected Integrations and Drills
@@ -2077,13 +2129,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: proven
-    proof_command: pnpm plugforge:integrations -- --flow slack
-    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/slack, my-docs/evidence/plugforge-integrations/slack.json
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: chat.postMessage was mocked; no message in a real Slack channel.
   - id: W6-INT-005
     source: PRD.md:558-565; Plugforge-specs.txt:360-361
     section: Selected Integrations and Drills
@@ -2091,13 +2144,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: proven
-    proof_command: pnpm plugforge:integrations -- --flow slack
-    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/slack, my-docs/evidence/plugforge-integrations/slack.json
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: issue.assigned Slack post was mocked; no real Slack delivery.
   - id: W6-INT-006
     source: PRD.md:558-565; Plugforge-specs.txt:360-361
     section: Selected Integrations and Drills
@@ -2105,13 +2159,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: proven
-    proof_command: pnpm plugforge:integrations -- --flow slack
-    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/slack, my-docs/evidence/plugforge-integrations/slack.json
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Slack OAuth callback was faked with code=oauth-code and mocked token exchange.
   - id: W6-INT-007
     source: PRD.md:600-603; Plugforge-specs.txt:518-520
     section: Selected Integrations and Drills
@@ -2120,6 +2175,7 @@ requirements:
     testability: unit
     priority: P0
     status: proven
+    proof_tier: unit_ok
     proof_command: pnpm plugforge:integrations:check && node --test scripts/ci/check-integration-boundary.test.mjs
     proof_files: scripts/ci/check-integration-boundary.mjs, scripts/ci/check-integration-boundary.test.mjs
     pending_test: none
@@ -2133,13 +2189,14 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: proven
-    proof_command: pnpm plugforge:integrations -- --flow browser
-    proof_files: web/src/pages/SdkDemo.tsx, e2e/plugforge-acceptance.spec.ts, scripts/ci/plugforge-integrations.mjs, my-docs/evidence/plugforge-integrations/browser.json
-    pending_test: none
+    status: partial
+    proof_tier: live_required
+    proof_command: pnpm test:e2e:run e2e/plugforge-acceptance.spec.ts
+    proof_files: web/src/pages/SdkDemo.tsx, e2e/plugforge-acceptance.spec.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Local Playwright PKCE passes; deployed https://ship-shape-web.onrender.com/sdk-demo not CI-gated as live proof.
   - id: W6-INT-009
     source: PRD.md:567-572; Plugforge-specs.txt:362
     section: Selected Integrations and Drills
@@ -2147,13 +2204,14 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: proven
-    proof_command: pnpm plugforge:integrations -- --flow browser
-    proof_files: web/src/pages/SdkDemo.tsx, e2e/plugforge-acceptance.spec.ts, scripts/ci/plugforge-integrations.mjs, my-docs/evidence/plugforge-integrations/browser.json
-    pending_test: none
+    status: partial
+    proof_tier: live_required
+    proof_command: pnpm test:e2e:run e2e/plugforge-acceptance.spec.ts
+    proof_files: web/src/pages/SdkDemo.tsx, e2e/plugforge-acceptance.spec.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Document list proven in local E2E only; live deployed sdk-demo listing not gated.
   - id: W6-INT-010
     source: PRD.md:574-579; Plugforge-specs.txt:363
     section: Selected Integrations and Drills
@@ -2161,13 +2219,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: proven
-    proof_command: pnpm plugforge:integrations -- --flow gitlab
-    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/gitlab, my-docs/evidence/plugforge-integrations/gitlab.json
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: MR webhook payload was synthesized locally; no real GitLab instance involved.
   - id: W6-INT-011
     source: PRD.md:574-579; Plugforge-specs.txt:363
     section: Selected Integrations and Drills
@@ -2175,13 +2234,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: proven
-    proof_command: pnpm plugforge:integrations -- --flow gitlab
-    proof_files: scripts/ci/plugforge-integrations.mjs, integrations/gitlab, my-docs/evidence/plugforge-integrations/gitlab.json
-    pending_test: none
+    status: missing
+    proof_tier: live_required
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
-    gap: none
+    gap: No real GitLab project webhook to Ship integration path proven.
   - id: W6-INT-012
     source: PRD.md:581-584; Plugforge-specs.txt:364
     section: Selected Integrations and Drills
@@ -2190,6 +2250,7 @@ requirements:
     testability: api
     priority: P0
     status: proven
+    proof_tier: not_applicable
     proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/refresh-theft-drill.test.ts
     proof_files: api/src/platform/oauth/refresh-theft-drill.test.ts
     pending_test: none
@@ -2204,6 +2265,7 @@ requirements:
     testability: api
     priority: P0
     status: proven
+    proof_tier: not_applicable
     proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/webhooks.test.ts && pnpm plugforge:developer-ops-e2e
     proof_files: api/src/platform/api/v1/webhooks.test.ts, e2e/developer-ops.spec.ts
     pending_test: none
@@ -2862,86 +2924,86 @@ requirements:
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
     requirement: Demo video is 2 to 5 minutes long.
-    requirement_class: submission
+    requirement_class: non_scope
     testability: manual
     priority: P0
-    status: manual_pending
+    status: non_scope
     proof_command: none
     proof_files: none
     pending_test: none
-    manual_evidence: final demo video link
+    manual_evidence: none
     covered_by: none
-    gap: Demo video link and duration are not recorded as final evidence.
+    gap: Demo video explicitly excluded from final scope by project owner.
   - id: W6-SUBMIT-010
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
     requirement: Demo video shows OAuth app registration and token flow.
-    requirement_class: submission
+    requirement_class: non_scope
     testability: manual
     priority: P0
-    status: manual_pending
+    status: non_scope
     proof_command: none
     proof_files: none
     pending_test: none
-    manual_evidence: final demo video link
+    manual_evidence: none
     covered_by: none
-    gap: Demo video OAuth segment is not recorded as final evidence.
+    gap: Demo video OAuth segment excluded from final scope by project owner.
   - id: W6-SUBMIT-011
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
     requirement: Demo video shows webhook DLQ and replay.
-    requirement_class: submission
+    requirement_class: non_scope
     testability: manual
     priority: P0
-    status: manual_pending
+    status: non_scope
     proof_command: none
     proof_files: none
     pending_test: none
-    manual_evidence: final demo video link
+    manual_evidence: none
     covered_by: none
-    gap: Demo video webhook replay segment is not recorded as final evidence.
+    gap: Demo video webhook replay segment excluded from final scope by project owner.
   - id: W6-SUBMIT-012
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
     requirement: Demo video shows SDK or CLI Time-to-First-Event drill.
-    requirement_class: submission
+    requirement_class: non_scope
     testability: manual
     priority: P0
-    status: manual_pending
+    status: non_scope
     proof_command: none
     proof_files: none
     pending_test: none
-    manual_evidence: final demo video link
+    manual_evidence: none
     covered_by: none
-    gap: Demo video SDK or CLI segment is not recorded as final evidence.
+    gap: Demo video CLI/TTFE segment excluded from final scope by project owner.
   - id: W6-SUBMIT-013
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
     requirement: Pre-search artifact is included.
-    requirement_class: submission
+    requirement_class: non_scope
     testability: manual
     priority: P1
-    status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
-    proof_files: my-docs/project-weeks-sot/week-6/PRESEARCH.md, scripts/ci/plugforge-submission.mjs
+    status: non_scope
+    proof_command: none
+    proof_files: none
     pending_test: none
-    manual_evidence: my-docs/project-weeks-sot/week-6/PRESEARCH.md
+    manual_evidence: none
     covered_by: none
-    gap: none
+    gap: Pre-search attachment as submission artifact excluded; PRESEARCH.md remains in repo for reference.
   - id: W6-SUBMIT-014
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
     requirement: Saved AI conversation artifact is included.
-    requirement_class: submission
+    requirement_class: non_scope
     testability: manual
     priority: P1
-    status: manual_pending
+    status: non_scope
     proof_command: none
     proof_files: none
     pending_test: none
-    manual_evidence: final AI conversation artifact
+    manual_evidence: none
     covered_by: none
-    gap: Saved AI conversation artifact is not recorded as final evidence.
+    gap: Saved AI conversation artifact excluded from final scope by project owner.
   - id: W6-SUBMIT-015
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
@@ -2960,17 +3022,16 @@ requirements:
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
     requirement: Social post screenshot with required tag is included.
-    requirement_class: submission
+    requirement_class: non_scope
     testability: manual
     priority: P1
-    status: manual_pending
+    status: non_scope
     proof_command: none
     proof_files: none
     pending_test: none
-    manual_evidence: final social post screenshot
+    manual_evidence: none
     covered_by: none
-    gap: Social screenshot is not recorded as final evidence.
-
+    gap: Social post screenshot excluded from final scope by project owner.
   - id: W6-DECISION-001
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Open Decisions
@@ -3084,3 +3145,4 @@ requirements:
     manual_evidence: none
     covered_by: none
     gap: In-process implementation is the required MVP unless evidence shows it cannot pass.
+

@@ -40,7 +40,6 @@ const baseClosedAtoms = [
   'W6-SUBMIT-005',
   'W6-SUBMIT-007',
   'W6-SUBMIT-008',
-  'W6-SUBMIT-013',
   'W6-SUBMIT-015',
   'W6-DECISION-001',
   'W6-DECISION-002',
@@ -50,12 +49,6 @@ const baseClosedAtoms = [
 
 const externalAttachmentAtoms = [
   'W6-SUBMIT-006',
-  'W6-SUBMIT-009',
-  'W6-SUBMIT-010',
-  'W6-SUBMIT-011',
-  'W6-SUBMIT-012',
-  'W6-SUBMIT-014',
-  'W6-SUBMIT-016',
 ];
 
 const requiredFiles = [
@@ -74,11 +67,6 @@ const requiredFiles = [
   'web/public/plugforge-reviewer-packet.html',
   'my-docs/evidence/plugforge-metrics/summary.json',
   'my-docs/evidence/plugforge-metrics/ttfe-timing.json',
-  'my-docs/evidence/plugforge-integrations/all-runner.json',
-  'my-docs/evidence/plugforge-integrations/matrix.json',
-  'my-docs/evidence/plugforge-integrations/slack.json',
-  'my-docs/evidence/plugforge-integrations/gitlab.json',
-  'my-docs/evidence/plugforge-integrations/browser.json',
 ];
 
 const requiredUrls = [
@@ -222,8 +210,6 @@ function validateEvidenceJson() {
   const errors = [];
   for (const file of [
     'my-docs/evidence/plugforge-metrics/summary.json',
-    'my-docs/evidence/plugforge-integrations/all-runner.json',
-    'my-docs/evidence/plugforge-integrations/matrix.json',
   ]) {
     try {
       const json = JSON.parse(readFileSync(path.join(rootDir, file), 'utf8'));

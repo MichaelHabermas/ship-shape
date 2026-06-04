@@ -1,17 +1,17 @@
 {
   "flow": "boundary",
-  "run_id": "plugforge-1780585679325-f476faeb",
-  "generated_at": "2026-06-04T15:08:39.447Z",
+  "run_id": "plugforge-1780612028378-5ef8ea38",
+  "generated_at": "2026-06-04T22:27:35.833Z",
   "status": "passed",
   "steps": [
     {
       "command": "pnpm plugforge:integrations:check",
-      "duration_ms": 321,
+      "duration_ms": 217,
       "exit_code": 0
     },
     {
       "command": "node --test ./scripts/ci/check-integration-boundary.test.mjs",
-      "duration_ms": 297,
+      "duration_ms": 208,
       "exit_code": 0
     }
   ]

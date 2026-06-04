@@ -42,6 +42,7 @@ const validRequirementClasses = new Set([
   'non_scope',
 ]);
 const validPriorities = new Set(['P0', 'P1', 'P2']);
+const validProofTiers = new Set(['live_required', 'unit_ok', 'not_applicable']);
 const enforceTestability = new Set(['unit', 'api', 'e2e', 'metric']);
 const requiredFields = [
   'id',
@@ -103,6 +104,9 @@ for (const entry of entries) {
   if (!validPriorities.has(entry.priority ?? '')) {
     problems.push(`${label}: invalid priority ${entry.priority}`);
   }
+  if (hasValue(entry.proof_tier) && !validProofTiers.has(entry.proof_tier ?? '')) {
+    problems.push(`${label}: invalid proof_tier ${entry.proof_tier}`);
+  }
   if (filters.priorities.length > 0 && !filters.priorities.includes(entry.priority)) {
     continue;
   }
@@ -120,6 +124,31 @@ for (const entry of entries) {
     if (isNone(entry.proof_command)) problems.push(`${label}: proven item must name proof_command`);
     if (isNone(entry.proof_files)) problems.push(`${label}: proven item must name proof_files`);
     if (!isNone(entry.gap)) problems.push(`${label}: proven item should use gap: "none"`);
+    if (entry.proof_tier === 'live_required') {
+      problems.push(`${label}: live_required atoms cannot be proven until real external or deployed live proof exists`);
+    }
+    const mockEvidenceMarkers = [
+      'my-docs/evidence/plugforge-integrations/slack.json',
+      'my-docs/evidence/plugforge-integrations/gitlab.json',
+      'my-docs/evidence/plugforge-integrations/matrix.json',
+      'my-docs/evidence/plugforge-integrations/all-runner.json',
+    ];
+    if (!isNone(entry.proof_files)) {
+      for (const marker of mockEvidenceMarkers) {
+        if (entry.proof_files.includes(marker)) {
+          problems.push(`${label}: proven item must not cite invalidated mock integration evidence (${marker})`);
+        }
+      }
+    }
+    if (!isNone(entry.proof_command) && /\bplugforge:integrations(?!:check)\b/.test(entry.proof_command)) {
+      if (entry.proof_tier === 'live_required' || (entry.id ?? '').startsWith('W6-INT-0')) {
+        problems.push(`${label}: proven integration proof must not use mocked plugforge:integrations runner`);
+      }
+    }
+  }
+
+  if (entry.proof_tier === 'live_required' && entry.status === 'proven') {
+    problems.push(`${label}: live_required cannot be proven with current mock/shortcut evidence`);
   }
 
   if ((entry.status === 'partial' || entry.status === 'missing' || entry.status === 'manual_pending') && isNone(entry.gap)) {

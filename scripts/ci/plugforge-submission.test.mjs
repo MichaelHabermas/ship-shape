@@ -45,12 +45,6 @@ const baseIds = [
 
 const externalIds = [
   'W6-SUBMIT-006',
-  'W6-SUBMIT-009',
-  'W6-SUBMIT-010',
-  'W6-SUBMIT-011',
-  'W6-SUBMIT-012',
-  'W6-SUBMIT-014',
-  'W6-SUBMIT-016',
 ];
 
 test('parseLedger reads simple proof entries', () => {
@@ -88,5 +82,5 @@ test('strict mode requires external attachment atoms to be proven', () => {
   ];
 
   const errors = validateLedgerTargets(entries, { allowManualPending: false });
-  assert(errors.some((error) => error.includes('W6-SUBMIT-009 must be proven')));
+  assert(errors.some((error) => error.includes('W6-SUBMIT-006 must be proven')));
 });

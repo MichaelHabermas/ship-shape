@@ -1,0 +1,34 @@
+{
+  "flow": "slack",
+  "run_id": "plugforge-1780612649203-04515f9e",
+  "generated_at": "2026-06-04T22:37:32.414Z",
+  "status": "passed",
+  "api_url": "http://127.0.0.1:56359",
+  "oauth_callback": true,
+  "slack_oauth_calls": 1,
+  "subscriptions": [
+    {
+      "id": "ebcc0155-35c3-42fc-9d82-5b029d1a08fd",
+      "event": "document.created"
+    },
+    {
+      "id": "4f39967e-20c3-487d-bbcf-e8988f38af23",
+      "event": "issue.assigned"
+    }
+  ],
+  "posts": [
+    {
+      "channel": "CPLUGFORGE",
+      "text": "Document created: PlugForge Slack Document 7352ff7b55c7 (/documents/cc26d5da-a26a-45c3-9e27-af7e3c527839)"
+    },
+    {
+      "channel": "CPLUGFORGE",
+      "text": "Issue assigned: PlugForge Slack Issue 7352ff7b55c7 -> 4ffdf4a0-df51-495f-b08f-51aa1bd0f2b3 (/documents/9bc27b95-c1dd-46f1-8bb6-96fcd2e17ea3)"
+    }
+  ],
+  "replay": {
+    "idempotency_key": "document.created:cc26d5da-a26a-45c3-9e27-af7e3c527839",
+    "post_count_before": 2,
+    "post_count_after": 2
+  }
+}
