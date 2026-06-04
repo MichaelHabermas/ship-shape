@@ -110,6 +110,22 @@ export function globalFetch(): FetchLike {
   return globalThis.fetch.bind(globalThis) as FetchLike;
 }
 
+export async function fetchOrNetworkError(
+  fetchImpl: FetchLike,
+  input: string | URL,
+  init?: RequestInit
+): Promise<Response> {
+  try {
+    return await fetchImpl(input, init);
+  } catch (error) {
+    if (error instanceof ShipError) throw error;
+    throw new ShipError({
+      kind: 'network',
+      message: error instanceof Error ? error.message : 'Network request failed',
+    });
+  }
+}
+
 export function delay(ms: number, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) return Promise.reject(abortError());
   return new Promise((resolve, reject) => {

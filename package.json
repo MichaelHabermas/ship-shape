@@ -45,6 +45,7 @@
     "plugforge:metrics:sdk-size": "node ./scripts/plugforge-metrics/sdk-size.mjs",
     "plugforge:verify": "bash ./scripts/ci/plugforge-verify.sh",
     "plugforge:integrations:check": "node ./scripts/ci/check-integration-boundary.mjs",
+    "plugforge:llm-boundary": "node ./scripts/ci/check-plugforge-no-llm-boundary.mjs",
     "plugforge:final": "bash ./scripts/ci/plugforge-final.sh",
     "plugforge:oauth-e2e": "bash ./scripts/ci/plugforge-oauth-e2e.sh",
     "plugforge:developer-ops-e2e": "bash ./scripts/ci/plugforge-developer-ops-e2e.sh",
@@ -91,6 +92,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.60.0",
+    "@redocly/openapi-core": "1.34.14",
     "@ship/shared": "workspace:*",
     "@ship/shipshape-security": "workspace:*",
     "@testcontainers/postgresql": "^12.0.0",

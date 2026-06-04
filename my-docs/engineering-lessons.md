@@ -269,15 +269,15 @@ ShipShape example (2026-06): are-you-sure review found malformed `issue_state` c
 
 ## 22. Public Conflicts Belong In PublicApiError.details
 
-When internal mutations return rich 409 bodies (for example orphan sub-issues on close), public adapters must not collapse them to `validation_failed` with the machine reason as the message. Keep the standard error envelope and put actionable conflict data in typed `details`.
+When internal mutations return rich 409 bodies (for example orphan sub-issues on close), public adapters must keep the public `ApiError.code` union closed. HTTP status can carry `409`; the machine conflict reason belongs in typed `details`.
 
 The transferable rules:
 
-- Add a dedicated public error code when semantics differ (`conflict` vs malformed input).
+- Do not add a top-level public error code unless the canon union changes; use `validation_failed` plus a typed `details.reason` for retryable domain conflicts.
 - Mirror internal warning shapes in shared Zod under `details`, not as a second top-level wire format.
 - Document non-2xx responses in the same OpenAPI contract map keyed by `operationId`.
 
-ShipShape example (2026-06): public `PATCH /api/v1/issues/:id` now returns `code: conflict` with `details.incomplete_children` and `confirm_action`, matching the internal cascade warning while keeping `PublicApiErrorSchema`.
+ShipShape example (2026-06): public `PATCH /api/v1/issues/:id` now returns HTTP `409` with `code: validation_failed`, `details.reason: "incomplete_children"`, `details.incomplete_children`, and `confirm_action`, matching the internal cascade warning while keeping the exact public error union.
 
 ## 23. Registry And OpenAPI Contracts Must Be One Keyed Set
 

@@ -13,8 +13,8 @@ import { publicOpenApiRouteMetadata } from './route-metadata.js';
 
 export const publicApiV1Router = Router();
 
-publicApiV1Router.use(publicApiRateLimitMiddleware);
 publicApiV1Router.use(publicApiAuditMiddleware);
+publicApiV1Router.use(publicApiRateLimitMiddleware);
 publicApiV1Router.get(publicOpenApiRouteMetadata.handlerMountPath, (req: Request, res: Response): void => {
   try {
     res.setHeader('Content-Type', 'application/json');

@@ -1,14 +1,24 @@
 #!/usr/bin/env node
-// MVP gate 7: generated public OpenAPI must be 3.1.x, include documents paths, and match registry operationIds.
+// Validates the generated public OpenAPI with Redocly and registry operationId parity.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { createConfig, lintFromString } from '@redocly/openapi-core';
 
 const rootDir = resolve(process.cwd());
 const specPath = resolve(rootDir, 'docs/openapi.json');
 const registryPath = resolve(rootDir, 'api/src/platform/api/v1/route-metadata.ts');
-const document = JSON.parse(readFileSync(specPath, 'utf8'));
+const rawSpec = readFileSync(specPath, 'utf8');
+const document = JSON.parse(rawSpec);
 const registrySource = readFileSync(registryPath, 'utf8');
 const problems = [];
+
+const redoclyConfig = await createConfig({ extends: ['minimal'] });
+const redoclyProblems = await lintFromString({ source: rawSpec, absoluteRef: specPath, config: redoclyConfig });
+const redoclyErrors = redoclyProblems.filter((problem) => problem.severity === 'error');
+for (const problem of redoclyErrors) {
+  const pointer = problem.location?.[0]?.pointer ? ` at ${problem.location[0].pointer}` : '';
+  problems.push(`Redocly ${problem.ruleId ?? 'validation'}${pointer}: ${problem.message}`);
+}
 
 if (!String(document.openapi ?? '').startsWith('3.1')) {
   problems.push(`expected openapi 3.1.x, got ${document.openapi ?? 'missing'}`);

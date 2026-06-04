@@ -256,6 +256,82 @@ CREATE TABLE IF NOT EXISTS oauth_access_tokens (
     FOREIGN KEY (app_id, workspace_id) REFERENCES oauth_apps(id, workspace_id) ON DELETE CASCADE
 );
 
+CREATE OR REPLACE FUNCTION revoke_oauth_app_on_owner_delete()
+RETURNS trigger AS $$
+BEGIN
+  IF OLD.owner_user_id IS NOT NULL
+     AND NEW.owner_user_id IS NULL
+     AND OLD.is_first_party IS FALSE THEN
+    NEW.is_active := FALSE;
+    NEW.updated_at := NOW();
+
+    UPDATE oauth_app_secrets
+    SET status = 'revoked',
+        revoked_at = COALESCE(revoked_at, NOW()),
+        expires_at = NULL,
+        updated_at = NOW()
+    WHERE app_id = OLD.id
+      AND workspace_id = OLD.workspace_id
+      AND status IN ('active', 'grace');
+
+    UPDATE oauth_access_tokens
+    SET revoked_at = COALESCE(revoked_at, NOW())
+    WHERE app_id = OLD.id
+      AND workspace_id = OLD.workspace_id
+      AND revoked_at IS NULL;
+
+    UPDATE oauth_authorization_codes
+    SET consumed_at = COALESCE(consumed_at, NOW())
+    WHERE app_id = OLD.id
+      AND workspace_id = OLD.workspace_id
+      AND consumed_at IS NULL;
+
+    UPDATE oauth_refresh_token_families
+    SET invalidated_at = COALESCE(invalidated_at, NOW()),
+        invalidated_reason = COALESCE(invalidated_reason, 'owner_deleted')
+    WHERE app_id = OLD.id
+      AND workspace_id = OLD.workspace_id
+      AND invalidated_at IS NULL;
+
+    UPDATE oauth_refresh_tokens
+    SET revoked_at = COALESCE(revoked_at, NOW())
+    WHERE app_id = OLD.id
+      AND workspace_id = OLD.workspace_id
+      AND revoked_at IS NULL;
+
+    UPDATE oauth_grants
+    SET revoked_at = COALESCE(revoked_at, NOW()),
+        updated_at = NOW()
+    WHERE app_id = OLD.id
+      AND workspace_id = OLD.workspace_id
+      AND revoked_at IS NULL;
+
+    UPDATE oauth_authorization_requests
+    SET denied_at = COALESCE(denied_at, NOW())
+    WHERE app_id = OLD.id
+      AND workspace_id = OLD.workspace_id
+      AND approved_at IS NULL
+      AND denied_at IS NULL;
+
+    UPDATE oauth_device_authorizations
+    SET denied_at = COALESCE(denied_at, NOW()),
+        updated_at = NOW()
+    WHERE app_id = OLD.id
+      AND workspace_id = OLD.workspace_id
+      AND denied_at IS NULL
+      AND consumed_at IS NULL;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS oauth_apps_owner_delete_revoke ON oauth_apps;
+CREATE TRIGGER oauth_apps_owner_delete_revoke
+BEFORE UPDATE OF owner_user_id ON oauth_apps
+FOR EACH ROW
+EXECUTE FUNCTION revoke_oauth_app_on_owner_delete();
+
 CREATE TABLE IF NOT EXISTS public_api_audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   request_id TEXT NOT NULL CHECK (char_length(request_id) <= 128),

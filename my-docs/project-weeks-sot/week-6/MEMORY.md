@@ -156,6 +156,10 @@ After the Agent-as-Citizen read-context foundation slice on 2026-06-02, targeted
 
 After the proof-ledger slice on 2026-06-03, structural proof is `pnpm plugforge:ledger`. Targeted proof added in this slice is `scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts src/platform/plugforge-acceptance.todo.test.ts src/platform/webhooks/service.test.ts`, `pnpm --filter @ship/sdk test`, `pnpm --filter @ship/cli test`, and `node scripts/plugforge-metrics/sdk-size.mjs --no-write`.
 
+After the External Developer Trust Boundary closure on 2026-06-04, scoped proof is `pnpm plugforge:ledger:enforce -- --area OAUTH,API,PORTAL,SDK,CLI,AGENT --status missing,partial`. The closure proof pack is the targeted API suite for apps/OAuth/public-api fitness/route metadata/middleware, SDK+CLI tests and checks, `pnpm plugforge:oauth-e2e`, `pnpm plugforge:developer-ops-e2e`, `pnpm plugforge:llm-boundary`, `pnpm plugforge:verify`, and `pnpm test:e2e:smoke`.
+
+The are-you-sure pass on 2026-06-04 tightened the closure proof without expanding to global Week 6: migration 059 backfills already-orphaned third-party OAuth apps, force-rotation invalidates exchangeable auth-code/device credentials, public API audit wraps pre-auth rate limiting in production order, portal storage checks raw secrets after create/rotate, consent CSRF failure is browser-proven, and SDK/OpenAPI parity is enforced by SDK type-check. Do not run global `pnpm plugforge:ledger:enforce` as a closure signal for this epic; it is expected to fail on unrelated metrics/docs/integration gaps.
+
 ## Leverage Points
 
 - `@ship/cli` public commands: `ship me`, `ship documents|docs`, `ship issues`, `ship sprints`, `ship fleetgraph attention-contexts`, `ship webhooks subscriptions|deliveries|tail` (all via `@ship/sdk` only). Default `ship login` scopes include `issues:read` and `sprints:read` so FleetGraph CLI matches `SHIP_AGENT_READ_SCOPES` + write/manage flags.
@@ -166,7 +170,7 @@ The TTFE developer spine is now real enough to compose: Device Grant login -> OA
 
 Do not add `docs/openapi.json` by hand; canon requires generated OpenAPI. `plugforge-verify.sh` now runs `public-openapi:generate` and fails if `docs/openapi.json` drifts. Do not rely on shell `DATABASE_URL` for `pnpm drill ttfe`; the drill resolves `ship_test_audit` unless `TTFE_DATABASE_URL` is set.
 
-Public issue close conflicts return `409` with `code: conflict` and `details.incomplete_children` (not a bare `validation_failed` message). Do not add `slow_down` as a canon literal from the main spec body alone; the body says slow-down responses, while exact wire spelling currently comes from appendix/supporting context.
+Public issue close conflicts return HTTP `409`, but the public `ApiError.code` remains `validation_failed`; conflict semantics live in `details.reason: "incomplete_children"` plus typed child details. Do not add `conflict` to the public error-code union. Do not add `slow_down` as a canon literal from the main spec body alone; the body says slow-down responses, while exact wire spelling currently comes from appendix/supporting context.
 
 `client_secret` hashes use Argon2id via `argon2`; OAuth access tokens are high-entropy random bearer tokens stored by SHA-256 hash for lookup. Keep that split unless a later threat model changes it deliberately.
 

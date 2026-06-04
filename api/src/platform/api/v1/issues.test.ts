@@ -375,7 +375,7 @@ describe('/api/v1/issues', () => {
       .set('Authorization', `Bearer ${readWriteToken}`)
       .send({ state: 'done' });
     const conflict = expectJsonBody(conflictResponse, 409, PublicIssueUpdateConflictErrorSchema);
-    expect(conflict.code).toBe('conflict');
+    expect(conflict.code).toBe('validation_failed');
     expect(conflict.details?.reason).toBe('incomplete_children');
     expect(conflict.details?.incomplete_children.length).toBeGreaterThanOrEqual(1);
     expect(conflict.details?.incomplete_children[0]?.id).toBe(childId);

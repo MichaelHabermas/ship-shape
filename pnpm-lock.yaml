@@ -29,6 +29,9 @@ importers:
       '@playwright/test':
         specifier: ^1.60.0
         version: 1.60.0
+      '@redocly/openapi-core':
+        specifier: 1.34.14
+        version: 1.34.14(supports-color@10.2.2)
       '@ship/shared':
         specifier: workspace:*
         version: link:shared

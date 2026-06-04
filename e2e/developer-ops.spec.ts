@@ -74,10 +74,21 @@ test('developer portal replays a DLQ webhook with the original idempotency key',
     await page.getByPlaceholder('https://example.com/oauth/callback').fill(redirectUri);
     await page.getByText('documents:write').click();
     await page.getByRole('button', { name: 'Create App' }).click();
-    await expect(page.locator('code', { hasText: /^ship_secret_/ })).toBeVisible({ timeout: 15000 });
+    const createdSecret = page.locator('code', { hasText: /^ship_secret_/ });
+    await expect(createdSecret).toBeVisible({ timeout: 15000 });
+    await expectNoBrowserSecret(page, await textContentOrThrow(createdSecret));
     await page.getByRole('button', { name: 'Dismiss' }).click();
 
     const createdApp = await findPlatformApp(page, apiServer.url, appName);
+    await expect(page.getByText(createdApp.client_id).first()).toBeVisible();
+    await page.getByLabel('Revoke previous immediately').check();
+    await page.getByRole('button', { name: 'Rotate' }).click();
+    const rotatedSecret = page.locator('code', { hasText: /^ship_secret_/ });
+    await expect(rotatedSecret).toBeVisible({ timeout: 15000 });
+    await expectNoBrowserSecret(page, await textContentOrThrow(rotatedSecret));
+    await page.getByRole('button', { name: 'Dismiss' }).click();
+    await expect(page.locator('code', { hasText: /^ship_secret_/ })).toHaveCount(0);
+
     await page.getByPlaceholder('https://hooks.example.com/ship').fill(targetUrl);
     await page.getByRole('button', { name: 'Add' }).click();
     await expect(page.getByText(targetUrl)).toBeVisible({ timeout: 15000 });
@@ -89,9 +100,11 @@ test('developer portal replays a DLQ webhook with the original idempotency key',
     });
 
     receiver.mode = 'fail';
+    const publicRequestId = `developer-ops-${Date.now()}`;
     const documentResponse = await page.request.post(`${apiServer.url}/api/v1/documents`, {
       headers: {
         Authorization: `Bearer ${token.access_token}`,
+        'x-request-id': publicRequestId,
       },
       data: {
         title: `portal webhook drill ${Date.now()}`,
@@ -112,6 +125,8 @@ test('developer portal replays a DLQ webhook with the original idempotency key',
       await page.getByRole('button', { name: 'Refresh' }).click();
       await expect(page.getByText(idempotencyKey)).toBeVisible({ timeout: 3000 });
       await expect(page.getByText('dlq', { exact: true })).toBeVisible({ timeout: 3000 });
+      await expect(page.getByText(publicRequestId)).toBeVisible({ timeout: 3000 });
+      await expect(page.getByText('POST /api/v1/documents')).toBeVisible({ timeout: 3000 });
     }).toPass({ timeout: 15000 });
 
     receiver.mode = 'success';
@@ -131,6 +146,20 @@ async function findPlatformApp(page: Page, apiUrl: string, appName: string) {
   const app = body.data?.apps.find(candidate => candidate.name === appName);
   if (!app) throw new Error(`Could not find platform app ${appName}`);
   return app;
+}
+
+async function textContentOrThrow(locator: ReturnType<Page['locator']>): Promise<string> {
+  const text = await locator.textContent();
+  if (!text) throw new Error('Expected visible secret text');
+  return text;
+}
+
+async function expectNoBrowserSecret(page: Page, secret: string): Promise<void> {
+  const storageSnapshot = await page.evaluate(() => JSON.stringify({
+    localStorage: { ...window.localStorage },
+    sessionStorage: { ...window.sessionStorage },
+  }));
+  expect(storageSnapshot).not.toContain(secret);
 }
 
 async function issueWriteToken(

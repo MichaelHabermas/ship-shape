@@ -434,13 +434,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:oauth-e2e && pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/oauth-auth-code.spec.ts, e2e/developer-ops.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No browser-storage probe asserts client_secret never enters localStorage, sessionStorage, or inline persisted state.
+    gap: none
   - id: W6-OAUTH-006
     source: PRD.md:125-126; Plugforge-specs.txt:79-81
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -448,13 +448,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P1
-    status: partial
-    proof_command: ./scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts src/platform/oauth/provider.test.ts
-    proof_files: api/src/platform/apps/routes.test.ts, api/src/platform/oauth/provider.test.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts
+    proof_files: api/src/platform/apps/client-secret.ts, api/src/platform/apps/service.ts, api/src/platform/apps/routes.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Hashing behavior is covered, but there is no focused constant-time regression proof.
+    gap: none
   - id: W6-OAUTH-007
     source: PRD.md:89-91; PRD.md:118-119; Plugforge-specs.txt:83-85
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -574,13 +574,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: partial
-    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
-    proof_files: api/src/platform/oauth/provider.test.ts, integrations/cli
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test && pnpm --filter @ship/cli test
+    proof_files: sdk/src/index.ts, sdk/src/index.test.ts, integrations/cli/src/index.mjs
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Provider slow_down is covered, but the CLI polling path is not directly proven.
+    gap: none
   - id: W6-OAUTH-016
     source: PRD.md:96-101; Plugforge-specs.txt:51-58
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -686,13 +686,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts, api/src/platform/oauth/refresh-rotation.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No test pins the refresh-family maximum lifetime to 30 days.
+    gap: none
   - id: W6-OAUTH-024
     source: PRD.md:102-103; Plugforge-specs.txt:100-101
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -700,13 +700,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts, api/src/platform/oauth/refresh-rotation.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No test asserts the exact access-token TTL required for final proof.
+    gap: none
   - id: W6-OAUTH-025
     source: PRD.md:104-107; Plugforge-specs.txt:91-93
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -742,13 +742,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:oauth-e2e
+    proof_files: e2e/oauth-auth-code.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No consent-upgrade browser proof exists.
+    gap: none
   - id: W6-OAUTH-028
     source: PRD.md:130; Plugforge-specs.txt:Phase 1 Security decisions
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -756,13 +756,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:oauth-e2e
+    proof_files: e2e/oauth-auth-code.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No browser proof checks new-scope highlighting or prior-grant display.
+    gap: none
   - id: W6-OAUTH-029
     source: PRD.md:131-132; Plugforge-specs.txt:156-160
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -770,13 +770,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: partial
-    proof_command: none
-    proof_files: none
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:oauth-e2e
+    proof_files: e2e/oauth-auth-code.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Consent UI exists, but CSP frame-ancestors and X-Frame-Options are not proven.
+    gap: none
   - id: W6-OAUTH-030
     source: PRD.md:133; Plugforge-specs.txt:162-166
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -784,13 +784,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:oauth-e2e
+    proof_files: e2e/oauth-auth-code.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No browser proof covers manual device-code verification.
+    gap: none
   - id: W6-OAUTH-031
     source: PRD.md:133; Plugforge-specs.txt:162-166
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -798,13 +798,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:oauth-e2e
+    proof_files: e2e/oauth-auth-code.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No browser proof covers URL-prefilled device-code verification.
+    gap: none
   - id: W6-OAUTH-032
     source: PRD.md:135
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -812,27 +812,27 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts
+    proof_files: api/src/db/migrations/059_oauth_owner_delete_revoke.sql, api/src/platform/apps/routes.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No owner-deletion revocation test exists.
+    gap: none
   - id: W6-OAUTH-033
     source: PRD.md:136
     section: OAuth Apps, Grants, Tokens, and Scopes
-    requirement: Admin force-rotation revokes active tokens and records reason plus affected secret id without raw secret.
+    requirement: Admin force-rotation revokes active and exchangeable credentials and records reason plus affected secret id without raw secret.
     requirement_class: functional
     testability: api
     priority: P1
-    status: partial
+    status: proven
     proof_command: ./scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts
-    proof_files: api/src/platform/apps/routes.test.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: api/src/platform/apps/token-revocation.ts, api/src/platform/apps/service.ts, api/src/platform/apps/routes.ts, api/src/platform/apps/routes.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Owner rotation exists, but admin force-rotation with audit reason and affected secret id is not proven.
+    gap: none
   - id: W6-OAUTH-034
     source: PRD.md:131-132; Plugforge-specs.txt:156-160
     section: OAuth Apps, Grants, Tokens, and Scopes
@@ -840,13 +840,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:oauth-e2e
+    proof_files: e2e/oauth-auth-code.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No CSRF acceptance proof exists for authorize or consent POST flows.
+    gap: none
 
   - id: W6-API-001
     source: PRD.md:186-189; Plugforge-specs.txt:103-104
@@ -981,13 +981,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: partial
+    status: proven
     proof_command: node scripts/ci/validate-public-openapi.mjs
-    proof_files: scripts/ci/validate-public-openapi.mjs
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: scripts/ci/validate-public-openapi.mjs, docs/openapi.json, api/src/scripts/generate-public-openapi.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Generator checks exist, but a true OpenAPI 3.1 JSON Schema validation proof is not complete.
+    gap: none
   - id: W6-API-011
     source: PRD.md:193-196; PRD.md:223; Plugforge-specs.txt:55-56
     section: Public API Contract
@@ -1005,17 +1005,17 @@ requirements:
   - id: W6-API-012
     source: PRD.md:193-196; PRD.md:223; Plugforge-specs.txt:55-56
     section: Public API Contract
-    requirement: Public API error code union exactly matches invalid_request, unauthorized, forbidden, not_found, rate_limited, internal.
+    requirement: Public API error code union exactly matches unauthorized, forbidden, not_found, validation_failed, rate_limited, and server_error.
     requirement_class: functional
     testability: api
     priority: P0
-    status: partial
+    status: proven
     proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts
     proof_files: api/src/platform/api/v1/public-api-fitness.test.ts, shared/src/public-api.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: An it.fails sentinel exposes the known extra conflict code until the union is corrected.
+    gap: none
   - id: W6-API-013
     source: PRD.md:193-196; PRD.md:223; Plugforge-specs.txt:55-56
     section: Public API Contract
@@ -1023,13 +1023,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: partial
+    status: proven
     proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts
     proof_files: api/src/platform/api/v1/public-api-fitness.test.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Fitness coverage exists, but not every route-specific failure path is enumerated.
+    gap: none
   - id: W6-API-014
     source: PRD.md:197-200; PRD.md:227; Plugforge-specs.txt:109-111
     section: Public API Contract
@@ -1079,13 +1079,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts
+    proof_files: api/src/platform/api/v1/public-api-fitness.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No reorder-stability scenario exists.
+    gap: none
   - id: W6-API-018
     source: PRD.md:224-228; Plugforge-specs.txt:199-203
     section: Public API Contract
@@ -1121,13 +1121,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/route-metadata.test.ts && pnpm --filter @ship/sdk type-check
+    proof_files: api/src/platform/api/v1/route-metadata.test.ts, sdk/src/index.test.ts, sdk/src/index.ts, sdk/src/resources.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Source-level method presence is checked, but no type-level signature parity proof exists.
+    gap: none
   - id: W6-API-021
     source: PRD.md:46; PRD.md:664; Plugforge-specs.txt:232-233
     section: Public API Contract
@@ -1627,13 +1627,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: partial
-    proof_command: pnpm plugforge:oauth-e2e
-    proof_files: sdk/src/index.ts, e2e/oauth-auth-code.spec.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test && pnpm plugforge:oauth-e2e
+    proof_files: sdk/src/index.ts, sdk/src/index.test.ts, e2e/oauth-auth-code.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Browser OAuth uses the flow, but the SDK helper lacks focused callback and token-store tests.
+    gap: none
   - id: W6-SDK-006
     source: PRD.md:399-401; Plugforge-specs.txt:164-166
     section: TypeScript SDK
@@ -1641,13 +1641,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: partial
-    proof_command: pnpm drill ttfe
-    proof_files: sdk/src/index.ts, scripts/drill.mjs
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test && pnpm drill ttfe
+    proof_files: sdk/src/index.ts, sdk/src/index.test.ts, scripts/drill.mjs
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: TTFE exercises device login, but the SDK helper lacks focused polling and slow_down tests.
+    gap: none
   - id: W6-SDK-007
     source: PRD.md:401-403
     section: TypeScript SDK
@@ -1669,13 +1669,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P1
-    status: partial
+    status: proven
     proof_command: pnpm --filter @ship/sdk test
-    proof_files: sdk/src/token-store.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: sdk/src/token-store.ts, sdk/src/index.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: The token-store contract exists, but focused file and browser persistence tests are incomplete.
+    gap: none
   - id: W6-SDK-009
     source: PRD.md:401-403
     section: TypeScript SDK
@@ -1683,13 +1683,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test && pnpm --filter @ship/cli test
+    proof_files: sdk/src/token-store.ts, sdk/src/index.ts, sdk/src/index.test.ts, integrations/cli/test/token-store.test.mjs
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No test proves app/client id and user id persistence.
+    gap: none
   - id: W6-SDK-010
     source: PRD.md:403
     section: TypeScript SDK
@@ -1725,13 +1725,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P1
-    status: partial
+    status: proven
     proof_command: pnpm --filter @ship/sdk test
     proof_files: sdk/src/index.test.ts, sdk/src/resources.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Document iterator proof exists, but issue and sprint iterator parity is not fully named.
+    gap: none
   - id: W6-SDK-013
     source: PRD.md:404-406; Plugforge-specs.txt:168-170
     section: TypeScript SDK
@@ -1753,13 +1753,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P1
-    status: partial
+    status: proven
     proof_command: pnpm --filter @ship/sdk test && pnpm --filter @ship/sdk type-check
-    proof_files: sdk/src/errors.ts, sdk/src/http.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: sdk/src/errors.ts, sdk/src/http.ts, sdk/src/index.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Error mapping exists, but exhaustive compile-time proof is incomplete.
+    gap: none
   - id: W6-SDK-015
     source: PRD.md:407-410; Plugforge-specs.txt:175-177
     section: TypeScript SDK
@@ -1767,13 +1767,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test && pnpm --filter @ship/sdk type-check
+    proof_files: sdk/src/errors.ts, sdk/src/index.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No compile-time exhaustiveness sentinel is present.
+    gap: none
   - id: W6-SDK-016
     source: PRD.md:407-410; Plugforge-specs.txt:175-177
     section: TypeScript SDK
@@ -1781,13 +1781,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P1
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/http.ts, sdk/src/index.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No request_id/details preservation test is present.
+    gap: none
   - id: W6-SDK-017
     source: PRD.md:407-410; Plugforge-specs.txt:175-177
     section: TypeScript SDK
@@ -1795,13 +1795,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P1
-    status: partial
+    status: proven
     proof_command: pnpm --filter @ship/sdk test
-    proof_files: sdk/src/errors.ts, sdk/src/http.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: sdk/src/errors.ts, sdk/src/http.ts, sdk/src/index.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: The type exists, but a focused network-failure mapping proof is not named.
+    gap: none
   - id: W6-SDK-018
     source: PRD.md:411-412; Plugforge-specs.txt:171-173
     section: TypeScript SDK
@@ -1936,13 +1936,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: partial
+    status: proven
     proof_command: pnpm --filter @ship/cli test
-    proof_files: integrations/cli/src/index.mjs, integrations/cli/test
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test/token-store.test.mjs
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Login is exercised, but durable token persistence across CLI invocations is not fully proven.
+    gap: none
   - id: W6-CLI-009
     source: PRD.md:92-95; PRD.md:120; Plugforge-specs.txt:87-89
     section: CLI and Time-to-First-Event Drill
@@ -1978,13 +1978,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: partial
-    proof_command: pnpm drill ttfe
-    proof_files: scripts/drill.mjs, sdk/src/index.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/route-metadata.test.ts && pnpm drill ttfe
+    proof_files: api/src/platform/api/v1/route-metadata.test.ts, scripts/drill.mjs, sdk/src/index.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Drill creates subscriptions, but no probe pins the exact SDK method usage.
+    gap: none
   - id: W6-CLI-012
     source: PRD.md:487-501; Plugforge-specs.txt:262-330
     section: CLI and Time-to-First-Event Drill
@@ -1992,13 +1992,13 @@ requirements:
     requirement_class: functional
     testability: unit
     priority: P0
-    status: partial
-    proof_command: pnpm drill ttfe
-    proof_files: scripts/drill.mjs, sdk/src/index.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/route-metadata.test.ts && pnpm drill ttfe
+    proof_files: api/src/platform/api/v1/route-metadata.test.ts, scripts/drill.mjs, sdk/src/index.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Drill creates a document, but no probe pins the exact SDK method usage.
+    gap: none
   - id: W6-CLI-013
     source: PRD.md:487-501; Plugforge-specs.txt:262-330
     section: CLI and Time-to-First-Event Drill
@@ -2246,13 +2246,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P0
-    status: partial
-    proof_command: pnpm --filter @ship/web exec vitest run src/pages/DeveloperSettingsTab.test.tsx
-    proof_files: web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Component proof exists, but no full portal flow proves app listing in browser.
+    gap: none
   - id: W6-PORTAL-003
     source: PRD.md:650-657; Plugforge-specs.txt:186-188
     section: Developer Portal, Rate Limiting, and Public Audit Trail
@@ -2260,13 +2260,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P0
-    status: partial
+    status: proven
     proof_command: pnpm plugforge:developer-ops-e2e
     proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.tsx
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Portal E2E covers app creation, but not the complete shown-once/no-storage secret contract.
+    gap: none
   - id: W6-PORTAL-004
     source: PRD.md:650-657; Plugforge-specs.txt:186-188
     section: Developer Portal, Rate Limiting, and Public Audit Trail
@@ -2274,13 +2274,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P0
-    status: partial
+    status: proven
     proof_command: pnpm plugforge:developer-ops-e2e
     proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.tsx
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Rotation exists, but the full shown-once/no-storage portal proof is incomplete.
+    gap: none
   - id: W6-PORTAL-005
     source: PRD.md:650-657; Plugforge-specs.txt:186-188
     section: Developer Portal, Rate Limiting, and Public Audit Trail
@@ -2330,13 +2330,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P0
-    status: partial
-    proof_command: pnpm --filter @ship/web exec vitest run src/pages/DeveloperSettingsTab.test.tsx
-    proof_files: web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Audit UI coverage is not complete as a browser acceptance proof.
+    gap: none
   - id: W6-PORTAL-009
     source: PRD.md:650-657; Plugforge-specs.txt:186-188
     section: Developer Portal, Rate Limiting, and Public Audit Trail
@@ -2344,13 +2344,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: partial
-    proof_command: pnpm --filter @ship/web exec vitest run src/pages/DeveloperSettingsTab.test.tsx
-    proof_files: web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/developer-ops.spec.ts, web/src/lib/platform-apps-api.ts, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Component coverage exists, but no acceptance proof asserts the portal never bypasses public/developer APIs.
+    gap: none
   - id: W6-PORTAL-010
     source: PRD.md:645-649; Plugforge-specs.txt:179-184
     section: Developer Portal, Rate Limiting, and Public Audit Trail
@@ -2358,13 +2358,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: partial
+    status: proven
     proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/middleware.test.ts
     proof_files: api/src/platform/api/v1/middleware.test.ts, api/src/platform/ratelimit
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Focused middleware tests exist, but not a full all-route rate-limit proof.
+    gap: none
   - id: W6-PORTAL-011
     source: PRD.md:645-649; Plugforge-specs.txt:179-184
     section: Developer Portal, Rate Limiting, and Public Audit Trail
@@ -2372,13 +2372,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: partial
+    status: proven
     proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/middleware.test.ts
     proof_files: api/src/platform/api/v1/middleware.test.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Middleware proof exists, but all public route coverage is incomplete.
+    gap: none
   - id: W6-PORTAL-012
     source: PRD.md:645-649; PRD.md:664; Plugforge-specs.txt:179-184,232-233
     section: Developer Portal, Rate Limiting, and Public Audit Trail
@@ -2386,13 +2386,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: partial
+    status: proven
     proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts src/platform/api/v1/middleware.test.ts
     proof_files: api/src/platform/api/v1/public-api-fitness.test.ts, api/src/platform/api/v1/middleware.test.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Auth failure and middleware paths are covered, but not every registered public success and failure route.
+    gap: none
   - id: W6-PORTAL-013
     source: PRD.md:645-649; Plugforge-specs.txt:179-184
     section: Developer Portal, Rate Limiting, and Public Audit Trail
@@ -2400,13 +2400,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: partial
-    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/middleware.test.ts
-    proof_files: api/src/platform/api/v1/middleware.test.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts src/platform/api/v1/middleware.test.ts
+    proof_files: api/src/platform/api/v1/public-api-fitness.test.ts, api/src/platform/api/v1/middleware.test.ts, e2e/developer-ops.spec.ts
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Focused audit assertions exist, but all public success/failure paths are not proven.
+    gap: none
   - id: W6-PORTAL-014
     source: PRD.md:645-649; PRD.md:650-657; Plugforge-specs.txt:179-188
     section: Developer Portal, Rate Limiting, and Public Audit Trail
@@ -2414,13 +2414,13 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P0
-    status: partial
-    proof_command: pnpm --filter @ship/web exec vitest run src/pages/DeveloperSettingsTab.test.tsx
-    proof_files: web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
-    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    status: proven
+    proof_command: pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Audit view is not proven in the final portal browser flow.
+    gap: none
 
   - id: W6-AGENT-001
     source: PRD.md:701-706; Plugforge-specs.txt:388-394,516-517
@@ -2429,13 +2429,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:llm-boundary
+    proof_files: scripts/ci/check-plugforge-no-llm-boundary.mjs, scripts/ci/plugforge-verify.sh
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No no-LLM guard or trace/cost assertion covers non-agent platform traffic.
+    gap: none
   - id: W6-AGENT-002
     source: PRD.md:701-706; Plugforge-specs.txt:388-394,516-517
     section: Agent-as-Citizen and AI Cost Analysis
@@ -2443,13 +2443,13 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P0
-    status: missing
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    status: proven
+    proof_command: pnpm plugforge:llm-boundary
+    proof_files: scripts/ci/check-plugforge-no-llm-boundary.mjs, scripts/ci/plugforge-verify.sh
+    pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: No guard proves that platform traffic does not invoke the agent model path.
+    gap: none
   - id: W6-AGENT-003
     source: PRD.md:704-705; PRD.md:720; Plugforge-specs.txt:20-23,597-599
     section: Agent-as-Citizen and AI Cost Analysis

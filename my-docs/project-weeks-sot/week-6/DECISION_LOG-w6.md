@@ -82,8 +82,8 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 
 ## 2026-06-03 — Public API Follow-Up Hardening
 
-- Public `PATCH /api/v1/issues/:id` returns `code: conflict` with typed `details.incomplete_children` when closing a parent with open sub-issues; `confirm_orphan_children: true` remains the retry path.
-- `conflict` is a first-class `PUBLIC_API_ERROR_CODES` value distinct from `validation_failed`.
+- Public `PATCH /api/v1/issues/:id` keeps HTTP `409` for parent close attempts with incomplete children, but canon wins: the public `ApiError.code` is `validation_failed` and the machine conflict reason lives in `details.reason: "incomplete_children"`.
+- `conflict` is not a public `PUBLIC_API_ERROR_CODES` value; the exact public union is `unauthorized | forbidden | not_found | validation_failed | rate_limited | server_error`.
 - `pnpm drill ttfe` always resolves `ship_test_audit` via `resolve-database-url.sh`; only `TTFE_DATABASE_URL` overrides. Shell `DATABASE_URL` is ignored so fixtures and API cannot diverge.
 - Plugforge CI regenerates `docs/openapi.json` and fails on drift; registry `operationId`s must match `route-openapi-contracts.ts` keys and the committed spec operation set.
 - `exchangeAuthorizationCode` is exported from `provider.ts` via `refresh-rotation.ts` (not re-exported through `authorization-code.ts`).
@@ -103,6 +103,13 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 ## 2026-06-03 — External Client Proof Pack
 
 - The final bar is `pnpm plugforge:final`: MVP verify, TTFE, refresh-token theft drill, webhook replay/idempotency drill, SDK/OpenAPI parity, integration boundary proof, FleetGraph public audit proof, Slack/GitLab checks, and docs drift checks.
+
+## 2026-06-04 — External Developer Trust Boundary Closure
+
+- Closed the scoped `OAUTH,API,PORTAL,SDK,CLI,AGENT` proof boundary by retiring the remaining missing/partial atoms, including discovered `W6-API-020`.
+- Canon is explicit: public error codes exclude `conflict`; incomplete-child issue close keeps HTTP `409` with `code: validation_failed` and `details.reason: "incomplete_children"`.
+- `pnpm plugforge:ledger:enforce -- --area OAUTH,API,PORTAL,SDK,CLI,AGENT --status missing,partial` is now the boundary definition-of-done gate and passes.
+- Are-you-sure follow-up kept global `pnpm plugforge:ledger:enforce` failing as expected for unrelated Week 6 gaps, but fixed scoped proof hygiene: stale pending IDs removed, orphaned third-party OAuth apps backfilled/revoked in migration 059, force-rotation now invalidates unconsumed auth codes and device grants, pre-auth 429 audit uses production router order, portal secret storage is checked, consent CSRF failure is tested, and SDK/OpenAPI parity has a compile-time sentinel.
 - Reference integrations are SDK-only packages under `integrations/slack` and `integrations/gitlab`; the boundary checker blocks `api/src`, `web/src`, `shared`, `@ship/shared`, aliases, `require()`, and dynamic internal imports.
 - Public GitLab linking uses the smallest public issue seam: `POST /api/v1/issues/:id/external-links` and `client.issues.upsertExternalLink()`. Links live in issue document `properties.external_links`; no schema migration.
 - External links are idempotent by `provider + external_id` and expose only public issue metadata: provider, external id, kind, URL, title, optional status, and server timestamps.

@@ -57,6 +57,9 @@ const appDeliveryParamsSchema = z.object({
 
 const rotateSecretSchema = z.object({
   revoke_previous_immediately: z.boolean().optional().default(false),
+  force_revoke_tokens: z.boolean().optional().default(false),
+  revocation_reason: z.string().trim().min(1).max(200).optional(),
+  revocation_evidence: z.record(z.unknown()).optional(),
 });
 
 const router = Router();
@@ -159,6 +162,8 @@ router.post('/:appId/secrets/rotate', async (req: Request, res: Response): Promi
       workspaceId,
       actorUserId: userId,
       revokePreviousImmediately: body.data.revoke_previous_immediately,
+      revokeActiveTokens: body.data.force_revoke_tokens,
+      tokenRevocationReason: body.data.revocation_reason,
     });
     await logAuditEvent({
       workspaceId,
@@ -170,6 +175,9 @@ router.post('/:appId/secrets/rotate', async (req: Request, res: Response): Promi
         client_secret_id: rotated.client_secret_id,
         previous_secret_expires_at: rotated.previous_secret_expires_at,
         revoked_previous_immediately: body.data.revoke_previous_immediately,
+        revoked_token_count: rotated.revoked_token_count,
+        revocation_reason: body.data.revocation_reason ?? null,
+        revocation_evidence: body.data.revocation_evidence ?? null,
       },
       req,
     });

@@ -11,6 +11,7 @@ pnpm plugforge:ledger
 pnpm openapi:check:strict
 bash ./scripts/ci/check-public-openapi-drift.sh
 pnpm plugforge:integrations:check
+pnpm plugforge:llm-boundary
 node --test ./scripts/ci/check-integration-boundary.test.mjs
 
 ./scripts/run-api-tests.sh -- \

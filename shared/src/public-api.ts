@@ -24,7 +24,6 @@ export const PUBLIC_API_ERROR_CODES = [
   'forbidden',
   'not_found',
   'validation_failed',
-  'conflict',
   'rate_limited',
   'server_error',
 ] as const;

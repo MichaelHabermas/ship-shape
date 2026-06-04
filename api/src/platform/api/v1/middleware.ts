@@ -147,6 +147,11 @@ export function consumePublicApiPreAuthRateLimit(
   return { requestId, result };
 }
 
+export function setPublicApiRateLimitBucketForTest(key: string, bucket: RateBucket): void {
+  if (!isTestEnv()) throw new Error('setPublicApiRateLimitBucketForTest is test-only');
+  rateBuckets.set(key, bucket);
+}
+
 export function requirePublicApiBearer(requiredScopes: readonly PublicApiScope[]) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const requestId = publicApiRequestIdFromRequest(req);

@@ -449,9 +449,9 @@ function sendMutationError(
 
   if (status === 409 && body.error === 'incomplete_children') {
     const details = buildIncompleteChildrenDetails(body);
-    req.publicApiErrorCode = 'conflict';
+    req.publicApiErrorCode = 'validation_failed';
     sendPublicApiError(res, status, {
-      code: 'conflict',
+      code: 'validation_failed',
       message: typeof body.message === 'string' ? body.message : 'Issue update conflict',
       details,
       request_id: requestId,
