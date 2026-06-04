@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { cn } from '@/lib/cn';
 import { formatDateRange } from '@/lib/date-utils';
-import { ChevronIcon, SprintCell, ViewAsIcon } from './team-mode/TeamModeSprintCell';
+import { SprintCell } from './team-mode/TeamModeSprintCell';
+import { ChevronIcon, ViewAsIcon } from './team-mode/TeamModeIcons';
 import { useTeamModeGrid } from './team-mode/useTeamModeGrid';
 
 export function TeamModePage(): ReactElement {
@@ -75,6 +76,7 @@ export function TeamModePage(): ReactElement {
           {hasDirectReports && (
             <div className="flex rounded-md border border-border text-xs">
               <button
+                type="button"
                 onClick={() => setFilterMode('my-team')}
                 className={cn(
                   'px-2 py-0.5 transition-colors',
@@ -86,6 +88,7 @@ export function TeamModePage(): ReactElement {
                 My Team
               </button>
               <button
+                type="button"
                 onClick={() => setFilterMode('everyone')}
                 className={cn(
                   'px-2 py-0.5 transition-colors',
@@ -108,6 +111,7 @@ export function TeamModePage(): ReactElement {
             />
             {nameFilter && (
               <button
+                type="button"
                 onClick={() => setNameFilter('')}
                 className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-foreground"
               >
@@ -121,6 +125,7 @@ export function TeamModePage(): ReactElement {
             <div className="flex items-center gap-1.5 rounded-md border border-accent/30 bg-accent/10 px-2 py-0.5 text-xs text-accent">
               <span>Viewing as {data.weeks.find(w => w.number === viewAsSprintNumber)?.name ?? `Week ${viewAsSprintNumber}`}</span>
               <button
+                type="button"
                 onClick={() => setViewAsSprintNumber(null)}
                 className="ml-0.5 rounded p-0.5 hover:bg-accent/20"
                 title="Return to current week"
@@ -134,6 +139,7 @@ export function TeamModePage(): ReactElement {
         </div>
         <div className="flex items-center gap-4">
           <button
+            type="button"
             onClick={() => setShowPastWeeks(prev => !prev)}
             className={cn(
               'flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs transition-colors',
@@ -184,6 +190,7 @@ export function TeamModePage(): ReactElement {
                   <div key={groupKey}>
                     {/* Program group header */}
                     <button
+                      type="button"
                       onClick={() => toggleProgramCollapse(group.programId)}
                       className="flex h-8 w-[180px] items-center gap-2 border-b border-border bg-border/30 px-3 hover:bg-border/50 transition-colors cursor-pointer"
                     >
@@ -284,6 +291,7 @@ export function TeamModePage(): ReactElement {
                     </span>
                     {showViewAsButton && (
                       <button
+                        type="button"
                         onClick={() => setViewAsSprintNumber(sprint.number)}
                         title="View as current week"
                         className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted opacity-0 transition-opacity hover:bg-border/50 hover:text-foreground group-hover:opacity-100"
@@ -384,11 +392,12 @@ export function TeamModePage(): ReactElement {
 
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
-                <button className="rounded-md px-4 py-2 text-sm text-muted hover:bg-border">
+                <button type="button" className="rounded-md px-4 py-2 text-sm text-muted hover:bg-border">
                   Cancel
                 </button>
               </Dialog.Close>
               <button
+                type="button"
                 onClick={() => {
                   lastPersonDialog?.onConfirm();
                   setLastPersonDialog(null);

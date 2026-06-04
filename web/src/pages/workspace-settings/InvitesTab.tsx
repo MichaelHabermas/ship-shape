@@ -124,6 +124,7 @@ export function InvitesTab({
                   </td>
                   <td className="px-4 py-3 text-right space-x-3">
                     <button
+                      type="button"
                       onClick={() => handleCopyLink(invite)}
                       className={cn(
                         'text-sm transition-colors',
@@ -135,6 +136,7 @@ export function InvitesTab({
                       {copiedId === invite.id ? 'Copied!' : 'Copy Link'}
                     </button>
                     <button
+                      type="button"
                       onClick={() => onRevoke(invite.id)}
                       className="text-sm text-red-500 hover:text-red-400 transition-colors"
                     >

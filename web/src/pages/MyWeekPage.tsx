@@ -139,6 +139,7 @@ export function MyWeekPage() {
         </div>
         <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={() => navigateToWeek(week.week_number - 1)}
             className="p-1.5 rounded hover:bg-border/50 text-muted hover:text-foreground transition-colors"
             aria-label="Previous week"
@@ -149,6 +150,7 @@ export function MyWeekPage() {
           </button>
           <span className="text-sm text-muted px-1.5">{formatDateRange(week.start_date, week.end_date)}</span>
           <button
+            type="button"
             onClick={() => navigateToWeek(week.week_number + 1)}
             className="p-1.5 rounded hover:bg-border/50 text-muted hover:text-foreground transition-colors"
             aria-label="Next week"
@@ -201,6 +203,7 @@ export function MyWeekPage() {
                 </Link>
               ) : (
                 <button
+                  type="button"
                   onClick={() => handleCreateRetro(previous_retro.week_number)}
                   disabled={creating === 'retro'}
                   className="text-xs font-medium text-orange-300 hover:text-orange-200 underline disabled:opacity-50"
@@ -255,6 +258,7 @@ export function MyWeekPage() {
               const isDue = week.week_number <= week.current_week_number && projects.length > 0;
               return (
                 <button
+                  type="button"
                   onClick={handleCreatePlan}
                   disabled={creating === 'plan'}
                   className={cn(
@@ -320,6 +324,7 @@ export function MyWeekPage() {
               const isDue = retroDueForWeek && projects.length > 0;
               return (
                 <button
+                  type="button"
                   onClick={() => handleCreateRetro(week.week_number)}
                   disabled={creating === 'retro'}
                   className={cn(
@@ -397,6 +402,7 @@ export function MyWeekPage() {
 
               return (
                 <button
+                  type="button"
                   key={slot.date}
                   onClick={() => handleCreateStandup(slot.date)}
                   disabled={creating === `standup-${slot.date}`}

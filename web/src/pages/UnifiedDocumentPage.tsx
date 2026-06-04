@@ -392,6 +392,7 @@ export function UnifiedDocumentPage() {
           {error?.message || 'Document not found'}
         </div>
         <button
+          type="button"
           onClick={() => navigate('/docs')}
           className="text-sm text-accent hover:underline"
         >
@@ -408,6 +409,7 @@ export function UnifiedDocumentPage() {
           This document type cannot be opened in the editor.
         </div>
         <button
+          type="button"
           onClick={() => navigate('/docs')}
           className="text-sm text-accent hover:underline"
         >

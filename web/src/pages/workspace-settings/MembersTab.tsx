@@ -85,6 +85,7 @@ export function MembersTab({
                   <td className="px-4 py-3 text-right">
                     {isArchived ? (
                       <button
+                        type="button"
                         onClick={() => onRestoreMember(member.userId)}
                         className="text-sm text-accent hover:text-accent/80 transition-colors"
                       >
@@ -93,6 +94,7 @@ export function MembersTab({
                     ) : (
                       !isSelf && !isLastAdmin && (
                         <button
+                          type="button"
                           onClick={() => onArchiveMember(member.userId)}
                           className="text-sm text-red-500 hover:text-red-400 transition-colors"
                         >

@@ -91,7 +91,8 @@
     "fleetgraph:proof:test": "node --test ./scripts/fleetgraph-proof/*.test.mjs",
     "trace:smoke": "pnpm --filter @ship/api trace:smoke",
     "prepare": "husky",
-    "postinstall": "git config merge.ours.driver true && (command -v comply >/dev/null 2>&1 || echo '\\n⚠️  comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n')"
+    "postinstall": "git config merge.ours.driver true && (command -v comply >/dev/null 2>&1 || echo '\\n⚠️  comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n')",
+    "doctor": "npx react-doctor@latest"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -113,6 +114,7 @@
     "husky": "^9.1.7",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.3",
+    "react-doctor": "^0.3.0",
     "supertest": "^7.1.4",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.59.4",

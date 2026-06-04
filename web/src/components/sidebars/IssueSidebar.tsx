@@ -444,6 +444,7 @@ export function IssueSidebar({
       {onConvert && (
         <div className="pt-4 mt-4 border-t border-border">
           <button
+            type="button"
             onClick={onConvert}
             disabled={isConverting}
             className="w-full rounded bg-accent/20 px-3 py-2 text-sm font-medium text-accent hover:bg-accent/30 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
