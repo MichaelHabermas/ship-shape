@@ -1,12 +1,12 @@
 {
   "flow": "matrix",
-  "run_id": "plugforge-1780612028378-5ef8ea38",
-  "generated_at": "2026-06-04T22:28:10.010Z",
+  "run_id": "plugforge-1780613501251-52ad6888",
+  "generated_at": "2026-06-04T22:52:42.971Z",
   "status": "passed",
   "reference_flows": {
-    "slack": "2026-06-04T22:27:11.970Z",
-    "gitlab": "2026-06-04T22:27:14.402Z",
-    "browser": "2026-06-04T22:27:33.084Z"
+    "slack": "2026-06-04T22:51:44.734Z",
+    "gitlab": "2026-06-04T22:51:47.070Z",
+    "browser": "2026-06-04T22:52:07.203Z"
   },
   "matrix_flows": [
     "cli_ttfe",
@@ -19,17 +19,17 @@
   "steps": [
     {
       "command": "pnpm drill ttfe",
-      "duration_ms": 9929,
+      "duration_ms": 9865,
       "exit_code": 0
     },
     {
       "command": "./scripts/run-api-tests.sh -- src/platform/oauth/refresh-theft-drill.test.ts src/platform/api/v1/webhooks.test.ts",
-      "duration_ms": 2645,
+      "duration_ms": 2973,
       "exit_code": 0
     },
     {
       "command": "pnpm plugforge:developer-ops-e2e",
-      "duration_ms": 21602,
+      "duration_ms": 21499,
       "exit_code": 0
     }
   ]

@@ -1,8 +1,7 @@
 image: node:20-bookworm
 
 stages:
-  - verify
-  - ttfe
+  - submission
 
 variables:
   CI: "true"
@@ -12,50 +11,12 @@ variables:
   DATABASE_URL: postgresql://ship:ship_dev_password@postgres:5432/ship_test_audit
   TTFE_DATABASE_URL: postgresql://ship:ship_dev_password@postgres:5432/ship_test_audit
 
-.default_node_job:
+.default_submission_job:
+  stage: submission
+  image: node:20-bookworm
   services:
     - name: postgres:16
       alias: postgres
-  cache:
-    key:
-      files:
-        - pnpm-lock.yaml
-    paths:
-      - .pnpm-store/
-      - .pnpm/
-  before_script:
-    - export PNPM_HOME="$CI_PROJECT_DIR/.pnpm"
-    - export PATH="$PNPM_HOME:$PATH"
-    - corepack enable
-    - corepack prepare pnpm@10.27.0 --activate
-    - pnpm config set store-dir .pnpm-store
-    - apt-get update
-    - apt-get install -y --no-install-recommends postgresql-client
-    - rm -rf /var/lib/apt/lists/*
-    - |
-      for attempt in $(seq 1 30); do
-        if pg_isready -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB"; then
-          break
-        fi
-        if [ "$attempt" = "30" ]; then
-          echo "Postgres service did not become ready after 30 attempts"
-          exit 1
-        fi
-        sleep 1
-      done
-    - pnpm install --frozen-lockfile
-
-verify:
-  extends: .default_node_job
-  stage: verify
-  script:
-    - chmod +x ./scripts/ci/plugforge-verify.sh
-    - ./scripts/ci/plugforge-verify.sh
-
-plugforge-oauth-e2e:
-  stage: verify
-  image: node:20-bookworm
-  services:
     - name: docker:24-dind
       alias: docker
   variables:
@@ -75,8 +36,19 @@ plugforge-oauth-e2e:
     - corepack prepare pnpm@10.27.0 --activate
     - pnpm config set store-dir .pnpm-store
     - apt-get update
-    - apt-get install -y --no-install-recommends docker.io
+    - apt-get install -y --no-install-recommends postgresql-client docker.io
     - rm -rf /var/lib/apt/lists/*
+    - |
+      for attempt in $(seq 1 30); do
+        if pg_isready -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB"; then
+          break
+        fi
+        if [ "$attempt" = "30" ]; then
+          echo "Postgres service did not become ready after 30 attempts"
+          exit 1
+        fi
+        sleep 1
+      done
     - |
       for attempt in $(seq 1 30); do
         if docker info >/dev/null 2>&1; then
@@ -89,13 +61,8 @@ plugforge-oauth-e2e:
         sleep 1
       done
     - pnpm install --frozen-lockfile
-  script:
-    - chmod +x ./scripts/ci/plugforge-oauth-e2e.sh
-    - ./scripts/ci/plugforge-oauth-e2e.sh
 
-ttfe:
-  extends: .default_node_job
-  stage: ttfe
+plugforge-submission:
+  extends: .default_submission_job
   script:
-    - export DATABASE_URL="${TTFE_DATABASE_URL}"
-    - pnpm drill ttfe
+    - node ./scripts/ci/plugforge-submission.mjs

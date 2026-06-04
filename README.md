@@ -252,9 +252,9 @@ Start with [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md). The final Week 5 delivera
 
 ## Week 6 PlugForge Evidence
 
-**Start here for MVP reviewers:** [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md) — login, links, and a 10-gate checklist for the deployed site (~15 min, no local setup). Deployed HTML copy: [plugforge-reviewer-packet.html](https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html).
+**Start here for reviewers:** [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md) — login, links, and a 10-gate checklist for the deployed site (~15 min, no local setup). Deployed HTML copy: [plugforge-reviewer-packet.html](https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html).
 
-Final-submission bar (TTFE drill, CLI story, webhooks, agent rewire): [`README.md` § Week 6 surfaces](./README.md#week-6-plugforge-evidence) below and [`docs/architecture.md`](./docs/architecture.md).
+**The only closure target:** `pnpm plugforge:submission` — one command, runs everything (proof pack, OAuth E2E, gate honesty, evidence, deployed URLs, ledger enforce). CI: [`.github/workflows/plugforge-submission.yml`](./.github/workflows/plugforge-submission.yml).
 
 Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-docs/project-weeks-sot/week-6/). Canonical surfaces:
 
@@ -267,17 +267,16 @@ Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-do
 | Developer portal (apps, webhooks, deliveries, replay) | Workspace Settings → Developer tab |
 | Device verification | http://localhost:5173/oauth/device |
 | TTFE drill (the signature proof) | `pnpm drill ttfe` |
-| MVP/platform parity (local) | `pnpm plugforge:verify` and `pnpm plugforge:oauth-e2e` |
-| Final external-client proof pack | `pnpm plugforge:final` |
-| Final submission evidence gate | `pnpm plugforge:submission` |
+| **Final submission gate** | `pnpm plugforge:submission` |
+| Proof pack building block (called by submission) | `pnpm plugforge:final` |
 | Slack reference integration | [`integrations/slack`](./integrations/slack) |
 | GitLab reference integration | [`integrations/gitlab`](./integrations/gitlab) |
 
 Demo login remains `dev@ship.local` / `admin123`. Create OAuth apps (and capture the one-time secret) via the Developer tab. For grader read-only review, create an app with `documents:read`, `issues:read`, and `sprints:read`; the public repo may list `client_id`, redirect URI, and scopes, but raw `client_secret` values are shown once and should be delivered through the private submission channel or regenerated in the portal. Run the drill live — it produces the verified signed webhook that is the actual acceptance bar.
 
-`pnpm plugforge:final` runs the MVP gate, TTFE drill, refresh-token theft drill, webhook replay/idempotency drill, SDK/OpenAPI parity checks, integration boundary enforcement, FleetGraph public audit proof, Slack/GitLab package checks, and strict docs drift checks. The public GitLab link seam is `POST /api/v1/issues/:id/external-links` plus `client.issues.upsertExternalLink()`, stored as issue document metadata in `properties.external_links`.
+`pnpm plugforge:submission` runs the full proof pack, OAuth PKCE E2E, gate-honesty, evidence file validation, deployed URL checks, and `plugforge:ledger:enforce`. Demo video, presearch attachment upload, and social post are **`non_scope`** in the ledger and never block the gate. Use `pnpm plugforge:submission -- --allow-manual-pending` only while the grader OAuth secret delivery note (`W6-SUBMIT-006`) is still pending.
 
-`pnpm plugforge:submission` validates Week 6 evidence files, checks the public OpenAPI artifact for drift, verifies deployed reviewer URLs, and reports legacy Week 4 `submission:*` drift without letting archived screenshot gaps block PlugForge. Use `pnpm plugforge:submission -- --allow-manual-pending` before the grader OAuth app note, video, saved conversation, and social screenshot are attached; the strict form should pass only for final handoff.
+The public GitLab link seam is `POST /api/v1/issues/:id/external-links` plus `client.issues.upsertExternalLink()`, stored as issue document metadata in `properties.external_links`.
 
 ---
 

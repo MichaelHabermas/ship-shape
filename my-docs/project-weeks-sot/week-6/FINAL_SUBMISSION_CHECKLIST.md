@@ -31,37 +31,43 @@ Decision: Render is the final public host for this submission. The final URL nam
 
 | Requirement | Artifact | Gate |
 | --- | --- | --- |
-| Architecture document | `docs/architecture.md` | `pnpm plugforge:submission -- --allow-manual-pending` |
-| Module tree, OAuth diagrams, webhook pipeline, SDK surface, agent diagram | `docs/architecture.md` | `pnpm plugforge:submission -- --allow-manual-pending` |
-| AI cost analysis | `my-docs/AI_COST_ANALYSIS.md` | `pnpm plugforge:submission -- --allow-manual-pending` |
-| Per-epic writeups | `my-docs/project-weeks-sot/week-6/EPIC_PROOF_WRITEUPS.md` | `pnpm plugforge:submission -- --allow-manual-pending` |
-| Discoveries | `my-docs/project-weeks-sot/week-6/DISCOVERIES.md` | `pnpm plugforge:submission -- --allow-manual-pending` |
+| Architecture document | `docs/architecture.md` | `pnpm plugforge:submission` |
+| Module tree, OAuth diagrams, webhook pipeline, SDK surface, agent diagram | `docs/architecture.md` | `pnpm plugforge:submission` |
+| AI cost analysis | `my-docs/AI_COST_ANALYSIS.md` | `pnpm plugforge:submission` |
+| Per-epic writeups | `my-docs/project-weeks-sot/week-6/EPIC_PROOF_WRITEUPS.md` | `pnpm plugforge:submission` |
+| Discoveries | `my-docs/project-weeks-sot/week-6/DISCOVERIES.md` | `pnpm plugforge:submission` |
 | Pre-search | `my-docs/project-weeks-sot/week-6/PRESEARCH.md` | Manual read; all phases answered |
 | Proof ledger | `my-docs/project-weeks-sot/week-6/proof-ledger.yaml` | `pnpm plugforge:ledger` |
 | Reviewer packet | `REVIEWER_GUIDE.md`, `my-docs/project-weeks-sot/week-6/plugforge-reviewer-packet.html`, `web/public/plugforge-reviewer-packet.html` | URL check in `pnpm plugforge:submission` |
 
-## External Attachments
+## External Attachments (gate-relevant)
 
-These artifacts cannot be manufactured by the repository alone. Attach them in the final submission channel, then rerun `pnpm plugforge:submission` without `--allow-manual-pending` before marking `W6-GLOBAL-001` proven.
-
-| Requirement | Required attachment | Acceptance detail |
+| Requirement | Required attachment | Blocks `plugforge:submission`? |
 | --- | --- | --- |
-| Pre-registered grader OAuth app | Read-only app `client_id`, redirect URI, scopes, and private secret delivery note | Uses `documents:read`, `issues:read`, and `sprints:read`; raw secret is private or regenerated in the portal, not committed. |
-| Demo video | 3-5 minute video link | Shows fresh terminal, SDK/CLI install, `ship login`, `ship docs create`, `ship webhooks tail`, verified signed delivery, then developer portal replay. |
-| Saved AI conversation | Conversation transcript or share link | Attach the planning/build conversation referenced by `PRESEARCH.md`. |
-| Social post screenshot | Screenshot image/link | Tags `@GauntletAI` and shows `ship webhooks tail` receiving a verified signed event in real time. |
+| Pre-registered grader OAuth app | Read-only app `client_id`, redirect URI, scopes, and private secret delivery note | **Yes** — strict mode requires `W6-SUBMIT-006` proven; use `--allow-manual-pending` while the secret delivery note is still pending |
 
-## Final Gate Order
+## Out of scope (kept in ledger, do not block submission)
 
-Run the gates in this order when the external attachments are present:
+Owner excluded. Atoms stay `non_scope` in `proof-ledger.yaml`; `pnpm plugforge:submission` ignores them by default.
+
+| Ledger atom | Gauntlet item | Status |
+| --- | --- | --- |
+| `W6-SUBMIT-009` … `012` | Demo video (all segments) | `non_scope` — not required |
+| `W6-SUBMIT-013` | Pre-search **attachment** (upload) | `non_scope` — `PRESEARCH.md` in repo still counts |
+| `W6-SUBMIT-016` | Social post screenshot | `non_scope` — not required |
+
+## Final Gate
+
+One command runs everything:
 
 ```bash
-pnpm plugforge:ledger
-pnpm plugforge:verify
-pnpm plugforge:integrations
-pnpm submission:check
 pnpm plugforge:submission
-pnpm plugforge:ledger:enforce
 ```
 
-`pnpm plugforge:ledger:enforce` should be last. It is expected to fail until `W6-GLOBAL-001` is changed only after every P0/P1 proof atom and every external submission attachment is present.
+Pre-handoff while the grader OAuth delivery note is still pending (`W6-SUBMIT-006`):
+
+```bash
+pnpm plugforge:submission -- --allow-manual-pending
+```
+
+CI runs the same command (`.github/workflows/plugforge-submission.yml`).

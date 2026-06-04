@@ -1,0 +1,67 @@
+# PlugForge gate policy — plugforge:submission is the only target.
+# contract: schema, fields, imports, static parity (building blocks inside submission)
+# behavior_live: user-visible outcome on real systems (must fail until proven)
+# behavior_dev_shortcut: mocks/SQL/local-only (must never pass submission)
+schema_version: 3
+target_command: plugforge:submission
+
+gate_classes:
+  contract:
+    description: Static or structural proof only (OpenAPI fields, import boundaries, unit logic).
+    may_pass_submission: as_building_block_only
+  behavior_live:
+    description: End-user-visible behavior on deployed or real external systems.
+    may_pass_submission: false_until_proven_in_ledger
+  behavior_dev_shortcut:
+    description: Harness finished but used mocks, SQL shortcuts, or local-only fixtures.
+    may_pass_submission: false
+
+commands:
+  plugforge:submission:
+    gate_class: behavior_live
+    note: |
+      Single gate. Runs proof pack, OAuth E2E, gate-honesty, evidence/URLs, ledger:enforce.
+      Never blocks on W6-SUBMIT-009..012 (demo video), 013 (presearch upload), 016 (social) — non_scope.
+      --allow-manual-pending: only for W6-SUBMIT-006 grader OAuth delivery note.
+  plugforge:final:
+    gate_class: contract
+    note: Invoked by submission — not a standalone finish line.
+  plugforge:verify:
+    gate_class: contract
+    note: Invoked by plugforge:final.
+  plugforge:oauth-e2e:
+    gate_class: behavior_dev_shortcut
+    note: Invoked by submission; local Playwright PKCE with testcontainers.
+  plugforge:ledger:
+    gate_class: contract
+  plugforge:ledger:enforce:
+    gate_class: behavior_live
+    note: Last step inside plugforge:submission.
+  plugforge:gate-honesty:
+    gate_class: behavior_live
+    note: Inside plugforge:submission.
+  plugforge:integrations:check:
+    gate_class: contract
+  plugforge:integrations:
+    default_gate_class: behavior_live
+    note: Not in submission; live flows fail loudly until real proof exists.
+  plugforge:integrations:mock:
+    gate_class: behavior_dev_shortcut
+    note: Dev only; always exits non-zero.
+  plugforge:metrics:ttfe:
+    gate_class: behavior_dev_shortcut
+    note: Inside proof pack via plugforge:metrics; SQL device approval unless PLUGFORGE_ALLOW_DEV_SHORTCUTS=1.
+
+ci_workflow: .github/workflows/plugforge-submission.yml
+ci_jobs:
+  - submission → pnpm plugforge:submission
+
+evidence_rules:
+  - path_glob: my-docs/evidence/plugforge-integrations/*.json
+    reject_status_values: [passed]
+    unless_field: proof_class
+    unless_value: live
+    message: Integration evidence with status passed must set proof_class live and include inspectable external artifacts.
+  - path_glob: my-docs/evidence/plugforge-integrations/*.json
+    reject_status_values: [mock_only_not_proof]
+    allow_in_submission: false

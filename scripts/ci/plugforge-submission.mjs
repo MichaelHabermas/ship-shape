@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PlugForge final submission evidence gate.
+// PlugForge final submission — one gate, runs everything, fails loudly.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -10,6 +10,8 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.
 const ledgerPath = path.join(rootDir, 'my-docs/project-weeks-sot/week-6/proof-ledger.yaml');
 const args = new Set(process.argv.slice(2));
 const allowManualPending = args.has('--allow-manual-pending');
+const skipProofPack = args.has('--skip-proof-pack');
+const skipOauthE2e = args.has('--skip-oauth-e2e');
 const skipRender = args.has('--skip-render') || process.env.PLUGFORGE_SUBMISSION_SKIP_RENDER === '1';
 const skipUrlCheck = args.has('--skip-url-check') || process.env.PLUGFORGE_SUBMISSION_SKIP_URLS === '1';
 const skipLegacySubmission = args.has('--skip-legacy-submission') || process.env.PLUGFORGE_SUBMISSION_SKIP_LEGACY === '1';
@@ -51,6 +53,16 @@ const externalAttachmentAtoms = [
   'W6-SUBMIT-006',
 ];
 
+/** Owner excluded Gauntlet attachments — atoms stay in ledger as non_scope; never block submission. */
+const outOfScopeSubmissionAtoms = [
+  'W6-SUBMIT-009',
+  'W6-SUBMIT-010',
+  'W6-SUBMIT-011',
+  'W6-SUBMIT-012',
+  'W6-SUBMIT-013',
+  'W6-SUBMIT-016',
+];
+
 const requiredFiles = [
   'README.md',
   'REVIEWER_GUIDE.md',
@@ -79,6 +91,8 @@ const requiredUrls = [
 ];
 
 async function main() {
+  printBanner();
+
   const warnings = [];
   if (!skipLegacySubmission) {
     const legacyErrors = runLegacySubmissionChecks({ render: !skipRender });
@@ -87,28 +101,66 @@ async function main() {
       warnings.push('legacy Week 4 submission scripts reported archived evidence drift; Week 6 gate continues. Use --strict-legacy-submission to fail on this.');
     }
   }
-  run('pnpm', ['plugforge:ledger']);
-  run('bash', ['scripts/ci/check-public-openapi-drift.sh']);
+
+  if (!skipProofPack) {
+    runStep('Proof pack (lint, metrics, API tests, SDK, integration boundary, docs)', 'pnpm', ['plugforge:final']);
+  }
+
+  if (!skipOauthE2e) {
+    runStep('OAuth Authorization Code + PKCE (Playwright)', 'bash', ['./scripts/ci/plugforge-oauth-e2e.sh']);
+  }
+
+  runStep('Gate honesty (live proof gaps and mock evidence)', 'pnpm', ['plugforge:gate-honesty']);
 
   const errors = strictLegacySubmission ? warnings.splice(0) : [];
   errors.push(...validateRequiredFiles(requiredFiles));
 
   const entries = parseLedger(readFileSync(ledgerPath, 'utf8'));
+  errors.push(...validateOutOfScopeSubmissionAtoms(entries));
   errors.push(...validateLedgerTargets(entries, { allowManualPending }));
   errors.push(...validateEvidenceJson());
 
   if (!skipUrlCheck) errors.push(...await validateUrls(requiredUrls));
 
   if (errors.length > 0) {
-    console.error('PlugForge submission evidence is incomplete:');
+    console.error('');
+    console.error('══════════════════════════════════════════════════════════════════');
+    console.error('  SUBMISSION GATE FAILED — evidence and ledger checks');
+    console.error('══════════════════════════════════════════════════════════════════');
+    console.error('');
     for (const error of errors) console.error(`- ${error}`);
     process.exit(1);
   }
 
+  runStep('Proof ledger enforce (P0/P1 atoms must be proven)', 'pnpm', ['plugforge:ledger:enforce']);
+
   for (const warning of warnings) console.warn(`Warning: ${warning}`);
 
   const mode = allowManualPending ? 'pre-handoff' : 'strict final';
-  console.log(`PlugForge submission evidence gate passed (${mode}).`);
+  console.log('');
+  console.log(`PlugForge final submission gate passed (${mode}).`);
+}
+
+function printBanner() {
+  console.error('');
+  console.error('══════════════════════════════════════════════════════════════════');
+  console.error('  PLUGFORGE FINAL SUBMISSION — single gate, runs everything');
+  console.error('══════════════════════════════════════════════════════════════════');
+  console.error('');
+  console.error('Steps: proof pack → OAuth E2E → gate honesty → evidence/URLs → ledger enforce');
+  if (allowManualPending) console.error('Mode: pre-handoff (--allow-manual-pending for grader OAuth only)');
+  else console.error('Mode: strict final handoff');
+  if (skipProofPack) console.error('Skip: proof pack (--skip-proof-pack)');
+  if (skipOauthE2e) console.error('Skip: OAuth E2E (--skip-oauth-e2e)');
+  console.error('');
+}
+
+function runStep(label, command, commandArgs) {
+  console.error('');
+  console.error('──────────────────────────────────────────────────────────────────');
+  console.error(`  ${label}`);
+  console.error('──────────────────────────────────────────────────────────────────');
+  run(command, commandArgs);
 }
 
 function run(command, commandArgs) {
@@ -153,10 +205,30 @@ function validateRequiredFiles(files) {
     .map((file) => `${file} is missing`);
 }
 
+function validateOutOfScopeSubmissionAtoms(entries) {
+  const byId = new Map(entries.map((entry) => [entry.id, entry]));
+  const errors = [];
+  for (const id of outOfScopeSubmissionAtoms) {
+    const entry = byId.get(id);
+    if (!entry) {
+      errors.push(`${id} is missing from proof ledger (must remain non_scope — excluded from submission gate)`);
+      continue;
+    }
+    if (entry.status !== 'non_scope') {
+      errors.push(
+        `${id} must stay non_scope; demo video, presearch attachment, and social post do not block submission`
+      );
+    }
+  }
+  return errors;
+}
+
 function validateLedgerTargets(entries, options = {}) {
   const errors = [];
   const byId = new Map(entries.map((entry) => [entry.id, entry]));
-  const requireProven = options.allowManualPending ? baseClosedAtoms : [...baseClosedAtoms, ...externalAttachmentAtoms];
+  const skipped = new Set(outOfScopeSubmissionAtoms);
+  const requireProven = (options.allowManualPending ? baseClosedAtoms : [...baseClosedAtoms, ...externalAttachmentAtoms])
+    .filter((id) => !skipped.has(id));
 
   for (const id of requireProven) {
     const entry = byId.get(id);
@@ -296,7 +368,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 export {
   baseClosedAtoms,
   externalAttachmentAtoms,
+  outOfScopeSubmissionAtoms,
   parseLedger,
   validateLedgerTargets,
   validateManualEvidence,
+  validateOutOfScopeSubmissionAtoms,
 };

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Plugforge MVP gate: lint, types, OpenAPI parity, API proofs, SDK/CLI, and integration boundary checks.
+# PlugForge contract proof pack: lint, types, OpenAPI parity, API proofs, SDK/CLI, integration boundary.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

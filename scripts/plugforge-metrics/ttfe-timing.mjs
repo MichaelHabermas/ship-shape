@@ -2,6 +2,7 @@
 // Gated TTFE wrapper runs `pnpm drill ttfe`, validates canonical stages, and writes normalized evidence.
 import process from 'node:process';
 import path from 'node:path';
+import { allowsDevShortcuts, failDevShortcut } from '../ci/plugforge-gate-lib.mjs';
 import { nowIso, parseArgs, parseTrailingJson, requireNumber, rootDir, runProcess, writeJsonReport } from './lib.mjs';
 
 const args = parseArgs(process.argv.slice(2));
@@ -27,10 +28,14 @@ const ok = result.exitCode === 0
   && missingStages.length === 0
   && typeof totalMs === 'number'
   && totalMs < maxTotalMs;
+const proofClass = allowsDevShortcuts() ? 'dev_shortcut' : 'dev_shortcut';
+const behavioralOk = allowsDevShortcuts() && ok;
 const report = {
   metric: 'ttfe-timing',
-  status: ok ? 'measured' : 'failed',
-  ok,
+  proofClass,
+  behavioralOk,
+  status: behavioralOk ? 'measured' : 'failed',
+  ok: behavioralOk,
   generatedAt: nowIso(),
   durationMs: Date.now() - startedAt,
   command: [command, ...commandArgs].join(' '),
@@ -58,4 +63,12 @@ const outputName = args.name ? `${args.name}.json` : 'ttfe-timing.json';
 const outputPath = await writeJsonReport(outputName, report, args);
 if (outputPath) report.outputPath = path.relative(rootDir, outputPath);
 console.log(JSON.stringify(report, null, 2));
-process.exitCode = report.ok ? 0 : 1;
+if (!behavioralOk) {
+  failDevShortcut(
+    'ttfe-timing',
+    ok
+      ? 'TTFE stages completed via dev shortcut (SQL device approval), not live /oauth/device UI login.'
+      : 'TTFE drill did not complete required stages within the runtime gate.'
+  );
+}
+process.exitCode = behavioralOk ? 0 : 1;

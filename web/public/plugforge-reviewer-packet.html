@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Plugforge MVP Reviewer Guide • ShipShape</title>
+    <title>PlugForge Final Submission Reviewer Guide • ShipShape</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2320201d'/%3E%3Cpath d='M3 4h10v2H3zm0 3h7v2H3zm0 3h10v2H3z' fill='%23fffdf8'/%3E%3C/svg%3E" />
     <style>
       :root {
@@ -113,9 +113,9 @@
   </head>
   <body>
     <div class="page">
-      <p class="meta">Week 6 • Plugforge • MVP hard gates only</p>
-      <h1>MVP Reviewer Guide</h1>
-      <p class="lede">Verify all <strong>10 MVP gates</strong> on the deployed site. No local setup. About 15 minutes.</p>
+      <p class="meta">Week 6 • PlugForge • Final submission</p>
+      <h1>Final Submission Reviewer Guide</h1>
+      <p class="lede">Verify all <strong>10 hard gates</strong> on the deployed site. Closure target: <code>pnpm plugforge:submission</code>. About 15 minutes.</p>
 
       <div class="panel" style="border-color:#e6c96a;background:#fff8e6;">
         <strong style="font-size:14px;">Preflight — run first</strong>
@@ -146,7 +146,7 @@
       </div>
 
       <h2>Do this first</h2>
-      <p class="muted">Covers MVP gates <strong>1</strong>, <strong>2</strong>, and <strong>8</strong>.</p>
+      <p class="muted">Covers gates <strong>1</strong>, <strong>2</strong>, and <strong>8</strong>.</p>
       <ol class="steps">
         <li>
           Open the <a href="https://ship-shape-web.onrender.com/" target="_blank" rel="noopener">web app</a> and sign in with <code>dev@ship.local</code> / <code>admin123</code>.
@@ -165,7 +165,7 @@
         </li>
       </ol>
 
-      <h2>Full MVP checklist</h2>
+      <h2>Full checklist</h2>
       <p class="muted">Do the live check, then confirm pass.</p>
       <table>
         <thead>
@@ -233,7 +233,7 @@ curl -s -H "Authorization: Bearer bad" \
             <td>9</td>
             <td>Regression + perf</td>
             <td>Not verifiable on deployed site alone</td>
-            <td><a href="https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-mvp.yml" target="_blank" rel="noopener"><strong>Plugforge MVP</strong></a> workflow green on <code>main</code> (API tests, <code>e2e/oauth-auth-code.spec.ts</code>, TTFE drill). GitLab: <code>verify</code> + <code>plugforge-oauth-e2e</code> + <code>ttfe</code>.</td>
+            <td><a href="https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml" target="_blank" rel="noopener"><strong>PlugForge Final Submission</strong></a> workflow green on <code>main</code> — runs <code>pnpm plugforge:submission</code> (everything).</td>
           </tr>
           <tr>
             <td>10</td>
@@ -245,7 +245,7 @@ curl -s -H "Authorization: Bearer bad" \
       </table>
 
       <details>
-        <summary>Beyond MVP (final submission — not Tuesday gates)</summary>
+        <summary>Automated closure (<code>pnpm plugforge:submission</code>)</summary>
         <div class="panel muted" style="margin-top:10px;">
           <p>Final bar: TTFE webhook drill (<code>pnpm drill ttfe</code>), CLI five-line story, webhooks signing/retry/DLQ, agent via SDK. See repo <code>README.md</code> § Week 6 and <code>docs/architecture.md</code>.</p>
           <p>Spec: <code>my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt</code></p>
@@ -253,7 +253,7 @@ curl -s -H "Authorization: Bearer bad" \
       </details>
 
       <div class="footer">
-        Repo copy: <code>REVIEWER_GUIDE.md</code> · Spec MVP gates: Plugforge-specs.txt lines 43–66
+        Repo copy: <code>REVIEWER_GUIDE.md</code> · Spec gates: Plugforge-specs.txt lines 43–66
       </div>
     </div>
   </body>

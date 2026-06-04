@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Plugforge MVP gates 2 and 8: Authorization Code + PKCE Playwright proof.
+# OAuth Authorization Code + PKCE Playwright proof (part of plugforge:submission).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

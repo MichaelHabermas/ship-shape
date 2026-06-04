@@ -1,4 +1,4 @@
-name: Plugforge MVP
+name: PlugForge Final Submission
 
 on:
   pull_request:
@@ -7,13 +7,14 @@ on:
       - main
 
 concurrency:
-  group: plugforge-mvp-${{ github.workflow }}-${{ github.ref }}
+  group: plugforge-submission-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  plugforge-final:
+  submission:
+    name: Final submission gate
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
 
     services:
       postgres:
@@ -33,6 +34,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit
       TTFE_DATABASE_URL: postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit
+      CI: "true"
 
     steps:
       - uses: actions/checkout@v4
@@ -49,35 +51,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: PlugForge final proof pack
-        run: pnpm plugforge:final
+      - name: Final submission gate (everything)
+        run: pnpm plugforge:submission
 
-      - name: Upload PlugForge metric artifacts
+      - name: Upload metric artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: plugforge-metrics
           path: my-docs/evidence/plugforge-metrics-ci/**
           if-no-files-found: warn
-
-  plugforge-oauth-e2e:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.27.0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: OAuth Authorization Code + PKCE (Playwright)
-        run: pnpm plugforge:oauth-e2e

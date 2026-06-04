@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PlugForge reference integration runner proves external flows through public SDK/API seams.
+// PlugForge integration runner — live proof only by default; mock path is explicit and always fails gates.
 import crypto from 'node:crypto';
 import { execFileSync, spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -8,6 +8,7 @@ import net from 'node:net';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { failLiveIntegrationRequired } from './plugforge-gate-lib.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const requireFromApi = createRequire(new URL('../../api/package.json', import.meta.url));
@@ -18,11 +19,26 @@ const completedReferenceFlows = new Set();
 const childTails = new Map();
 let sdkBuildReady = false;
 
-const flow = parseFlow(process.argv.slice(2));
+const argv = process.argv.slice(2);
+const mockOnly = argv.includes('--mock-only');
+const flow = parseFlow(argv);
+const behavioralFlows = new Set(['all', 'slack', 'gitlab', 'browser', 'matrix']);
 const validFlows = new Set(['all', 'slack', 'gitlab', 'browser', 'boundary', 'matrix']);
+
 if (!validFlows.has(flow)) {
   console.error(`Unknown flow "${flow}". Use --flow slack|gitlab|browser|boundary|matrix|all.`);
   process.exit(1);
+}
+
+if (!mockOnly && behavioralFlows.has(flow)) {
+  failLiveIntegrationRequired(flow);
+  process.exit(1);
+}
+
+if (mockOnly) {
+  console.error('');
+  console.error('⚠️  MOCK-ONLY MODE — this run does NOT prove live integrations and will FAIL gates.');
+  console.error('');
 }
 
 try {
@@ -30,15 +46,24 @@ try {
   await fs.rm(path.join(evidenceDir, 'last-failure.json'), { force: true });
   const startedAt = Date.now();
   await runSelectedFlow(flow);
+  if (mockOnly && behavioralFlows.has(flow)) {
+    throw new Error(
+      'MOCK-ONLY integration run finished executing code paths but is NOT live proof. ' +
+      'Do not treat this as passing any PlugForge gate.'
+    );
+  }
   await writeEvidence(`${flow}-runner`, {
+    proof_class: mockOnly ? 'dev_shortcut' : 'contract',
     status: 'passed',
     duration_ms: Date.now() - startedAt,
   });
   console.log(`PlugForge integrations ${flow} passed (${runId})`);
 } catch (error) {
   await writeEvidence('last-failure', {
+    proof_class: mockOnly ? 'dev_shortcut' : 'live',
     status: 'failed',
     failed_flow: flow,
+    mock_only: mockOnly,
     error: error instanceof Error ? error.message : String(error),
     child_tails: Object.fromEntries(childTails),
   }).catch(() => {});
@@ -175,7 +200,8 @@ async function runSlackFlow() {
     assert(slackPosts.every((post) => post.authorization === 'Bearer xoxb-plugforge-installed'), 'Slack posts did not use OAuth bot token');
 
     await writeEvidence('slack', {
-      status: 'passed',
+      proof_class: 'dev_shortcut',
+      status: mockOnly ? 'mock_only_not_proof' : 'passed',
       api_url: shipApi.url,
       oauth_callback: true,
       slack_oauth_calls: slackOauthCalls.length,
@@ -244,7 +270,8 @@ async function runGitLabFlow() {
     assert(link?.kind === 'merge_request', 'GitLab link kind was not merge_request');
 
     await writeEvidence('gitlab', {
-      status: 'passed',
+      proof_class: 'dev_shortcut',
+      status: mockOnly ? 'mock_only_not_proof' : 'passed',
       api_url: shipApi.url,
       issue_id: issue.id,
       webhook_response: body,
@@ -272,6 +299,7 @@ async function runBoundaryFlow() {
   steps.push(await runCommand('pnpm', ['plugforge:integrations:check']));
   steps.push(await runCommand('node', ['--test', './scripts/ci/check-integration-boundary.test.mjs']));
   await writeEvidence('boundary', {
+    proof_class: 'contract',
     status: 'passed',
     steps: steps.map(commandSummary),
   });
@@ -298,7 +326,8 @@ async function runMatrixFlow() {
   steps.push(await runCommand('pnpm', ['plugforge:developer-ops-e2e'], { timeoutMs: 10 * 60 * 1000 }));
 
   await writeEvidence('matrix', {
-    status: 'passed',
+    proof_class: 'dev_shortcut',
+    status: mockOnly ? 'mock_only_not_proof' : 'passed',
     reference_flows: {
       slack: reference.slack.generated_at,
       gitlab: reference.gitlab.generated_at,

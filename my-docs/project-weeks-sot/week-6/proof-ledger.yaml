@@ -17,6 +17,18 @@ proof_tier_values: live_required, unit_ok, not_applicable
 # proof_tier unit_ok: unit tests, static checks, and "script exists" metrics — never closes live_required atoms.
 # proof_tier not_applicable: platform internals with no external SaaS (e.g. refresh-token rotation API test).
 #
+# Never block plugforge:submission (owner excluded — keep atoms, status must stay non_scope):
+#   W6-SUBMIT-009..012 demo video
+#   W6-SUBMIT-013 presearch attachment (upload); PRESEARCH.md in repo is still required
+#   W6-SUBMIT-016 social post screenshot
+out_of_scope_submission_atoms:
+  - W6-SUBMIT-009
+  - W6-SUBMIT-010
+  - W6-SUBMIT-011
+  - W6-SUBMIT-012
+  - W6-SUBMIT-013
+  - W6-SUBMIT-016
+#
 # Must be proven live before integration matrix (W6-INT-001) may return to proven:
 live_proof_required_atoms:
   - W6-INT-001
@@ -261,7 +273,7 @@ requirements:
     status: partial
     proof_tier: live_required
     proof_command: node scripts/plugforge-metrics/ttfe-flake-loop.mjs --runs 20
-    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
+    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-submission.yml
     pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
@@ -276,7 +288,7 @@ requirements:
     status: partial
     proof_tier: live_required
     proof_command: node scripts/plugforge-metrics/ttfe-flake-loop.mjs --runs 20
-    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
+    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-submission.yml
     pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
     manual_evidence: none
     covered_by: none
@@ -304,7 +316,7 @@ requirements:
     priority: P0
     status: proven
     proof_command: node scripts/plugforge-metrics/webhook-p95.mjs --samples 25
-    proof_files: scripts/plugforge-metrics/webhook-p95.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
+    proof_files: scripts/plugforge-metrics/webhook-p95.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-submission.yml
     pending_test: none
     manual_evidence: none
     covered_by: none
@@ -374,7 +386,7 @@ requirements:
     priority: P1
     status: proven
     proof_command: node scripts/plugforge-metrics/oauth-p95.mjs --samples 20
-    proof_files: scripts/plugforge-metrics/oauth-p95.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
+    proof_files: scripts/plugforge-metrics/oauth-p95.mjs, scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-submission.yml
     pending_test: none
     manual_evidence: none
     covered_by: none
@@ -388,7 +400,7 @@ requirements:
     priority: P1
     status: proven
     proof_command: pnpm plugforge:metrics
-    proof_files: scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-mvp.yml
+    proof_files: scripts/plugforge-metrics/all.mjs, .github/workflows/plugforge-submission.yml
     pending_test: none
     manual_evidence: none
     covered_by: none
@@ -2933,7 +2945,7 @@ requirements:
     pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Demo video explicitly excluded from final scope by project owner.
+    gap: Owner excluded — does not block plugforge:submission.
   - id: W6-SUBMIT-010
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
@@ -2947,7 +2959,7 @@ requirements:
     pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Demo video OAuth segment excluded from final scope by project owner.
+    gap: Owner excluded — does not block plugforge:submission.
   - id: W6-SUBMIT-011
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
@@ -2961,7 +2973,7 @@ requirements:
     pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Demo video webhook replay segment excluded from final scope by project owner.
+    gap: Owner excluded — does not block plugforge:submission.
   - id: W6-SUBMIT-012
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
@@ -2975,7 +2987,7 @@ requirements:
     pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Demo video CLI/TTFE segment excluded from final scope by project owner.
+    gap: Owner excluded — does not block plugforge:submission.
   - id: W6-SUBMIT-013
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
@@ -2989,7 +3001,7 @@ requirements:
     pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Pre-search attachment as submission artifact excluded; PRESEARCH.md remains in repo for reference.
+    gap: Owner excluded — presearch upload not required; PRESEARCH.md in repo still required.
   - id: W6-SUBMIT-014
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence
@@ -3031,7 +3043,7 @@ requirements:
     pending_test: none
     manual_evidence: none
     covered_by: none
-    gap: Social post screenshot excluded from final scope by project owner.
+    gap: Owner excluded — does not block plugforge:submission.
   - id: W6-DECISION-001
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Open Decisions

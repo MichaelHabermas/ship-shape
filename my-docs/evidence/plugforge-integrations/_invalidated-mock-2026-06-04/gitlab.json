@@ -1,23 +1,23 @@
 {
   "flow": "gitlab",
-  "run_id": "plugforge-1780612028378-5ef8ea38",
-  "generated_at": "2026-06-04T22:27:14.402Z",
+  "run_id": "plugforge-1780613501251-52ad6888",
+  "generated_at": "2026-06-04T22:51:47.070Z",
   "status": "passed",
-  "api_url": "http://127.0.0.1:50533",
-  "issue_id": "7320b926-233d-4e52-ae82-6261a5375332",
+  "api_url": "http://127.0.0.1:61319",
+  "issue_id": "7bb56d8b-2122-47c4-8dc0-73566f5d1028",
   "webhook_response": {
     "ok": true,
     "linked": 1,
-    "merge_request_iid": "8af7961069bf"
+    "merge_request_iid": "82c09bf8f708"
   },
   "external_link": {
     "provider": "gitlab",
-    "external_id": "ship/plugforge!8af7961069bf",
+    "external_id": "ship/plugforge!82c09bf8f708",
     "kind": "merge_request",
-    "url": "https://gitlab.example.test/ship/plugforge/-/merge_requests/8af7961069bf",
+    "url": "https://gitlab.example.test/ship/plugforge/-/merge_requests/82c09bf8f708",
     "title": "PlugForge public issue link",
     "status": "opened",
-    "created_at": "2026-06-04T22:27:14.394Z",
-    "updated_at": "2026-06-04T22:27:14.394Z"
+    "created_at": "2026-06-04T22:51:47.064Z",
+    "updated_at": "2026-06-04T22:51:47.064Z"
   }
 }
