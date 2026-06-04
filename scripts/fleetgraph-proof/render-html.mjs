@@ -17,7 +17,30 @@ const STATUS_LABEL = {
 
 export function renderHtml(packet, options = {}) {
   const artifactBase = options.artifactBase ?? '../../../';
+  const isDeployedViewer = options.viewer === 'deployed' || options.deployedViewer === true;
+  const gitSha = options.gitSha || (packet.git && packet.git.sha) || 'master';
+  const repoBase = `https://github.com/MichaelHabermas/ship-shape/blob/${gitSha}/`;
   const data = JSON.stringify(packet).replace(/</g, '\\u003c');
+
+  function makeArtifactLink(path, label = path) {
+    if (!path) return '';
+    if (path.startsWith('http')) {
+      return `<a href="${escapeHtml(path)}">${escapeHtml(label)}</a>`;
+    }
+    if (isDeployedViewer) {
+      if (path.includes('fleetgraph-observability/proof/')) {
+        const fname = path.split('/').pop();
+        return `<a href="./${escapeHtml(fname)}">${escapeHtml(label)}</a>`;
+      }
+      // Non-public assets (source, evals, my-docs internal): link to exact commit on public GitHub.
+      // Reviewers can view without cloning.
+      const gh = `${repoBase}${path}`;
+      return `<a href="${escapeHtml(gh)}" target="_blank" rel="noopener">${escapeHtml(label)}</a><span class="meta"> (GitHub)</span>`;
+    }
+    const href = `${artifactBase}${path}`;
+    return `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
+  }
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -76,10 +99,11 @@ export function renderHtml(packet, options = {}) {
     <span class="meta">scenarios ${packet.summary.provenScenarioCount}/${packet.summary.requiredScenarioCount}</span>
     <span class="meta">signals ${(packet.summary.deployedSignals ?? []).join(', ') || '-'}</span>
   </section>
+  ${isDeployedViewer ? `<div style="margin:12px 0; padding:10px 14px; background:#111; border:1px solid #333; border-radius:6px; font-size:13px; color:#ddd;">This snapshot is served from the deployed site at <code>/fleetgraph-observability/proof/latest.html</code>. For the <strong>interactive live proof</strong> (run scenario, worker tick, repair, chat from finding, blast radius), log in to the app and visit <a href="/fleetgraph/reviewer" style="color:#8ec5ff;">/fleetgraph/reviewer</a> (admin + FLEETGRAPH_REVIEWER_PROOF_ENABLED for mutating controls).</div>` : ''}
 
   <h2>Attention Loop Timeline</h2>
   <section class="timeline">
-    ${packet.loopTimeline.map((step) => `<div class="step"><strong>${escapeHtml(step.name)}</strong>${chip(step.status)}<div class="meta">${artifactLink(step.evidence, step.evidence, artifactBase)}</div></div>`).join('')}
+    ${packet.loopTimeline.map((step) => `<div class="step"><strong>${escapeHtml(step.name)}</strong>${chip(step.status)}<div class="meta">${makeArtifactLink(step.evidence, step.evidence)}</div></div>`).join('')}
   </section>
 
   <h2>Reviewer Test Cases</h2>
@@ -161,7 +185,7 @@ export function renderHtml(packet, options = {}) {
   </div>
 
   <h2>Artifacts</h2>
-  <div class="panel"><ul class="artifact-list">${packet.artifacts.map((artifact) => `<li>${artifactLink(artifact.path, artifact.label, artifactBase)} <span class="meta">${escapeHtml(artifact.kind)}</span></li>`).join('')}</ul></div>
+  <div class="panel"><ul class="artifact-list">${packet.artifacts.map((artifact) => `<li>${makeArtifactLink(artifact.path, artifact.label)} <span class="meta">${escapeHtml(artifact.kind)}</span></li>`).join('')}</ul></div>
 </main>
 <script type="application/json" id="proof-data">${data}</script>
 </body>

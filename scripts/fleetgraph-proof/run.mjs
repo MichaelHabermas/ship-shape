@@ -125,7 +125,12 @@ async function main() {
   }));
 
   const json = `${JSON.stringify(packet, null, 2)}\n`;
-  const latestHtml = renderHtml(packet, { artifactBase: '../../../' });
+  const latestHtml = renderHtml(packet, { artifactBase: '../../../' }); // repo/my-docs/evidence copy, relative links ok locally
+  const publicHtml = renderHtml(packet, {
+    artifactBase: '',
+    viewer: 'deployed',
+    gitSha: packet.git && packet.git.sha,
+  }); // deployed web/public/ copy: safe links only (same-origin or public GitHub)
   const runHtml = renderHtml(packet, { artifactBase: '../../../../../' });
   const markdown = renderMarkdown(packet);
 
@@ -139,7 +144,7 @@ async function main() {
   if (shouldPublishPublicProof(packet)) {
     await mkdir(publicProofRoot, { recursive: true });
     await writeFile(path.join(publicProofRoot, 'latest.json'), json);
-    await writeFile(path.join(publicProofRoot, 'latest.html'), latestHtml);
+    await writeFile(path.join(publicProofRoot, 'latest.html'), publicHtml);
     await writeFile(path.join(publicProofRoot, 'latest.md'), markdown);
   }
   await copyFile(path.join(runDir, 'proof.json'), path.join(runDir, 'manifest.json'));
