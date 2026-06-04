@@ -152,7 +152,7 @@ await pool.query(
 
 - `api/src/db/schema.sql` - Column definition (`yjs_state BYTEA`)
 - `api/src/collaboration/index.ts:318-320` - Loading from DB
-- `api/src/routes/documents.ts:405-407` - Setting to NULL clears state
+- `api/src/routes/documents/content.ts`:405-407 - Setting to NULL clears state
 
 **Gotcha:** When updating `content` via REST API, `yjs_state` is set to NULL (line 407). This forces the collaboration server to regenerate state from the new content.
 
@@ -201,9 +201,9 @@ Not all types are in `shared/src/types/`. Some domain types are defined locally 
 
 **Types in route files:**
 
-- `api/src/routes/dashboard.ts:11-21` - `Urgency` type, `WorkItem` interface
+- `api/src/routes/dashboard/types.ts`:11-21 - `Urgency` type, `WorkItem` interface
 - `api/src/routes/caia-auth.ts:381` - `interface PendingInvite`
-- `api/src/routes/claude.ts:21-43` - Multiple stat interfaces
+- `api/src/routes/claude/types.ts`:21-43 - Multiple stat interfaces
 
 **Types in shared:**
 

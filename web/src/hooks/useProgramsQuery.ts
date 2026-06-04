@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient, assertApiData, assertApiSuccess } from '@/api/client';
 import { createOptimisticProgram } from '@/api/optimistic-stubs';
-import type { Program, UserReference } from '@/api/schemas';
+import type { Program } from '@/api/schemas';
 
 export type { Program };
-export type ProgramOwner = UserReference;
 
 export const programKeys = {
   all: ['programs'] as const,

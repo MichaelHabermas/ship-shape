@@ -9,6 +9,8 @@ import {
   PublicFleetGraphAttentionContextListQuerySchema,
   PublicFleetGraphAttentionContextsListResponseSchema,
   PublicIssueCreateSchema,
+  PublicIssueExternalLinkInputSchema,
+  PublicIssueExternalLinkSchema,
   PublicIssueListQuerySchema,
   PublicIssueParamsSchema,
   PublicIssueSchema,
@@ -109,6 +111,16 @@ const contracts = {
     responses: {
       '200': { description: 'Issue updated', schema: PublicIssueSchema },
       '409': { description: 'Issue update conflict', schema: PublicIssueUpdateConflictErrorSchema },
+    },
+  },
+  'issues.externalLinks.upsert': {
+    request: {
+      params: PublicIssueParamsSchema,
+      body: PublicIssueExternalLinkInputSchema,
+    },
+    responses: {
+      '200': { description: 'Issue external link updated', schema: PublicIssueExternalLinkSchema },
+      '201': { description: 'Issue external link created', schema: PublicIssueExternalLinkSchema },
     },
   },
   'sprints.list': {

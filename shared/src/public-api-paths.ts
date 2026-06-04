@@ -9,6 +9,7 @@ export const PUBLIC_API_RELATIVE_PATHS = {
   document: '/documents/:id',
   issues: '/issues',
   issue: '/issues/:id',
+  issueExternalLinks: '/issues/:id/external-links',
   sprints: '/sprints',
   sprint: '/sprints/:id',
   sprintIssues: '/sprints/:id/issues',

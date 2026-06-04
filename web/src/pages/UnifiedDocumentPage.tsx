@@ -2,7 +2,7 @@ import { useCallback, useMemo, useEffect, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UnifiedEditor } from '@/components/UnifiedEditor';
-import type { UnifiedDocument, SidebarData } from '@/components/UnifiedEditor';
+import type { SidebarData } from '@/components/UnifiedEditor';
 import { useAuth } from '@/hooks/useAuth';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { useProgramsQuery } from '@/hooks/useProgramsQuery';
@@ -11,7 +11,7 @@ import { useDocumentConversion } from '@/hooks/useDocumentConversion';
 import { apiGetJson, apiPatchJson, apiDelete, apiPostJson } from '@/lib/api';
 import { getApiErrorStatus } from '@/lib/api-error';
 import type { Document } from '@/api/schemas';
-import type { ConversionDocumentType } from '@ship/shared';
+import type { ConversionDocumentType, UnifiedDocumentView } from '@ship/shared';
 import { useToast } from '@/components/ui/Toast';
 import { issueKeys } from '@/hooks/useIssuesQuery';
 import { TabBar } from '@/components/ui/TabBar';
@@ -281,7 +281,7 @@ export function UnifiedDocumentPage() {
   });
 
   // Handle update
-  const handleUpdate = useCallback(async (updates: Partial<UnifiedDocument>) => {
+  const handleUpdate = useCallback(async (updates: Partial<UnifiedDocumentView>) => {
     if (!id) return;
     await updateMutation.mutateAsync({ documentId: id, updates });
   }, [updateMutation, id]);
@@ -370,7 +370,7 @@ export function UnifiedDocumentPage() {
   }, [document, teamMembers, programs, projects, handleAssociationChange, handleConvert, handleUndoConversion, isConverting]);
 
   // Transform API response to UnifiedDocument format
-  const unifiedDocument: UnifiedDocument | null = useMemo(() => {
+  const unifiedDocument: UnifiedDocumentView | null = useMemo(() => {
     if (!document) return null;
     return mapApiDocumentToUnifiedDocumentView(document);
   }, [document]);
@@ -392,6 +392,7 @@ export function UnifiedDocumentPage() {
           {error?.message || 'Document not found'}
         </div>
         <button
+          type="button"
           onClick={() => navigate('/docs')}
           className="text-sm text-accent hover:underline"
         >
@@ -408,6 +409,7 @@ export function UnifiedDocumentPage() {
           This document type cannot be opened in the editor.
         </div>
         <button
+          type="button"
           onClick={() => navigate('/docs')}
           className="text-sm text-accent hover:underline"
         >

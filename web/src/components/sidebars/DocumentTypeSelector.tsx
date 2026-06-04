@@ -1,8 +1,6 @@
 import { cn } from '@/lib/cn';
 import type { SelectableDocumentType } from '@ship/shared';
 
-export type { SelectableDocumentType };
-
 interface DocumentTypeSelectorProps {
   value: SelectableDocumentType;
   onChange: (type: SelectableDocumentType) => void;

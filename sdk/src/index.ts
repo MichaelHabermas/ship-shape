@@ -6,6 +6,7 @@ import {
   absoluteOrRelativeUrl,
   baseOrigin,
   delay,
+  fetchOrNetworkError,
   type FetchLike,
   globalFetch,
   normalizeBasePath,
@@ -57,6 +58,8 @@ export type {
   PublicFleetGraphAttentionContextsListResponse,
   PublicIssue,
   PublicIssueCreateInput as IssueCreateInput,
+  PublicIssueExternalLink as IssueExternalLink,
+  PublicIssueExternalLinkInput as IssueExternalLinkInput,
   PublicIssueListParams as IssueListParams,
   PublicIssueUpdateInput as IssueUpdateInput,
   PublicMe,
@@ -91,6 +94,7 @@ export type DeviceLoginOptions = {
   tokenStore?: ITokenStore;
   fetch?: FetchLike;
   signal?: AbortSignal;
+  pollDelay?: (ms: number, signal?: AbortSignal) => Promise<void>;
   onUserCode: (
     code: string,
     verificationUrl: string,
@@ -147,7 +151,9 @@ export class ShipClient {
   }
 
   async me(): Promise<PublicMe> {
-    return this.request<PublicMe>('GET', PUBLIC_API_RELATIVE_PATHS.me);
+    const me = await this.request<PublicMe>('GET', PUBLIC_API_RELATIVE_PATHS.me);
+    await this.rememberTokenIdentity(me);
+    return me;
   }
 
   async request<T>(
@@ -160,7 +166,7 @@ export class ShipClient {
     } = {}
   ): Promise<T> {
     const retryOnUnauthorized = options.retryOnUnauthorized ?? true;
-    const response = await this.fetchImpl(this.apiUrl(path, options.query), {
+    const response = await fetchOrNetworkError(this.fetchImpl, this.apiUrl(path, options.query), {
       method,
       headers: await this.requestHeaders(options.body !== undefined),
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
@@ -218,7 +224,7 @@ export class ShipClient {
       throw new ShipError({ kind: 'auth', message: 'No Ship refresh token is configured' });
     }
 
-    const response = await this.fetchImpl(this.oauthUrl('/oauth/token'), {
+    const response = await fetchOrNetworkError(this.fetchImpl, this.oauthUrl('/oauth/token'), {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -231,8 +237,13 @@ export class ShipClient {
       }),
     });
     const refreshed = await parseOAuthTokenResponse(response);
-    await this.tokenStore.set(refreshed);
-    return refreshed;
+    const nextTokens = {
+      ...tokens,
+      ...refreshed,
+      clientId: this.clientId,
+    };
+    await this.tokenStore.set(nextTokens);
+    return nextTokens;
   }
 
   static async deviceLogin(opts: DeviceLoginOptions): Promise<ShipClient> {
@@ -243,7 +254,7 @@ export class ShipClient {
       ? opts.scope.join(' ')
       : opts.scope ?? 'documents:read documents:write webhooks:manage';
 
-    const codeResponse = await fetchImpl(`${baseUrl}/oauth/device/code`, {
+    const codeResponse = await fetchOrNetworkError(fetchImpl, `${baseUrl}/oauth/device/code`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -260,9 +271,10 @@ export class ShipClient {
 
     let intervalSeconds = code.interval;
     const expiresAt = Date.now() + code.expires_in * 1000;
+    const wait = opts.pollDelay ?? delay;
     while (Date.now() < expiresAt) {
-      await delay(intervalSeconds * 1000, opts.signal);
-      const tokenResponse = await fetchImpl(`${baseUrl}/oauth/token`, {
+      await wait(intervalSeconds * 1000, opts.signal);
+      const tokenResponse = await fetchOrNetworkError(fetchImpl, `${baseUrl}/oauth/token`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -277,7 +289,10 @@ export class ShipClient {
       });
 
       if (tokenResponse.ok) {
-        const tokens = await parseOAuthTokenResponse(tokenResponse);
+        const tokens = {
+          ...await parseOAuthTokenResponse(tokenResponse),
+          clientId: opts.clientId,
+        };
         await tokenStore.set(tokens);
         return new ShipClient({
           baseUrl,
@@ -330,7 +345,7 @@ export class ShipClient {
         throw new ShipError({ kind: 'auth', message: 'OAuth authorization state is invalid or expired' });
       }
 
-      const tokenResponse = await fetchImpl(`${baseUrl}/oauth/token`, {
+      const tokenResponse = await fetchOrNetworkError(fetchImpl, `${baseUrl}/oauth/token`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -345,7 +360,10 @@ export class ShipClient {
         }),
         signal: opts.signal,
       });
-      const tokens = await parseOAuthTokenResponse(tokenResponse);
+      const tokens = {
+        ...await parseOAuthTokenResponse(tokenResponse),
+        clientId: opts.clientId,
+      };
       await tokenStore.set(tokens);
       storage.removeItem(pkceStorageKey(opts.clientId, 'state'));
       storage.removeItem(pkceStorageKey(opts.clientId, 'verifier'));
@@ -381,6 +399,18 @@ export class ShipClient {
       redirectBrowser(authorizationUrl.toString());
     }
     return new Promise<ShipClient>(() => {});
+  }
+
+  private async rememberTokenIdentity(me: PublicMe): Promise<void> {
+    if (!me.app?.client_id || !me.user?.id || !me.workspace_id) return;
+    const tokens = await this.tokenStore.get();
+    if (!tokens?.accessToken) return;
+    await this.tokenStore.set({
+      ...tokens,
+      clientId: me.app.client_id,
+      userId: me.user.id,
+      workspaceId: me.workspace_id,
+    });
   }
 }
 
@@ -436,5 +466,15 @@ function randomBase64Url(byteLength: number): string {
 }
 
 function base64Url(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString('base64url');
+  const bufferCtor = (globalThis as typeof globalThis & {
+    Buffer?: { from(input: Uint8Array): { toString(encoding: 'base64url'): string } };
+  }).Buffer;
+  if (bufferCtor) return bufferCtor.from(bytes).toString('base64url');
+  if (typeof globalThis.btoa !== 'function') {
+    throw new ShipError({ kind: 'auth', message: 'base64url encoding is unavailable' });
+  }
+
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return globalThis.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/u, '');
 }

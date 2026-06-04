@@ -4,7 +4,7 @@ Common patterns with real code examples from the codebase.
 
 ## API Route Pattern
 
-From `api/src/routes/issues.ts`:
+From `api/src/routes/issues/index.ts`:
 
 ```typescript
 import { Router, Request, Response } from 'express';

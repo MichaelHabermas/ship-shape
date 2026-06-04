@@ -20,9 +20,6 @@ import { useProgramsQuery, Program } from './useProgramsQuery';
 /** Document types available in list/catalog queries (not full editor union). */
 export type CatalogDocumentType = 'wiki' | 'issue' | 'project' | 'program';
 
-/** @deprecated Use {@link CatalogDocumentType} */
-export type UnifiedDocumentType = CatalogDocumentType;
-
 // Base document interface - common fields across all types
 export interface CatalogDocumentBase {
   id: string;
@@ -33,14 +30,8 @@ export interface CatalogDocumentBase {
   created_by?: string | null;
 }
 
-/** @deprecated Use {@link CatalogDocumentBase} */
-export type UnifiedDocumentBase = CatalogDocumentBase;
-
 /** OpenAPI list union for catalog surfaces (issues list, projects, programs, wiki). */
 export type CatalogDocument = WikiDocument | IssueListItem | Project | Program;
-
-/** @deprecated Use {@link CatalogDocument} — collides with editor {@link UnifiedDocumentView}. */
-export type UnifiedDocument = CatalogDocument;
 
 // Options for querying documents
 export interface UseUnifiedDocumentsOptions {

@@ -56,7 +56,7 @@ These names are **intentional debt** until a dedicated rename program. New code 
 /api/claude/context?sprint_id=      # AI context (week document id)
 ```
 
-Implementation lives under `api/src/routes/weeks/` (`sprints.ts` mounts collection handlers). `api/src/routes/weeks.ts` re-exports the package.
+Implementation lives under `api/src/routes/weeks/` (`sprints.ts` mounts collection handlers). `api/src/routes/weeks/index.ts` re-exports the package.
 
 ---
 

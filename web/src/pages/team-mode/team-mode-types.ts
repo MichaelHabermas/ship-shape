@@ -1,6 +1,5 @@
 // Team Mode types derive allocation wire contracts and keep local grouping state.
 import type {
-  TeamAssignment,
   TeamAssignmentError,
   TeamAssignResponse,
   TeamGridResponse,
@@ -9,8 +8,6 @@ import type {
 
 export type User = TeamGridResponse['users'][number];
 export type Sprint = TeamGridResponse['weeks'][number];
-export type Assignment = TeamAssignment;
-export type TeamGridData = TeamGridResponse;
 export type AssignmentResponse = (TeamAssignResponse | TeamUnassignResponse | TeamAssignmentError) & {
   error?: TeamAssignmentError['error'];
   issuesOrphaned?: TeamAssignmentError['issuesOrphaned'];

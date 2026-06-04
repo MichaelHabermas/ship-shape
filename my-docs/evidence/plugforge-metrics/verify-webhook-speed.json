@@ -1,0 +1,19 @@
+{
+  "metric": "verify-webhook-speed",
+  "status": "measured",
+  "ok": true,
+  "generatedAt": "2026-06-04T03:53:16.615Z",
+  "durationMs": 148,
+  "targets": {
+    "maxP95Ms": 1,
+    "samples": 5000,
+    "warmup": 250
+  },
+  "result": {
+    "averageMs": 0.006526987800000308,
+    "minMs": 0.005290999999999713,
+    "maxMs": 0.788708000000014,
+    "p50Ms": 0.005708999999995967,
+    "p95Ms": 0.007999999999981355
+  }
+}

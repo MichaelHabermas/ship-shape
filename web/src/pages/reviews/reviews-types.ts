@@ -1,5 +1,5 @@
 // Reviews page types derive Team review wire contracts and keep local UI state shapes.
-import type { ReviewCell, ReviewsResponse, SprintPeriod } from '@/api/schemas';
+import type { ReviewCell, ReviewsResponse } from '@/api/schemas';
 
 // OPM 5-level performance rating scale
 export const OPM_RATINGS = [
@@ -30,10 +30,7 @@ export const REVIEW_STATUS_TEXT: Record<ReviewStatus, string> = {
   empty: 'no submission',
 };
 
-export type Week = SprintPeriod;
 export type ReviewPerson = ReviewsResponse['people'][number];
-export type ReviewsData = ReviewsResponse;
-export type { ReviewCell, ApprovalState, ApprovalTracking } from '@/api/schemas';
 
 export interface ProgramGroup {
   programId: string | null;

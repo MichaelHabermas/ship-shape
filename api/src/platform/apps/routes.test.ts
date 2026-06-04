@@ -14,6 +14,12 @@ import {
   dispatchWebhookDeliveries,
   enqueueWebhookEvent,
 } from '../webhooks/service.js';
+import {
+  createOAuthApp,
+  hashOAuthClientSecret,
+  verifyOAuthClientSecret,
+  verifyOAuthClientSecretWithVerifier,
+} from './service.js';
 
 const OAuthAppCreatedSchema = z.object({
   success: z.literal(true),
@@ -62,6 +68,7 @@ const OAuthSecretRotationSchema = z.object({
     client_secret_id: z.string().uuid(),
     client_secret: z.string().startsWith('ship_secret_'),
     previous_secret_expires_at: z.string().nullable(),
+    revoked_token_count: z.number().int().nonnegative().optional(),
     warning: z.string(),
   }),
 });
@@ -223,6 +230,28 @@ describe('OAuth app control plane', () => {
     await pool.query('DELETE FROM workspaces WHERE id = $1', [workspaceId]);
   });
 
+  it('verifies client secrets through Argon2 and fails closed on malformed hashes', async () => {
+    const secret = `ship_secret_${crypto.randomBytes(32).toString('hex')}`;
+    const hash = await hashOAuthClientSecret(secret);
+
+    await expect(verifyOAuthClientSecret(hash, secret)).resolves.toBe(true);
+    await expect(verifyOAuthClientSecret(hash, `${secret}-wrong`)).resolves.toBe(false);
+    await expect(verifyOAuthClientSecret('not-an-argon-hash', secret)).resolves.toBe(false);
+
+    const verifierCalls: string[] = [];
+    await expect(verifyOAuthClientSecretWithVerifier(
+      'not-an-argon-hash',
+      secret,
+      async (candidateHash) => {
+        verifierCalls.push(candidateHash);
+        if (verifierCalls.length === 1) throw new Error('malformed hash');
+        return false;
+      }
+    )).resolves.toBe(false);
+    expect(verifierCalls).toHaveLength(2);
+    expect(verifierCalls[1]).not.toBe('not-an-argon-hash');
+  });
+
   it('lets a workspace admin create an OAuth app with a shown-once secret', async () => {
     const body = await createOAuthAppViaRoute('Docs Demo App', ['documents:read']);
     const appResult = await pool.query<{
@@ -379,6 +408,148 @@ describe('OAuth app control plane', () => {
     const revokedOldSecret = requireFirstRow(oldSecret.rows);
     expect(revokedOldSecret.status).toBe('revoked');
     expect(revokedOldSecret.revoked_at).toBeInstanceOf(Date);
+  });
+
+  it('force-rotates secrets with audit reason and token revocation', async () => {
+    const created = await createOAuthAppViaRoute('Force Rotation App', ['documents:read']);
+    const seeded = await seedOAuthTokenState(created.data.id, adminUserId);
+    const authorizationCodeId = await seedUnconsumedAuthorizationCode(created.data.id, created.data.client_id, seeded.grantId);
+    const deviceAuthorizationId = await seedApprovedDeviceAuthorization(created.data.id, created.data.client_id, seeded.grantId);
+    const csrf = await getCsrfCookie();
+    const rotateResponse = await request(app)
+      .post(`/api/platform/apps/${created.data.id}/secrets/rotate`)
+      .set('Cookie', `${csrf.cookie}; session_id=${adminSessionId}`)
+      .set('x-csrf-token', csrf.token)
+      .send({
+        revoke_previous_immediately: true,
+        force_revoke_tokens: true,
+        revocation_reason: 'compromised_client_secret',
+        revocation_evidence: { ticket: `SEC-${testRunId}` },
+      });
+
+    const rotated = expectJsonBody(rotateResponse, 200, OAuthSecretRotationSchema);
+    expect(rotated.data.revoked_token_count).toBe(1);
+
+    const tokenRows = await pool.query<{
+      access_revoked_at: Date | null;
+      refresh_revoked_at: Date | null;
+      invalidated_reason: string | null;
+    }>(
+      `SELECT
+         access.revoked_at AS access_revoked_at,
+         refresh.revoked_at AS refresh_revoked_at,
+         family.invalidated_reason
+       FROM oauth_access_tokens access
+       JOIN oauth_refresh_tokens refresh ON refresh.id = $2
+       JOIN oauth_refresh_token_families family ON family.id = $3
+       WHERE access.id = $1`,
+      [seeded.accessTokenId, seeded.refreshTokenId, seeded.refreshFamilyId]
+    );
+    const tokenRow = requireFirstRow(tokenRows.rows);
+    expect(tokenRow.access_revoked_at).toBeInstanceOf(Date);
+    expect(tokenRow.refresh_revoked_at).toBeInstanceOf(Date);
+    expect(tokenRow.invalidated_reason).toBe('compromised_client_secret');
+
+    const exchangeableRows = await pool.query<{
+      auth_code_consumed_at: Date | null;
+      device_denied_at: Date | null;
+    }>(
+      `SELECT
+         code.consumed_at AS auth_code_consumed_at,
+         device.denied_at AS device_denied_at
+       FROM oauth_authorization_codes code
+       JOIN oauth_device_authorizations device ON device.id = $2
+       WHERE code.id = $1`,
+      [authorizationCodeId, deviceAuthorizationId]
+    );
+    const exchangeableRow = requireFirstRow(exchangeableRows.rows);
+    expect(exchangeableRow.auth_code_consumed_at).toBeInstanceOf(Date);
+    expect(exchangeableRow.device_denied_at).toBeInstanceOf(Date);
+
+    const auditResult = await pool.query<{ details: Record<string, unknown> | null }>(
+      `SELECT details
+       FROM audit_logs
+       WHERE action = 'oauth_app.secret_rotated'
+         AND resource_id = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [created.data.id]
+    );
+    expect(requireFirstRow(auditResult.rows).details).toMatchObject({
+      revoked_token_count: 1,
+      revocation_reason: 'compromised_client_secret',
+      revocation_evidence: { ticket: `SEC-${testRunId}` },
+    });
+  });
+
+  it('revokes third-party app tokens when the owner user is deleted', async () => {
+    const ownerResult = await pool.query<IdRow>(
+      `INSERT INTO users (email, password_hash, name)
+       VALUES ($1, 'test-hash', 'Deleted OAuth Owner')
+       RETURNING id`,
+      [`oauth-owner-delete-${testRunId}@ship.local`]
+    );
+    const ownerUserId = requireFirstRow(ownerResult.rows).id;
+    await pool.query(
+      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
+       VALUES ($1, $2, 'admin')`,
+      [workspaceId, ownerUserId]
+    );
+    const ownedApp = await createOAuthApp({
+      workspaceId,
+      ownerUserId,
+      name: 'Owner Deleted App',
+      redirectUris: ['https://example.test/callback'],
+      requestedScopes: ['documents:read'],
+    });
+    const seeded = await seedOAuthTokenState(ownedApp.id, adminUserId);
+
+    await pool.query('DELETE FROM users WHERE id = $1', [ownerUserId]);
+
+    const appState = requireFirstRow((await pool.query<{
+      owner_user_id: string | null;
+      is_active: boolean;
+    }>(
+      'SELECT owner_user_id, is_active FROM oauth_apps WHERE id = $1',
+      [ownedApp.id]
+    )).rows);
+    expect(appState).toEqual({ owner_user_id: null, is_active: false });
+
+    const revoked = requireFirstRow((await pool.query<{
+      secret_status: string;
+      secret_revoked_at: Date | null;
+      access_revoked_at: Date | null;
+      refresh_revoked_at: Date | null;
+      family_invalidated_reason: string | null;
+      grant_revoked_at: Date | null;
+    }>(
+      `SELECT
+         secret.status AS secret_status,
+         secret.revoked_at AS secret_revoked_at,
+         access.revoked_at AS access_revoked_at,
+         refresh.revoked_at AS refresh_revoked_at,
+         family.invalidated_reason AS family_invalidated_reason,
+         grant_row.revoked_at AS grant_revoked_at
+       FROM oauth_app_secrets secret
+       JOIN oauth_access_tokens access ON access.id = $2
+       JOIN oauth_refresh_tokens refresh ON refresh.id = $3
+       JOIN oauth_refresh_token_families family ON family.id = $4
+       JOIN oauth_grants grant_row ON grant_row.id = $5
+       WHERE secret.app_id = $1`,
+      [
+        ownedApp.id,
+        seeded.accessTokenId,
+        seeded.refreshTokenId,
+        seeded.refreshFamilyId,
+        seeded.grantId,
+      ]
+    )).rows);
+    expect(revoked.secret_status).toBe('revoked');
+    expect(revoked.secret_revoked_at).toBeInstanceOf(Date);
+    expect(revoked.access_revoked_at).toBeInstanceOf(Date);
+    expect(revoked.refresh_revoked_at).toBeInstanceOf(Date);
+    expect(revoked.family_invalidated_reason).toBe('owner_deleted');
+    expect(revoked.grant_revoked_at).toBeInstanceOf(Date);
   });
 
   it('allows HTTP localhost redirect URIs for local development', async () => {
@@ -646,6 +817,160 @@ describe('OAuth app control plane', () => {
         requested_scopes: requestedScopes,
       });
     return expectJsonBody(response, 201, OAuthAppCreatedSchema);
+  }
+
+  async function seedOAuthTokenState(appId: string, subjectUserId: string): Promise<{
+    grantId: string;
+    refreshFamilyId: string;
+    refreshTokenId: string;
+    accessTokenId: string;
+  }> {
+    const grantId = requireFirstRow((await pool.query<IdRow>(
+      `INSERT INTO oauth_grants (app_id, user_id, workspace_id, granted_scopes)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [appId, subjectUserId, workspaceId, ['documents:read']]
+    )).rows).id;
+    const refreshFamilyId = requireFirstRow((await pool.query<IdRow>(
+      `INSERT INTO oauth_refresh_token_families (
+         grant_id,
+         app_id,
+         user_id,
+         workspace_id,
+         expires_at
+       )
+       VALUES ($1, $2, $3, $4, NOW() + interval '30 days')
+       RETURNING id`,
+      [grantId, appId, subjectUserId, workspaceId]
+    )).rows).id;
+    const refreshTokenId = requireFirstRow((await pool.query<IdRow>(
+      `INSERT INTO oauth_refresh_tokens (
+         family_id,
+         app_id,
+         user_id,
+         workspace_id,
+         token_hash,
+         expires_at
+       )
+       VALUES ($1, $2, $3, $4, $5, NOW() + interval '30 days')
+       RETURNING id`,
+      [
+        refreshFamilyId,
+        appId,
+        subjectUserId,
+        workspaceId,
+        crypto.createHash('sha256').update(`refresh-${testRunId}-${crypto.randomUUID()}`).digest('hex'),
+      ]
+    )).rows).id;
+    const accessTokenId = requireFirstRow((await pool.query<IdRow>(
+      `INSERT INTO oauth_access_tokens (
+         app_id,
+         user_id,
+         workspace_id,
+         grant_id,
+         refresh_token_family_id,
+         token_hash,
+         granted_scopes,
+         expires_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + interval '15 minutes')
+       RETURNING id`,
+      [
+        appId,
+        subjectUserId,
+        workspaceId,
+        grantId,
+        refreshFamilyId,
+        crypto.createHash('sha256').update(`access-${testRunId}-${crypto.randomUUID()}`).digest('hex'),
+        ['documents:read'],
+      ]
+    )).rows).id;
+    return { grantId, refreshFamilyId, refreshTokenId, accessTokenId };
+  }
+
+  async function seedUnconsumedAuthorizationCode(
+    appId: string,
+    clientId: string,
+    grantId: string
+  ): Promise<string> {
+    const requestId = requireFirstRow((await pool.query<IdRow>(
+      `INSERT INTO oauth_authorization_requests (
+         app_id,
+         user_id,
+         workspace_id,
+         client_id,
+         redirect_uri,
+         requested_scopes,
+         state,
+         code_challenge,
+         code_challenge_method,
+         expires_at,
+         approved_at
+       )
+       VALUES ($1, $2, $3, $4, 'https://example.test/callback', $5, 'force-rotation', 'challenge', 'S256', NOW() + interval '10 minutes', NOW())
+       RETURNING id`,
+      [appId, adminUserId, workspaceId, clientId, ['documents:read']]
+    )).rows).id;
+    return requireFirstRow((await pool.query<IdRow>(
+      `INSERT INTO oauth_authorization_codes (
+         authorization_request_id,
+         grant_id,
+         app_id,
+         user_id,
+         workspace_id,
+         code_hash,
+         redirect_uri,
+         granted_scopes,
+         state,
+         code_challenge,
+         code_challenge_method,
+         expires_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, 'https://example.test/callback', $7, 'force-rotation', 'challenge', 'S256', NOW() + interval '10 minutes')
+       RETURNING id`,
+      [
+        requestId,
+        grantId,
+        appId,
+        adminUserId,
+        workspaceId,
+        crypto.createHash('sha256').update(`auth-code-${testRunId}-${crypto.randomUUID()}`).digest('hex'),
+        ['documents:read'],
+      ]
+    )).rows).id;
+  }
+
+  async function seedApprovedDeviceAuthorization(
+    appId: string,
+    clientId: string,
+    grantId: string
+  ): Promise<string> {
+    return requireFirstRow((await pool.query<IdRow>(
+      `INSERT INTO oauth_device_authorizations (
+         app_id,
+         workspace_id,
+         client_id,
+         device_code_hash,
+         user_code_hash,
+         requested_scopes,
+         expires_at,
+         authorized_user_id,
+         grant_id,
+         authorized_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, NOW() + interval '10 minutes', $7, $8, NOW())
+       RETURNING id`,
+      [
+        appId,
+        workspaceId,
+        clientId,
+        crypto.createHash('sha256').update(`device-code-${testRunId}-${crypto.randomUUID()}`).digest('hex'),
+        crypto.createHash('sha256').update(`user-code-${testRunId}-${crypto.randomUUID()}`).digest('hex'),
+        ['documents:read'],
+        adminUserId,
+        grantId,
+      ]
+    )).rows).id;
   }
 });
 

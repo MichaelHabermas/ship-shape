@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 import { loginAsAdminWithUser } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
 import type {
-  ApiDocument,
+  ApiId,
   PersonDocument,
   ProjectAllocationGridResponse,
 } from './fixtures/e2e-api-types';
@@ -43,7 +43,7 @@ async function createTestProject(
     },
   });
   expect(response.ok()).toBe(true);
-  const project = await readJsonAs<ApiDocument>(response);
+  const project = await readJsonAs<ApiId>(response);
 
   const renameResponse = await page.request.patch(`${apiUrl}/api/documents/${project.id}`, {
     headers: { 'x-csrf-token': csrfToken },
@@ -78,7 +78,7 @@ async function createAllocation(
     },
   });
   expect(response.ok()).toBe(true);
-  const sprint = await readJsonAs<ApiDocument>(response);
+  const sprint = await readJsonAs<ApiId>(response);
   return sprint.id;
 }
 

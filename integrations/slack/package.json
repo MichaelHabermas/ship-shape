@@ -1,0 +1,16 @@
+{
+  "name": "@ship/slack-integration",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Ship Slack reference integration",
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/index.mjs && node --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@ship/sdk": "0.0.0"
+  },
+  "devDependencies": {
+    "@ship/sdk": "workspace:*"
+  }
+}

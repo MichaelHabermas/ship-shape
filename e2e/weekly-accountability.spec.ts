@@ -4,7 +4,6 @@ import type { Page } from '@playwright/test';
 import { loginAsAdminWithUser } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
 import type {
-  ApiDocument,
   ApiId,
   ContentHistoryResponse,
   PersonDocument,
@@ -48,7 +47,7 @@ async function createTestProject(
     },
   });
   expect(response.ok()).toBe(true);
-  const project = await readJsonAs<ApiDocument>(response);
+  const project = await readJsonAs<ApiId>(response);
 
   const renameResponse = await page.request.patch(`${apiUrl}/api/documents/${project.id}`, {
     headers: { 'x-csrf-token': csrfToken },

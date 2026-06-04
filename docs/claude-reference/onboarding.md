@@ -311,7 +311,7 @@ grep -r "useQuery" web/src/hooks/
 
 ### Key Patterns to Follow
 
-1. **REST endpoints**: Follow patterns in `api/src/routes/documents.ts`
+1. **REST endpoints**: Follow patterns in `api/src/routes/documents/index.ts`
 2. **React hooks**: Follow patterns in `web/src/hooks/useDocumentsQuery.ts`
 3. **Components**: Follow patterns in `web/src/components/Editor.tsx`
 4. **Migrations**: Follow patterns in `api/src/db/migrations/`

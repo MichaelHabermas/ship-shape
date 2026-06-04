@@ -82,8 +82,8 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 
 ## 2026-06-03 — Public API Follow-Up Hardening
 
-- Public `PATCH /api/v1/issues/:id` returns `code: conflict` with typed `details.incomplete_children` when closing a parent with open sub-issues; `confirm_orphan_children: true` remains the retry path.
-- `conflict` is a first-class `PUBLIC_API_ERROR_CODES` value distinct from `validation_failed`.
+- Public `PATCH /api/v1/issues/:id` keeps HTTP `409` for parent close attempts with incomplete children, but canon wins: the public `ApiError.code` is `validation_failed` and the machine conflict reason lives in `details.reason: "incomplete_children"`.
+- `conflict` is not a public `PUBLIC_API_ERROR_CODES` value; the exact public union is `unauthorized | forbidden | not_found | validation_failed | rate_limited | server_error`.
 - `pnpm drill ttfe` always resolves `ship_test_audit` via `resolve-database-url.sh`; only `TTFE_DATABASE_URL` overrides. Shell `DATABASE_URL` is ignored so fixtures and API cannot diverge.
 - Plugforge CI regenerates `docs/openapi.json` and fails on drift; registry `operationId`s must match `route-openapi-contracts.ts` keys and the committed spec operation set.
 - `exchangeAuthorizationCode` is exported from `provider.ts` via `refresh-rotation.ts` (not re-exported through `authorization-code.ts`).
@@ -99,3 +99,37 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Webhooks split: `webhook-subscriptions.ts`, `webhook-fanout.ts`, `webhook-delivery.ts`, `webhook-target-url.ts`, `webhook-replay.ts`, `webhook-service-deps.ts`, `mutation-publisher.ts`; `service.ts` remains the import facade.
 - FleetGraph: `attention-context-factory.ts` chooses in-process vs HTTP loopback readers.
 - SDK uses `@ship/shared` `PUBLIC_API_RELATIVE_PATHS`; CLI exposes full registry parity (`ship me`, documents, issues, sprints, fleetgraph, webhooks subscriptions/deliveries).
+
+## 2026-06-03 — External Client Proof Pack
+
+- The final bar is `pnpm plugforge:final`: MVP verify, TTFE, refresh-token theft drill, webhook replay/idempotency drill, SDK/OpenAPI parity, integration boundary proof, FleetGraph public audit proof, Slack/GitLab checks, and docs drift checks.
+
+## 2026-06-04 — External Developer Trust Boundary Closure
+
+- Closed the scoped `OAUTH,API,PORTAL,SDK,CLI,AGENT` proof boundary by retiring the remaining missing/partial atoms, including discovered `W6-API-020`.
+- Canon is explicit: public error codes exclude `conflict`; incomplete-child issue close keeps HTTP `409` with `code: validation_failed` and `details.reason: "incomplete_children"`.
+- `pnpm plugforge:ledger:enforce -- --area OAUTH,API,PORTAL,SDK,CLI,AGENT --status missing,partial` is now the boundary definition-of-done gate and passes.
+- Are-you-sure follow-up kept global `pnpm plugforge:ledger:enforce` failing as expected for unrelated Week 6 gaps, but fixed scoped proof hygiene: stale pending IDs removed, orphaned third-party OAuth apps backfilled/revoked in migration 059, force-rotation now invalidates unconsumed auth codes and device grants, pre-auth 429 audit uses production router order, portal secret storage is checked, consent CSRF failure is tested, and SDK/OpenAPI parity has a compile-time sentinel.
+- Reference integrations are SDK-only packages under `integrations/slack` and `integrations/gitlab`; the boundary checker blocks `api/src`, `web/src`, `shared`, `@ship/shared`, aliases, `require()`, and dynamic internal imports.
+- Public GitLab linking uses the smallest public issue seam: `POST /api/v1/issues/:id/external-links` and `client.issues.upsertExternalLink()`. Links live in issue document `properties.external_links`; no schema migration.
+- External links are idempotent by `provider + external_id` and expose only public issue metadata: provider, external id, kind, URL, title, optional status, and server timestamps.
+- Refresh-token theft proof now exercises `/oauth/token`: rotate once, reuse the stolen old token, invalidate the family, revoke issued access tokens, and assert `/api/v1/me` rejects them.
+- Replay proof now includes a signed SDK-verifying subscriber that processes the first delivery, dedupes replay, and observes the same `Idempotency-Key`.
+- FleetGraph public-source read proof now mints a delegated `ship-agent` OAuth token, calls through `@ship/sdk` and `/api/v1`, and asserts `public_api_audit_logs` rows.
+
+## 2026-06-04 — Webhook + Metrics Proof Closure
+
+- Metrics closure means platform-path metrics over OAuth, CLI, SDK, public API, and webhooks; it does not claim final Slack/GitLab/reference-integration acceptance.
+- Webhook event contracts are specific Zod schemas for all eight event types; `document.updated`, `document.deleted`, `sprint.started`, and `sprint.completed` are no longer generic payload records.
+- Sprint lifecycle events publish from document mutation services when sprint status moves to `active` or `completed`; no public sprint write route was added for this proof.
+- Metric probes now fail closed: TTFE canonical stages, TTFE flake/P95, OAuth P95, webhook P95, SDK size, verifier speed, and baseline comparator all emit gated JSON.
+- `pnpm plugforge:metrics` is the aggregate metric gate. Local runs refresh checked-in evidence under `my-docs/evidence/plugforge-metrics/`; CI writes and uploads a clean per-run `my-docs/evidence/plugforge-metrics-ci/**` directory so stale committed JSON cannot masquerade as current proof.
+- The scoped closure signal is `pnpm plugforge:ledger:enforce -- --area WEBHOOK,METRIC --status missing,partial`; `W6-INT-*` remains pending for Reference Integration Acceptance Closure.
+
+## 2026-06-04 — Reference Integration Acceptance Closure
+
+- `pnpm plugforge:integrations` is the INT acceptance harness. It proves Slack, GitLab, Browser SDK demo, existing integration boundary checks, and the final six-flow matrix with current-run JSON under `my-docs/evidence/plugforge-integrations/`.
+- Slack acceptance now proves Slack OAuth callback, two SDK-created Ship webhook subscriptions targeting one local receiver with separate secrets, signed `document.created` and `issue.assigned` delivery, two deterministic Slack posts, and replay dedupe.
+- GitLab acceptance stays on the public issue seam: deterministic MR webhook -> `client.issues.upsertExternalLink()` -> public `/api/v1/issues/:id` readback. No API internals and no schema change.
+- Browser SDK acceptance is a real Playwright flow through `/sdk-demo`: Authorization Code + PKCE, consent, callback, token exchange, and authenticated document listing through `@ship/sdk`.
+- The final INT closure signal is `pnpm plugforge:ledger:enforce -- --area INT --status missing,partial`; global enforcement remains intentionally out of scope until unrelated gaps close.

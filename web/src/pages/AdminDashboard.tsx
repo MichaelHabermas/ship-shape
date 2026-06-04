@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { api, Workspace, AuditLog, UserInfo } from '@/lib/api';
+import { api } from '@/lib/api';
+import type { UserInfo } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import type { AuditLogResponse, WorkspaceResponse } from '@ship/shared';
 
 type Tab = 'workspaces' | 'users' | 'audit';
 
 const VALID_TABS: Tab[] = ['workspaces', 'users', 'audit'];
 
-interface WorkspaceWithCount extends Workspace {
+interface WorkspaceWithCount extends WorkspaceResponse {
   memberCount: number;
 }
 
@@ -30,7 +32,7 @@ export function AdminDashboardPage() {
   }, [setSearchParams]);
   const [workspaces, setWorkspaces] = useState<WorkspaceWithCount[]>([]);
   const [users, setUsers] = useState<UserWithWorkspaces[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
@@ -108,6 +110,7 @@ export function AdminDashboardPage() {
         <div className="bg-yellow-500 text-black px-4 py-2 flex items-center justify-between">
           <span>You are impersonating <strong>{impersonating.userName}</strong></span>
           <button
+            type="button"
             onClick={endImpersonation}
             className="px-3 py-1 bg-yellow-700 text-white rounded hover:bg-yellow-800 transition-colors"
           >
@@ -120,6 +123,7 @@ export function AdminDashboardPage() {
       <header className="flex h-14 items-center justify-between border-b border-border px-6">
         <div className="flex items-center gap-4">
           <button
+            type="button"
             onClick={() => navigate('/docs')}
             className="text-muted hover:text-foreground transition-colors"
           >
@@ -191,6 +195,7 @@ export function AdminDashboardPage() {
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
         'px-4 py-3 text-sm font-medium border-b-2 transition-colors',
@@ -246,6 +251,7 @@ function WorkspacesTab({
 
         {!showCreateForm && (
           <button
+            type="button"
             onClick={() => setShowCreateForm(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted hover:text-foreground transition-colors"
           >
@@ -323,6 +329,7 @@ function WorkspacesTab({
                 <td className="px-4 py-3 text-right">
                   {!ws.archivedAt && (
                     <button
+                      type="button"
                       onClick={() => onArchiveWorkspace(ws.id)}
                       className="text-sm text-red-500 hover:text-red-400 transition-colors"
                     >
@@ -372,6 +379,7 @@ function UsersTab({
               </td>
               <td className="px-4 py-3 text-sm">
                 <button
+                  type="button"
                   onClick={() => onToggleSuperAdmin(u.id, u.isSuperAdmin)}
                   disabled={u.id === currentUserId}
                   className={cn(
@@ -388,6 +396,7 @@ function UsersTab({
               <td className="px-4 py-3 text-right">
                 {u.id !== currentUserId && (
                   <button
+                    type="button"
                     onClick={() => onImpersonate(u.id)}
                     className="text-sm text-accent hover:text-accent/80 transition-colors"
                   >
@@ -407,13 +416,14 @@ function AuditLogsTab({
   auditLogs,
   onExport,
 }: {
-  auditLogs: AuditLog[];
+  auditLogs: AuditLogResponse[];
   onExport: () => void;
 }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
         <button
+          type="button"
           onClick={onExport}
           className="px-4 py-2 bg-border text-foreground rounded-md hover:bg-border/80 transition-colors text-sm"
         >

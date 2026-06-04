@@ -1,0 +1,36 @@
+{
+  "flow": "matrix",
+  "run_id": "plugforge-1780585679325-f476faeb",
+  "generated_at": "2026-06-04T15:09:27.257Z",
+  "status": "passed",
+  "reference_flows": {
+    "slack": "2026-06-04T15:08:04.055Z",
+    "gitlab": "2026-06-04T15:08:07.146Z",
+    "browser": "2026-06-04T15:08:33.867Z"
+  },
+  "matrix_flows": [
+    "cli_ttfe",
+    "refresh_token_theft",
+    "idempotency_replay",
+    "slack",
+    "gitlab",
+    "browser_sdk_demo"
+  ],
+  "steps": [
+    {
+      "command": "pnpm drill ttfe",
+      "duration_ms": 11594,
+      "exit_code": 0
+    },
+    {
+      "command": "./scripts/run-api-tests.sh -- src/platform/oauth/refresh-theft-drill.test.ts src/platform/api/v1/webhooks.test.ts",
+      "duration_ms": 3985,
+      "exit_code": 0
+    },
+    {
+      "command": "pnpm plugforge:developer-ops-e2e",
+      "duration_ms": 32229,
+      "exit_code": 0
+    }
+  ]
+}

@@ -6,7 +6,7 @@ import { formatWireDate } from '../../../utils/format-wire-date.js';
 import { visibleAssociatedIssueCountSql } from '../../../services/document-graph-visibility.js';
 import type {
   SprintRow,
-  SprintIssueIdRow,
+  IdRow,
 } from '../types.js';
 
 export function visibleSprintIssueCountSql(
@@ -131,7 +131,7 @@ export async function takeSprintSnapshot(
   userId: string,
   isAdmin: boolean
 ): Promise<string[]> {
-  const result = await pool.query<SprintIssueIdRow>(
+  const result = await pool.query<IdRow>(
     `SELECT d.id FROM documents d
      JOIN document_associations da ON da.document_id = d.id
      WHERE da.related_id = $1 AND da.relationship_type = 'sprint' AND d.document_type = 'issue'

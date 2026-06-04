@@ -7,6 +7,9 @@ export type ShipTokenSet = {
   tokenType?: string;
   expiresAt?: number;
   scope?: string;
+  clientId?: string;
+  userId?: string;
+  workspaceId?: string;
 };
 
 export interface ITokenStore {
@@ -96,6 +99,9 @@ function parseTokenSet(raw: string): ShipTokenSet | null {
       tokenType: typeof parsed.tokenType === 'string' ? parsed.tokenType : undefined,
       expiresAt: typeof parsed.expiresAt === 'number' ? parsed.expiresAt : undefined,
       scope: typeof parsed.scope === 'string' ? parsed.scope : undefined,
+      clientId: typeof parsed.clientId === 'string' ? parsed.clientId : undefined,
+      userId: typeof parsed.userId === 'string' ? parsed.userId : undefined,
+      workspaceId: typeof parsed.workspaceId === 'string' ? parsed.workspaceId : undefined,
     };
   } catch {
     return null;

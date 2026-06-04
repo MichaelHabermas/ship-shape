@@ -3,8 +3,6 @@ import type { ApiResponse, AuditLogResponse, WorkspaceResponse } from '@ship/sha
 
 type ApiRequester = <T>(endpoint: string, options?: RequestInit) => Promise<ApiResponse<T>>;
 
-type Workspace = WorkspaceResponse;
-type AuditLog = AuditLogResponse;
 type UserInfo = {
   id: string;
   email: string;
@@ -15,27 +13,27 @@ type UserInfo = {
 export function createAdminApi(request: ApiRequester, apiUrl: string) {
   return {
     listWorkspaces: (includeArchived = false) =>
-      request<{ workspaces: Array<Workspace & { memberCount: number }> }>(`/api/admin/workspaces?archived=${includeArchived}`),
+      request<{ workspaces: Array<WorkspaceResponse & { memberCount: number }> }>(`/api/admin/workspaces?archived=${includeArchived}`),
 
     createWorkspace: (data: { name: string }) =>
-      request<{ workspace: Workspace }>('/api/admin/workspaces', {
+      request<{ workspace: WorkspaceResponse }>('/api/admin/workspaces', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
 
     updateWorkspace: (workspaceId: string, data: { name?: string }) =>
-      request<Workspace>(`/api/admin/workspaces/${workspaceId}`, {
+      request<WorkspaceResponse>(`/api/admin/workspaces/${workspaceId}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
 
     archiveWorkspace: (workspaceId: string) =>
-      request<Workspace>(`/api/admin/workspaces/${workspaceId}/archive`, {
+      request<WorkspaceResponse>(`/api/admin/workspaces/${workspaceId}/archive`, {
         method: 'POST',
       }),
 
     getWorkspace: (workspaceId: string) =>
-      request<{ workspace: Workspace & { sprintStartDate: string | null } }>(`/api/admin/workspaces/${workspaceId}`),
+      request<{ workspace: WorkspaceResponse & { sprintStartDate: string | null } }>(`/api/admin/workspaces/${workspaceId}`),
 
     getWorkspaceMembers: (workspaceId: string) =>
       request<{ members: Array<{ userId: string; email: string; name: string; role: 'admin' | 'member' }> }>(`/api/admin/workspaces/${workspaceId}/members`),
@@ -86,7 +84,7 @@ export function createAdminApi(request: ApiRequester, apiUrl: string) {
       }),
 
     getAuditLogs: (params?: { workspaceId?: string; userId?: string; action?: string; limit?: number; offset?: number }) =>
-      request<{ logs: AuditLog[] }>(`/api/admin/audit-logs${params ? `?${new URLSearchParams(params as Record<string, string>)}` : ''}`),
+      request<{ logs: AuditLogResponse[] }>(`/api/admin/audit-logs${params ? `?${new URLSearchParams(params as Record<string, string>)}` : ''}`),
 
     exportAuditLogs: (params?: { workspaceId?: string; userId?: string; action?: string; from?: string; to?: string }) =>
       `${apiUrl}/api/admin/audit-logs/export${params ? `?${new URLSearchParams(params)}` : ''}`,

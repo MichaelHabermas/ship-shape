@@ -24,7 +24,6 @@ export const PUBLIC_API_ERROR_CODES = [
   'forbidden',
   'not_found',
   'validation_failed',
-  'conflict',
   'rate_limited',
   'server_error',
 ] as const;
@@ -61,7 +60,14 @@ export const WEBHOOK_DELIVERY_STATUS_VALUES = [
   'dlq',
 ] as const;
 
+export const PUBLIC_SPRINT_STATUS_VALUES = [
+  'planning',
+  'active',
+  'completed',
+] as const;
+
 export const PublicApiScopeSchema = z.enum(PUBLIC_API_SCOPES);
+export const PublicSprintStatusSchema = z.enum(PUBLIC_SPRINT_STATUS_VALUES);
 export const PublicApiErrorSchema = z.object({
   code: z.enum(PUBLIC_API_ERROR_CODES),
   message: z.string(),
@@ -190,6 +196,20 @@ export const PublicIssueParamsSchema = z.object({
   id: z.string().uuid(),
 });
 
+export const PublicIssueExternalLinkInputSchema = z.object({
+  provider: z.string().min(1).max(64).regex(/^[A-Za-z0-9_.:-]+$/),
+  external_id: z.string().min(1).max(256),
+  kind: z.string().min(1).max(64).regex(/^[A-Za-z0-9_.:-]+$/),
+  url: z.string().url(),
+  title: z.string().min(1).max(500),
+  status: z.string().min(1).max(128).optional(),
+});
+
+export const PublicIssueExternalLinkSchema = PublicIssueExternalLinkInputSchema.extend({
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export const PublicIssueSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
@@ -217,6 +237,7 @@ export const PublicIssueSchema = z.object({
   reopened_at: z.string().nullable().optional(),
   converted_from_id: z.string().uuid().nullable().optional(),
   belongs_to: z.array(PublicBelongsToSchema),
+  external_links: z.array(PublicIssueExternalLinkSchema).optional(),
 });
 
 export const PublicIssuesListResponseSchema = z.object({
@@ -284,7 +305,7 @@ export const PublicSprintSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   sprint_number: z.number().int().positive(),
-  status: z.enum(['planning', 'active', 'completed']),
+  status: PublicSprintStatusSchema,
   owner: z.object({
     id: z.string().uuid(),
     name: z.string().nullable().optional(),
@@ -425,58 +446,6 @@ export const OAuthDeviceApprovalResponseSchema = z.object({
   approved: z.boolean(),
 });
 
-export const WebhookActorSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().optional(),
-  email: z.string().optional(),
-});
-
-export const DocumentCreatedWebhookPayloadSchema = z.object({
-  document: z.object({
-    id: z.string().uuid(),
-    title: z.string(),
-    document_type: z.enum(DOCUMENT_TYPE_VALUES),
-    api_url: z.string(),
-    ui_url: z.string(),
-  }),
-  actor: WebhookActorSchema.optional(),
-});
-
-export const IssueWebhookResourceSchema = z.object({
-  id: z.string().uuid(),
-  title: z.string(),
-  display_id: z.string(),
-  ticket_number: z.number().int().nullable(),
-  state: z.enum(ISSUE_STATE_VALUES),
-  assignee_id: z.string().uuid().nullable(),
-  api_url: z.string(),
-  ui_url: z.string(),
-});
-
-export const IssueCreatedWebhookPayloadSchema = z.object({
-  issue: IssueWebhookResourceSchema,
-  actor: WebhookActorSchema.optional(),
-});
-
-export const IssueAssignedWebhookPayloadSchema = z.object({
-  issue: IssueWebhookResourceSchema,
-  assignee: WebhookActorSchema.nullable(),
-  actor: WebhookActorSchema.optional(),
-});
-
-export const IssueStatusChangedWebhookPayloadSchema = z.object({
-  issue: IssueWebhookResourceSchema,
-  previous_status: z.enum(ISSUE_STATE_VALUES).nullable(),
-  status: z.enum(ISSUE_STATE_VALUES),
-  actor: WebhookActorSchema.optional(),
-});
-
-export const WebhookEventResourceSchema = z.object({
-  kind: z.literal('document'),
-  id: z.string().uuid(),
-  document_type: z.enum(DOCUMENT_TYPE_VALUES),
-});
-
 export type PublicApiScope = z.infer<typeof PublicApiScopeSchema>;
 export type PublicApiErrorCode = (typeof PUBLIC_API_ERROR_CODES)[number];
 export type PublicApiError = z.infer<typeof PublicApiErrorSchema>;
@@ -491,11 +460,14 @@ export type PublicIssue = z.infer<typeof PublicIssueSchema>;
 export type PublicIssueCreateInput = z.input<typeof PublicIssueCreateSchema>;
 export type PublicIssueUpdateInput = z.input<typeof PublicIssueUpdateSchema>;
 export type PublicIssueListParams = z.infer<typeof PublicIssueListQuerySchema>;
+export type PublicIssueExternalLink = z.infer<typeof PublicIssueExternalLinkSchema>;
+export type PublicIssueExternalLinkInput = z.input<typeof PublicIssueExternalLinkInputSchema>;
 export type PublicFleetGraphAttentionContext = z.infer<typeof PublicFleetGraphAttentionContextSchema>;
 export type PublicFleetGraphAttentionContextListParams = z.infer<typeof PublicFleetGraphAttentionContextListQuerySchema>;
 export type PublicFleetGraphAttentionContextsListResponse = z.infer<
   typeof PublicFleetGraphAttentionContextsListResponseSchema
 >;
+export type PublicSprintStatus = z.infer<typeof PublicSprintStatusSchema>;
 export type PublicSprint = z.infer<typeof PublicSprintSchema>;
 export type PublicSprintListParams = z.infer<typeof PublicSprintListQuerySchema>;
 export type PublicSprintIssueListParams = z.infer<typeof PublicSprintIssueListQuerySchema>;
@@ -519,15 +491,3 @@ export type OAuthConsentRequest = z.infer<typeof OAuthConsentRequestSchema>;
 export type OAuthConsentApprovalResponse = z.infer<typeof OAuthConsentApprovalResponseSchema>;
 export type OAuthDeviceVerificationRequest = z.infer<typeof OAuthDeviceVerificationRequestSchema>;
 export type OAuthDeviceApprovalResponse = z.infer<typeof OAuthDeviceApprovalResponseSchema>;
-export type DocumentCreatedWebhookPayload = z.infer<typeof DocumentCreatedWebhookPayloadSchema>;
-export type IssueCreatedWebhookPayload = z.infer<typeof IssueCreatedWebhookPayloadSchema>;
-export type IssueAssignedWebhookPayload = z.infer<typeof IssueAssignedWebhookPayloadSchema>;
-export type IssueStatusChangedWebhookPayload = z.infer<typeof IssueStatusChangedWebhookPayloadSchema>;
-export type WebhookEventResource = z.infer<typeof WebhookEventResourceSchema>;
-export type WebhookEvent = {
-  type: WebhookEventType;
-  workspace_id: string;
-  idempotency_key: string;
-  resource: WebhookEventResource;
-  payload: Record<string, unknown>;
-};

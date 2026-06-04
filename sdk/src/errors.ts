@@ -7,8 +7,8 @@ export type ShipErrorKind =
   | 'network'
   | 'server';
 
-export type ShipErrorData = {
-  kind: ShipErrorKind;
+type BaseShipErrorData<K extends ShipErrorKind> = {
+  kind: K;
   message: string;
   status?: number;
   code?: string;
@@ -17,7 +17,22 @@ export type ShipErrorData = {
   retryAfter?: number;
 };
 
-export class ShipError extends Error implements ShipErrorData {
+export type ShipAuthErrorData = BaseShipErrorData<'auth'>;
+export type ShipRateLimitErrorData = BaseShipErrorData<'rate_limit'>;
+export type ShipNotFoundErrorData = BaseShipErrorData<'not_found'>;
+export type ShipValidationErrorData = BaseShipErrorData<'validation'>;
+export type ShipNetworkErrorData = BaseShipErrorData<'network'>;
+export type ShipServerErrorData = BaseShipErrorData<'server'>;
+export type ShipErrorVariantData =
+  | ShipAuthErrorData
+  | ShipRateLimitErrorData
+  | ShipNotFoundErrorData
+  | ShipValidationErrorData
+  | ShipNetworkErrorData
+  | ShipServerErrorData;
+export type ShipErrorData = BaseShipErrorData<ShipErrorKind>;
+
+export class ShipError extends Error {
   readonly kind: ShipErrorKind;
   readonly status?: number;
   readonly code?: string;

@@ -1,4 +1,4 @@
-// Public API middleware tests cover scope denial outside route-specific behavior.
+// Public API middleware tests cover scope denial, rate limits, and audit rows.
 import express from 'express';
 import request from 'supertest';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -6,7 +6,19 @@ import { PublicApiErrorSchema } from '@ship/shared';
 import { pool } from '../../../db/client.js';
 import { type IdRow, requireFirstRow } from '../../../test/pg-result.js';
 import { createOAuthAccessToken } from '../../oauth/tokens.js';
-import { publicApiAuditMiddleware, requirePublicApiBearer } from './middleware.js';
+import {
+  publicApiAuditMiddleware,
+  publicApiRateLimitMiddleware,
+  requirePublicApiBearer,
+  setPublicApiRateLimitBucketForTest,
+} from './middleware.js';
+import {
+  RATE_LIMIT_HEADER_LIMIT,
+  RATE_LIMIT_HEADER_REMAINING,
+  RATE_LIMIT_HEADER_RESET,
+  RATE_LIMIT_HEADER_RETRY_AFTER,
+} from '../../ratelimit/headers.js';
+import { publicApiV1Router } from './router.js';
 
 describe('public API middleware', () => {
   const app = express();
@@ -20,7 +32,11 @@ describe('public API middleware', () => {
   let readOnlyToken: string;
 
   beforeAll(async () => {
+    app.set('trust proxy', true);
     app.use('/api/v1', publicApiAuditMiddleware);
+    app.get('/api/v1/rate-limited', publicApiRateLimitMiddleware, (_req, res) => {
+      res.json({ ok: true });
+    });
     app.get('/api/v1/needs-write', requirePublicApiBearer(['documents:write']), (_req, res) => {
       res.json({ ok: true });
     });
@@ -132,6 +148,72 @@ describe('public API middleware', () => {
       scope_used: 'documents:write',
       status: 403,
       error_code: 'forbidden',
+    });
+  });
+
+  it('returns canonical 429 headers and audit rows when pre-auth rate limit is exhausted', async () => {
+    const requestId = `${testRunId}-preauth-rate-limit`;
+    const ip = '203.0.113.9';
+    setPublicApiRateLimitBucketForTest(`ip:${ip}`, {
+      remaining: 0,
+      resetAt: Date.now() + 30_000,
+    });
+
+    const response = await request(app)
+      .get('/api/v1/rate-limited')
+      .set('x-request-id', requestId)
+      .set('x-forwarded-for', ip);
+
+    const body = PublicApiErrorSchema.parse(response.body);
+    expect(response.status).toBe(429);
+    expect(body.code).toBe('rate_limited');
+    expect(body.request_id).toBe(requestId);
+    expect(typeof body.details?.retry_after_seconds).toBe('number');
+    expect(response.headers[RATE_LIMIT_HEADER_LIMIT.toLowerCase()]).toBeDefined();
+    expect(response.headers[RATE_LIMIT_HEADER_REMAINING.toLowerCase()]).toBe('0');
+    expect(response.headers[RATE_LIMIT_HEADER_RESET.toLowerCase()]).toBeDefined();
+    expect(response.headers[RATE_LIMIT_HEADER_RETRY_AFTER.toLowerCase()]).toEqual(expect.any(String));
+
+    const audit = await pool.query<{ status: number; error_code: string | null; route: string }>(
+      `SELECT status, error_code, route
+       FROM public_api_audit_logs
+       WHERE request_id = $1`,
+      [requestId]
+    );
+    expect(requireFirstRow(audit.rows)).toEqual({
+      status: 429,
+      error_code: 'rate_limited',
+      route: '/api/v1/rate-limited',
+    });
+  });
+
+  it('audits pre-auth 429s through the production public API router order', async () => {
+    const routerApp = express();
+    routerApp.set('trust proxy', true);
+    routerApp.use('/api/v1', publicApiV1Router);
+    const requestId = `${testRunId}-router-preauth-rate-limit`;
+    const ip = '203.0.113.10';
+    setPublicApiRateLimitBucketForTest(`ip:${ip}`, {
+      remaining: 0,
+      resetAt: Date.now() + 30_000,
+    });
+
+    const response = await request(routerApp)
+      .get('/api/v1/me')
+      .set('x-request-id', requestId)
+      .set('x-forwarded-for', ip);
+
+    expect(response.status).toBe(429);
+    const audit = await pool.query<{ status: number; error_code: string | null; route: string }>(
+      `SELECT status, error_code, route
+       FROM public_api_audit_logs
+       WHERE request_id = $1`,
+      [requestId]
+    );
+    expect(requireFirstRow(audit.rows)).toEqual({
+      status: 429,
+      error_code: 'rate_limited',
+      route: '/api/v1/me',
     });
   });
 });

@@ -83,8 +83,9 @@ test-results/
 
 .worktrees
 
-# Dev server port allocation
+# Dev server port allocation and session (scripts/dev.sh)
 .ports
+.dev/
 
 # Audit artifacts
 .audit
@@ -153,6 +154,7 @@ my-docs/evals/fleetgraph-observability/datasets/
 my-docs/evals/fleetgraph-observability/provider-history.json
 my-docs/evals/fleetgraph-product-surface/runs/
 my-docs/evidence/fleetgraph-proof/runs/
+my-docs/evidence/plugforge-metrics-ci/
 my-docs/evidence/security-audit/suggested-ledger-update.json
 web/public/fleetgraph-observability/index.html
 web/public/fleetgraph-observability/provider-history.json

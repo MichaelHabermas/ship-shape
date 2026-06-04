@@ -76,7 +76,7 @@ function extractIssueFromRow(row: any) {
 Other examples:
 - `api/src/routes/programs.ts:11` - `extractProgramFromRow`
 - `api/src/routes/projects.ts:16` - `extractProjectFromRow`
-- `api/src/routes/weeks.ts:44` - `extractWeekFromRow`
+- `api/src/routes/weeks/shared.ts`:44 - `extractWeekFromRow`
 
 ### Error Response Formats
 

@@ -3,7 +3,7 @@ import { test, expect } from './fixtures/isolated-env';
 import { getCsrfToken, login } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
 import type {
-  ApiDocument,
+  ApiId,
   AuthMeResponse,
   PersonDocument,
   TeamReviewsResponse,
@@ -49,7 +49,7 @@ async function createPendingPlan(page: import('@playwright/test').Page, apiUrl: 
     headers: { 'x-csrf-token': csrf },
     data: { title: 'Test Program', properties: { color: '#6366f1' } },
   });
-  const prog = await readJsonAs<ApiDocument>(progRes);
+  const prog = await readJsonAs<ApiId>(progRes);
 
   // Create a project
   const projRes = await page.request.post(`${apiUrl}/api/projects`, {
@@ -60,7 +60,7 @@ async function createPendingPlan(page: import('@playwright/test').Page, apiUrl: 
       properties: { color: '#3b82f6' },
     },
   });
-  const proj = await readJsonAs<ApiDocument>(projRes);
+  const proj = await readJsonAs<ApiId>(projRes);
 
   // Create a sprint for the current week with the person allocated
   await page.request.post(`${apiUrl}/api/documents`, {

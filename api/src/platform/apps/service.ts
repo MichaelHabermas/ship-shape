@@ -1,12 +1,15 @@
 // OAuth app service owns client ids, shown-once secrets, and app registration persistence.
 import crypto from 'crypto';
-import argon2 from 'argon2';
 import type { Pool, PoolClient } from 'pg';
 import type { PublicApiScope } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import { isPublicApiScope } from '../scopes/registry.js';
 import { SHIP_AGENT_READ_SCOPES } from '../oauth/ship-agent-scopes.js';
 import type { PublicCursorPayload } from '../api/v1/pagination.js';
+import { hashOAuthClientSecret } from './client-secret.js';
+import { revokeOAuthAppTokens } from './token-revocation.js';
+
+export { hashOAuthClientSecret, verifyOAuthClientSecret, verifyOAuthClientSecretWithVerifier } from './client-secret.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 const CLIENT_SECRET_GRACE_MS = 24 * 60 * 60 * 1000;
@@ -52,6 +55,7 @@ export type RotatedOAuthAppSecret = {
   client_secret_id: string;
   client_secret: string;
   previous_secret_expires_at: string | null;
+  revoked_token_count: number;
   warning: string;
 };
 
@@ -121,14 +125,6 @@ export function generateOAuthClientId(): string {
 
 export function generateOAuthClientSecret(): string {
   return `ship_secret_${crypto.randomBytes(32).toString('hex')}`;
-}
-
-export async function hashOAuthClientSecret(secret: string): Promise<string> {
-  return argon2.hash(secret, { type: argon2.argon2id });
-}
-
-export async function verifyOAuthClientSecret(hash: string, secret: string): Promise<boolean> {
-  return argon2.verify(hash, secret);
 }
 
 export async function createOAuthApp(input: CreateOAuthAppInput): Promise<CreatedOAuthApp> {
@@ -280,6 +276,8 @@ export async function rotateOAuthAppSecret(input: {
   workspaceId: string;
   actorUserId: string;
   revokePreviousImmediately: boolean;
+  revokeActiveTokens?: boolean;
+  tokenRevocationReason?: string;
 }): Promise<RotatedOAuthAppSecret> {
   const clientSecret = generateOAuthClientSecret();
   const clientSecretHash = await hashOAuthClientSecret(clientSecret);
@@ -317,6 +315,15 @@ export async function rotateOAuthAppSecret(input: {
       );
     }
 
+    const revokedTokenCount = input.revokeActiveTokens
+      ? await revokeOAuthAppTokens(
+        input.appId,
+        input.workspaceId,
+        input.tokenRevocationReason ?? 'admin_force_rotation',
+        client
+      )
+      : 0;
+
     const secretResult = await client.query<{ id: string }>(
       `INSERT INTO oauth_app_secrets (
          app_id,
@@ -345,6 +352,7 @@ export async function rotateOAuthAppSecret(input: {
       client_secret_id: secret.id,
       client_secret: clientSecret,
       previous_secret_expires_at: previousSecretExpiresAt?.toISOString() ?? null,
+      revoked_token_count: revokedTokenCount,
       warning: 'Save this client_secret now. It will not be shown again.',
     };
   } catch (error) {

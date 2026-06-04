@@ -267,10 +267,14 @@ Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-do
 | Developer portal (apps, webhooks, deliveries, replay) | Workspace Settings → Developer tab |
 | Device verification | http://localhost:5173/oauth/device |
 | TTFE drill (the signature proof) | `pnpm drill ttfe` |
-| MVP CI parity (local) | `pnpm plugforge:verify` and `pnpm plugforge:oauth-e2e` |
-| MVP CI (remote) | [Plugforge MVP workflow](https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-mvp.yml) on `main` |
+| MVP/platform parity (local) | `pnpm plugforge:verify` and `pnpm plugforge:oauth-e2e` |
+| Final external-client proof pack | `pnpm plugforge:final` |
+| Slack reference integration | [`integrations/slack`](./integrations/slack) |
+| GitLab reference integration | [`integrations/gitlab`](./integrations/gitlab) |
 
 Demo login remains `dev@ship.local` / `admin123`. Create OAuth apps (and capture the one-time secret) via the Developer tab; this branch does not seed a fixed public demo client. Run the drill live — it produces the verified signed webhook that is the actual acceptance bar.
+
+`pnpm plugforge:final` runs the MVP gate, TTFE drill, refresh-token theft drill, webhook replay/idempotency drill, SDK/OpenAPI parity checks, integration boundary enforcement, FleetGraph public audit proof, Slack/GitLab package checks, and strict docs drift checks. The public GitLab link seam is `POST /api/v1/issues/:id/external-links` plus `client.issues.upsertExternalLink()`, stored as issue document metadata in `properties.external_links`.
 
 ---
 

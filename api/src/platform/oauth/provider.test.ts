@@ -400,6 +400,36 @@ describe('OAuth Authorization Code + PKCE provider', () => {
     );
   });
 
+  it('issues 15-minute access tokens and 30-day refresh token families', async () => {
+    const issuedStartedAt = Date.now();
+    const token = await issueTokenPair('ttl-proof');
+    const issuedFinishedAt = Date.now();
+
+    expect(token.expires_in).toBe(15 * 60);
+    const rows = await pool.query<{
+      access_expires_at: Date;
+      family_expires_at: Date;
+      refresh_expires_at: Date;
+    }>(
+      `SELECT
+         access.expires_at AS access_expires_at,
+         family.expires_at AS family_expires_at,
+         refresh.expires_at AS refresh_expires_at
+       FROM oauth_access_tokens access
+       JOIN oauth_refresh_token_families family ON family.id = access.refresh_token_family_id
+       JOIN oauth_refresh_tokens refresh ON refresh.family_id = family.id
+       WHERE access.token_hash = $1
+         AND refresh.token_hash = $2`,
+      [hashOAuthSecret(token.access_token), hashOAuthSecret(token.refresh_token)]
+    );
+    const row = requireFirstRow(rows.rows);
+    expect(row.access_expires_at.getTime()).toBeGreaterThanOrEqual(issuedStartedAt + 15 * 60 * 1000 - 1_000);
+    expect(row.access_expires_at.getTime()).toBeLessThanOrEqual(issuedFinishedAt + 15 * 60 * 1000 + 1_000);
+    expect(row.family_expires_at.getTime()).toBeGreaterThanOrEqual(issuedStartedAt + 30 * 24 * 60 * 60 * 1000 - 1_000);
+    expect(row.family_expires_at.getTime()).toBeLessThanOrEqual(issuedFinishedAt + 30 * 24 * 60 * 60 * 1000 + 1_000);
+    expect(row.refresh_expires_at.getTime()).toBe(row.family_expires_at.getTime());
+  });
+
   it('rejects wrong verifiers and expired codes with invalid_grant', async () => {
     const wrongVerifier = await approvedAuthorizationCode(createPkcePair(), 'wrong-verifier');
     await expectOAuthError(
@@ -516,6 +546,7 @@ describe('OAuth Authorization Code + PKCE provider', () => {
 
   async function issueTokenPair(state: string): Promise<{
     access_token: string;
+    expires_in: number;
     refresh_token: string;
   }> {
     const pkce = createPkcePair();

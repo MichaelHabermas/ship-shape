@@ -3,6 +3,6 @@ packages:
   - 'web'
   - 'shared'
   - 'sdk'
-  - 'integrations/cli'
+  - 'integrations/*'
   - 'packages/shipshape-security'
   - 'packages/shipshape-security/console-ui'

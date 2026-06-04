@@ -9,7 +9,6 @@ import type {
   SprintRow,
   SprintInsertRow,
   WorkspaceSprintStartRow,
-  ProgramExistsRow,
   IdRow,
   WorkspaceMemberUserRow,
 } from '../types.js';
@@ -148,7 +147,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
     // If program_id provided, verify it belongs to workspace and user can access it
     if (program_id) {
-      const programCheck = await pool.query<ProgramExistsRow>(
+      const programCheck = await pool.query<IdRow>(
         `SELECT d.id
          FROM documents d
          WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'program'

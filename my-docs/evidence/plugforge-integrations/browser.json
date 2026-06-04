@@ -1,0 +1,15 @@
+{
+  "flow": "browser",
+  "run_id": "browser-1780586501497",
+  "generated_at": "2026-06-04T15:21:43.282Z",
+  "status": "passed",
+  "client_id": "ship_app_dfc008ecf8ead939c8ce4fd861f0ac67",
+  "document_title": "PlugForge Browser SDK 1780586502788",
+  "redirect_uri": "http://localhost:11050/sdk-demo",
+  "scopes": [
+    "documents:read",
+    "documents:write",
+    "issues:read",
+    "sprints:read"
+  ]
+}

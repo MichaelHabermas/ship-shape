@@ -14,6 +14,7 @@ import {
 } from './document-read-model.js';
 import { sendPublicApiError } from './errors.js';
 import {
+  sendInvalidCursorError,
   sendMissingContext,
   sendValidationError,
 } from './public-sql-helpers.js';
@@ -53,11 +54,7 @@ publicDocumentsRouter.get(
 
     const cursor = parsePublicDocumentCursor(parsed.data.cursor);
     if (parsed.data.cursor && !cursor) {
-      sendPublicApiError(res, 400, {
-        code: 'validation_failed',
-        message: 'Invalid cursor',
-        request_id: req.publicApi.requestId,
-      });
+      sendInvalidCursorError(req, res);
       return;
     }
 

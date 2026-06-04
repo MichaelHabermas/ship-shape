@@ -1,0 +1,305 @@
+{
+  "metric": "sdk-minified-gzip-size",
+  "status": "measured",
+  "ok": true,
+  "generatedAt": "2026-06-04T03:53:16.389Z",
+  "durationMs": 27,
+  "targets": {
+    "maxGzipBytes": 256000
+  },
+  "input": {
+    "entryPoint": "sdk/src/index.ts",
+    "bundler": "esbuild",
+    "platform": "browser",
+    "target": "es2022",
+    "external": [
+      "@ship/shared",
+      "node:*"
+    ]
+  },
+  "result": {
+    "minifiedBytes": 21116,
+    "gzipBytes": 7422
+  },
+  "metafile": {
+    "inputs": {
+      "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js": {
+        "bytes": 20182,
+        "imports": [],
+        "format": "esm"
+      },
+      "sdk/src/errors.ts": {
+        "bytes": 1535,
+        "imports": [],
+        "format": "esm"
+      },
+      "sdk/src/http.ts": {
+        "bytes": 6473,
+        "imports": [
+          {
+            "path": "sdk/src/errors.ts",
+            "kind": "import-statement",
+            "original": "./errors.js"
+          }
+        ],
+        "format": "esm"
+      },
+      "sdk/src/resources.ts": {
+        "bytes": 6093,
+        "imports": [
+          {
+            "path": "@ship/shared",
+            "kind": "import-statement",
+            "external": true
+          },
+          {
+            "path": "sdk/src/errors.ts",
+            "kind": "import-statement",
+            "original": "./errors.js"
+          }
+        ],
+        "format": "esm"
+      },
+      "sdk/src/token-store.ts": {
+        "bytes": 3822,
+        "imports": [
+          {
+            "path": "sdk/src/errors.ts",
+            "kind": "import-statement",
+            "original": "./errors.js"
+          },
+          {
+            "path": "node:fs/promises",
+            "kind": "dynamic-import",
+            "external": true
+          },
+          {
+            "path": "node:fs/promises",
+            "kind": "dynamic-import",
+            "external": true
+          },
+          {
+            "path": "node:path",
+            "kind": "dynamic-import",
+            "external": true
+          },
+          {
+            "path": "node:fs/promises",
+            "kind": "dynamic-import",
+            "external": true
+          }
+        ],
+        "format": "esm"
+      },
+      "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/hmac.js": {
+        "bytes": 3143,
+        "imports": [
+          {
+            "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js",
+            "kind": "import-statement",
+            "original": "./utils.js"
+          }
+        ],
+        "format": "esm"
+      },
+      "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/_md.js": {
+        "bytes": 8372,
+        "imports": [
+          {
+            "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js",
+            "kind": "import-statement",
+            "original": "./utils.js"
+          }
+        ],
+        "format": "esm"
+      },
+      "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/_u64.js": {
+        "bytes": 4972,
+        "imports": [],
+        "format": "esm"
+      },
+      "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/sha2.js": {
+        "bytes": 19112,
+        "imports": [
+          {
+            "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/_md.js",
+            "kind": "import-statement",
+            "original": "./_md.js"
+          },
+          {
+            "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/_u64.js",
+            "kind": "import-statement",
+            "original": "./_u64.js"
+          },
+          {
+            "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js",
+            "kind": "import-statement",
+            "original": "./utils.js"
+          }
+        ],
+        "format": "esm"
+      },
+      "sdk/src/webhook.ts": {
+        "bytes": 2188,
+        "imports": [
+          {
+            "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/hmac.js",
+            "kind": "import-statement",
+            "original": "@noble/hashes/hmac.js"
+          },
+          {
+            "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/sha2.js",
+            "kind": "import-statement",
+            "original": "@noble/hashes/sha2.js"
+          },
+          {
+            "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js",
+            "kind": "import-statement",
+            "original": "@noble/hashes/utils.js"
+          }
+        ],
+        "format": "esm"
+      },
+      "sdk/src/index.ts": {
+        "bytes": 16027,
+        "imports": [
+          {
+            "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js",
+            "kind": "import-statement",
+            "original": "@noble/hashes/utils.js"
+          },
+          {
+            "path": "@ship/shared",
+            "kind": "import-statement",
+            "external": true
+          },
+          {
+            "path": "sdk/src/errors.ts",
+            "kind": "import-statement",
+            "original": "./errors.js"
+          },
+          {
+            "path": "sdk/src/http.ts",
+            "kind": "import-statement",
+            "original": "./http.js"
+          },
+          {
+            "path": "sdk/src/resources.ts",
+            "kind": "import-statement",
+            "original": "./resources.js"
+          },
+          {
+            "path": "sdk/src/token-store.ts",
+            "kind": "import-statement",
+            "original": "./token-store.js"
+          },
+          {
+            "path": "sdk/src/errors.ts",
+            "kind": "import-statement",
+            "original": "./errors.js"
+          },
+          {
+            "path": "sdk/src/resources.ts",
+            "kind": "import-statement",
+            "original": "./resources.js"
+          },
+          {
+            "path": "sdk/src/token-store.ts",
+            "kind": "import-statement",
+            "original": "./token-store.js"
+          },
+          {
+            "path": "sdk/src/webhook.ts",
+            "kind": "import-statement",
+            "original": "./webhook.js"
+          }
+        ],
+        "format": "esm"
+      }
+    },
+    "outputs": {
+      "index.js": {
+        "imports": [
+          {
+            "path": "@ship/shared",
+            "kind": "import-statement",
+            "external": true
+          },
+          {
+            "path": "@ship/shared",
+            "kind": "import-statement",
+            "external": true
+          },
+          {
+            "path": "node:fs/promises",
+            "kind": "dynamic-import",
+            "external": true
+          },
+          {
+            "path": "node:fs/promises",
+            "kind": "dynamic-import",
+            "external": true
+          },
+          {
+            "path": "node:path",
+            "kind": "dynamic-import",
+            "external": true
+          },
+          {
+            "path": "node:fs/promises",
+            "kind": "dynamic-import",
+            "external": true
+          }
+        ],
+        "exports": [
+          "BrowserTokenStore",
+          "DocumentsClient",
+          "FileTokenStore",
+          "FleetGraphAttentionContextsClient",
+          "FleetgraphClient",
+          "IssuesClient",
+          "MemoryTokenStore",
+          "ShipClient",
+          "ShipError",
+          "SprintsClient",
+          "WebhooksClient",
+          "verifyWebhook"
+        ],
+        "entryPoint": "sdk/src/index.ts",
+        "inputs": {
+          "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js": {
+            "bytesInOutput": 2036
+          },
+          "sdk/src/index.ts": {
+            "bytesInOutput": 6374
+          },
+          "sdk/src/errors.ts": {
+            "bytesInOutput": 262
+          },
+          "sdk/src/http.ts": {
+            "bytesInOutput": 3068
+          },
+          "sdk/src/resources.ts": {
+            "bytesInOutput": 2096
+          },
+          "sdk/src/token-store.ts": {
+            "bytesInOutput": 1601
+          },
+          "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/hmac.js": {
+            "bytesInOutput": 1318
+          },
+          "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/_md.js": {
+            "bytesInOutput": 1610
+          },
+          "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/sha2.js": {
+            "bytesInOutput": 1712
+          },
+          "sdk/src/webhook.ts": {
+            "bytesInOutput": 774
+          }
+        },
+        "bytes": 21116
+      }
+    }
+  }
+}

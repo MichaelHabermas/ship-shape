@@ -15,12 +15,12 @@ import { test, expect } from './fixtures/isolated-env'
 import { loginAsSuperAdmin, getCsrfToken } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
 import type {
+  ApiId,
   AssignResponse,
   SimpleErrorBody,
   TeamAccountabilityResponse,
   TeamGridResponse,
   TeamPerson,
-  TeamProgram,
 } from './fixtures/e2e-api-types';
 
 
@@ -82,7 +82,7 @@ test.describe('Existing User Invite Flow', () => {
     // Get a program ID first
     const programsResponse = await page.request.get('/api/team/programs')
     expect(programsResponse.status()).toBe(200)
-    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
+    const programs = await readJsonAs<ApiId[]>(programsResponse)
     expect(programs.length).toBeGreaterThan(0)
 
     const programId = programs[0].id
@@ -109,7 +109,7 @@ test.describe('Existing User Invite Flow', () => {
 
     // Get a program ID first
     const programsResponse = await page.request.get('/api/team/programs')
-    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
+    const programs = await readJsonAs<ApiId[]>(programsResponse)
     const programId = programs[0].id
 
     // Try to assign with empty string userId
@@ -142,7 +142,7 @@ test.describe('Existing User Invite Flow', () => {
 
     // Get a program ID
     const programsResponse = await page.request.get('/api/team/programs')
-    const programs = await readJsonAs<TeamProgram[]>(programsResponse)
+    const programs = await readJsonAs<ApiId[]>(programsResponse)
     const programId = programs[0].id
 
     // Assign the user - use a high sprint number to avoid conflicts

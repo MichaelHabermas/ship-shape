@@ -66,6 +66,7 @@ normal_specs=(
   e2e/issues-inline-sprint.spec.ts
   e2e/issues.spec.ts
   e2e/manager-reviews.spec.ts
+  e2e/plugforge-acceptance.spec.ts
   e2e/pending-invites-allocation.spec.ts
   e2e/performance.spec.ts
   e2e/private-documents.spec.ts

@@ -13,9 +13,7 @@ export type WorkspaceListRow = WorkspaceRow & {
   member_count: string | number;
 };
 
-export type IdRow = {
-  id: string;
-};
+export type IdRow = { id: string };
 
 export type WorkspaceNameRow = {
   id: string;

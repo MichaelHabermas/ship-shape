@@ -5,17 +5,15 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import type { WorkspaceWithRoleResponse } from '@ship/shared';
-import { api, type Workspace } from '@/lib/api';
-
-export type WorkspaceWithRole = WorkspaceWithRoleResponse;
+import type { WorkspaceResponse, WorkspaceWithRoleResponse } from '@ship/shared';
+import { api } from '@/lib/api';
 
 interface WorkspaceContextType {
-  currentWorkspace: Workspace | null;
-  workspaces: WorkspaceWithRole[];
+  currentWorkspace: WorkspaceResponse | null;
+  workspaces: WorkspaceWithRoleResponse[];
   isWorkspaceAdmin: boolean;
-  setCurrentWorkspace: (workspace: Workspace | null) => void;
-  setWorkspaces: (workspaces: WorkspaceWithRole[]) => void;
+  setCurrentWorkspace: (workspace: WorkspaceResponse | null) => void;
+  setWorkspaces: (workspaces: WorkspaceWithRoleResponse[]) => void;
   switchWorkspace: (workspaceId: string) => Promise<boolean>;
   refreshWorkspaces: () => Promise<void>;
 }
@@ -23,8 +21,8 @@ interface WorkspaceContextType {
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
-  const [workspaces, setWorkspaces] = useState<WorkspaceWithRole[]>([]);
+  const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceResponse | null>(null);
+  const [workspaces, setWorkspaces] = useState<WorkspaceWithRoleResponse[]>([]);
 
   const isWorkspaceAdmin = workspaces.find(w => w.id === currentWorkspace?.id)?.role === 'admin';
 

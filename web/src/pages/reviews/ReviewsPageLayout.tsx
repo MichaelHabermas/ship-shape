@@ -1,12 +1,13 @@
 // ReviewsPageLayout renders the review grid, selection state, and side review panel.
 import { cn } from '@/lib/cn';
 import { formatDateRange } from '@/lib/date-utils';
-import { REVIEW_COLORS, REVIEW_STATUS_TEXT, type ReviewsData, type SelectedCell, type BatchMode } from './reviews-types.js';
+import { REVIEW_COLORS, REVIEW_STATUS_TEXT, type SelectedCell, type BatchMode } from './reviews-types.js';
+import type { ReviewsResponse } from '@/api/schemas';
 import { getPlanStatus, getRetroStatus } from './reviews-status.js';
 import { ReviewPanel } from './ReviewPanel.js';
 
 export type ReviewsPageLayoutProps = {
-  data: ReviewsData;
+  data: ReviewsResponse;
   hasDirectReports: boolean;
   filterMode: 'my-team' | 'everyone' | null;
   setFilterMode: (mode: 'my-team' | 'everyone') => void;
@@ -14,7 +15,7 @@ export type ReviewsPageLayoutProps = {
   collapsedPrograms: Set<string>;
   toggleProgram: (programId: string | null) => void;
   scrollContainerRef: React.RefObject<HTMLDivElement>;
-  weeksDescending: ReviewsData['weeks'];
+  weeksDescending: ReviewsResponse['weeks'];
   weekReviewCounts: Record<number, { plans: number; retros: number }>;
   effectivePlanWeek: number;
   effectiveRetroWeek: number;
@@ -57,6 +58,7 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
             <>
               <div className="flex rounded-md border border-border">
                 <button
+                  type="button"
                   onClick={() => setFilterMode('my-team')}
                   className={cn(
                     'px-2 py-0.5 transition-colors',
@@ -68,6 +70,7 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
                   My Team
                 </button>
                 <button
+                  type="button"
                   onClick={() => setFilterMode('everyone')}
                   className={cn(
                     'px-2 py-0.5 transition-colors',
@@ -134,6 +137,7 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
                 })}
               </select>
               <button
+                type="button"
                 onClick={() => startBatchReview('plans', effectivePlanWeek)}
                 disabled={selectedPlanPendingCount === 0}
                 aria-label={`Review Plans for ${selectedPlanWeekLabel} (${selectedPlanPendingCount} pending)`}
@@ -167,6 +171,7 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
                 })}
               </select>
               <button
+                type="button"
                 onClick={() => startBatchReview('retros', effectiveRetroWeek)}
                 disabled={selectedRetroPendingCount === 0}
                 aria-label={`Review Retros for ${selectedRetroWeekLabel} (${selectedRetroPendingCount} pending)`}
@@ -203,6 +208,7 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
                 if (row.type === 'program') {
                   return (
                     <button
+                      type="button"
                       key={`program-${row.id}`}
                       onClick={() => toggleProgram(row.id === '__unassigned__' ? null : row.id)}
                       className="flex h-10 w-[240px] items-center gap-2 border-b border-border bg-border/30 px-3 hover:bg-border/50 text-left"
@@ -310,6 +316,7 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
                         >
                           {/* Plan status (left half) */}
                           <button
+                            type="button"
                             onClick={() => {
                               if (cell.hasPlan && cell.planDocId) {
                                 navigate(`/documents/${cell.planDocId}?review=true&sprintId=${cell.sprintId}`);
@@ -325,6 +332,7 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
                           />
                           {/* Retro status (right half) */}
                           <button
+                            type="button"
                             onClick={() => {
                               if (cell.hasRetro && cell.retroDocId) {
                                 navigate(`/documents/${cell.retroDocId}?review=true&sprintId=${cell.sprintId}`);
@@ -432,6 +440,7 @@ export function ReviewsPageLayout(props: ReviewsPageLayoutProps) {
               </div>
             </div>
             <button
+              type="button"
               onClick={exitBatchMode}
               className="rounded bg-accent px-4 py-2 text-xs font-medium text-white hover:bg-accent/80"
             >

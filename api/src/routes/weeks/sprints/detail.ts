@@ -11,7 +11,6 @@ import { requireWeekRead, requireWeekWrite } from '../week-access.js';
 import type {
   SprintRow,
   IdRow,
-  UserIdRow,
   SprintExistsRow,
 } from '../types.js';
 import {
@@ -167,7 +166,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       // Only validate if owner_id is not null (i.e., setting a new owner, not clearing)
       if (data.owner_id) {
         // Verify owner exists in workspace
-        const ownerCheck = await pool.query<UserIdRow>(
+        const ownerCheck = await pool.query<IdRow>(
           `SELECT u.id FROM users u
            JOIN workspace_memberships wm ON wm.user_id = u.id
            WHERE u.id = $1 AND wm.workspace_id = $2`,

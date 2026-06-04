@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { WorkspaceInvite } from '@/lib/api';
+import type { WorkspaceInviteResponse } from '@ship/shared';
 import { cn } from '@/lib/cn';
 
 export function InvitesTab({
@@ -16,7 +16,7 @@ export function InvitesTab({
   onInvite,
   onRevoke,
 }: {
-  invites: WorkspaceInvite[];
+  invites: WorkspaceInviteResponse[];
   inviteEmail: string;
   setInviteEmail: (v: string) => void;
   inviteSubjectDn: string;
@@ -31,7 +31,7 @@ export function InvitesTab({
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  function handleCopyLink(invite: WorkspaceInvite) {
+  function handleCopyLink(invite: WorkspaceInviteResponse) {
     const url = `${window.location.origin}/invite/${invite.token}`;
     navigator.clipboard.writeText(url);
     setCopiedId(invite.id);
@@ -124,6 +124,7 @@ export function InvitesTab({
                   </td>
                   <td className="px-4 py-3 text-right space-x-3">
                     <button
+                      type="button"
                       onClick={() => handleCopyLink(invite)}
                       className={cn(
                         'text-sm transition-colors',
@@ -135,6 +136,7 @@ export function InvitesTab({
                       {copiedId === invite.id ? 'Copied!' : 'Copy Link'}
                     </button>
                     <button
+                      type="button"
                       onClick={() => onRevoke(invite.id)}
                       className="text-sm text-red-500 hover:text-red-400 transition-colors"
                     >

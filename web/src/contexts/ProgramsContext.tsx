@@ -11,10 +11,8 @@
  */
 import { createContext, useContext, ReactNode } from 'react';
 import { usePrograms as useProgramsQuery, Program } from '@/hooks/useProgramsQuery';
-import type { UserReference } from '@/api/schemas';
 
 export type { Program };
-export type ProgramOwner = UserReference;
 
 interface ProgramsContextValue {
   programs: Program[];

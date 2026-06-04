@@ -222,7 +222,7 @@ All API endpoints use Zod schemas for request validation.
 
 ### Schema Examples
 
-**Issue validation** (`api/src/routes/issues.ts:17-58`):
+**Issue validation** (`api/src/routes/issues/shared.ts`:17-58):
 ```typescript
 const createIssueSchema = z.object({
   title: z.string().min(1).max(500),
@@ -241,7 +241,7 @@ const createTokenSchema = z.object({
 });
 ```
 
-**Document validation** (`api/src/routes/documents.ts:43-85`):
+**Document validation** (`api/src/routes/documents/shared.ts`:43-85):
 ```typescript
 const createDocumentSchema = z.object({
   title: z.string().min(1).max(255).optional().default('Untitled'),
@@ -341,6 +341,6 @@ comply opensource --hook --staged --exclude e2e --skip-trivy
 | Input validation | Zod schemas | All route files |
 | Visibility filter | VISIBILITY_FILTER_SQL() | `api/src/middleware/visibility.ts:49-55` |
 | Capability gate | `authorize()` | `api/src/security/capabilities.ts` |
-| Document mutations | `authorizeDocumentMutation()` | `api/src/services/document-mutations.ts` |
+| Document mutations | `authorizeDocumentMutation()` | `api/src/services/mutation-capability-guard.ts` |
 | Setup token | `setup-access.ts` | `api/src/security/setup-access.ts` |
 | Structured hot errors | `logHotError()` | `api/src/utils/hot-log.ts` |

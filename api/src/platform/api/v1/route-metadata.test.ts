@@ -1,9 +1,8 @@
 // Public route registry tests keep /api/v1 contract metadata from drifting.
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import request, { type Test } from 'supertest';
 import { PUBLIC_API_RELATIVE_PATHS, PUBLIC_API_SCOPES, PublicApiErrorSchema } from '@ship/shared';
+import { ShipClient, type FetchLike } from '@ship/sdk';
 import { createApp } from '../../../app.js';
 import { pool } from '../../../db/client.js';
 import { expectJsonBody } from '../../../test/expect-json-body.js';
@@ -13,6 +12,11 @@ import {
   type PublicRouteSdkMetadata,
 } from './route-metadata.js';
 import { publicRouteOpenApiContracts } from './route-openapi-contracts.js';
+
+type FetchCall = {
+  input: string | URL;
+  init?: RequestInit;
+};
 
 describe('public API v1 route registry', () => {
   const app = createApp();
@@ -81,6 +85,7 @@ describe('public API v1 route registry', () => {
       'issues.get': PUBLIC_API_RELATIVE_PATHS.issue,
       'issues.create': PUBLIC_API_RELATIVE_PATHS.issues,
       'issues.update': PUBLIC_API_RELATIVE_PATHS.issue,
+      'issues.externalLinks.upsert': PUBLIC_API_RELATIVE_PATHS.issueExternalLinks,
       'sprints.list': PUBLIC_API_RELATIVE_PATHS.sprints,
       'sprints.get': PUBLIC_API_RELATIVE_PATHS.sprint,
       'sprints.issues.list': PUBLIC_API_RELATIVE_PATHS.sprintIssues,
@@ -96,40 +101,22 @@ describe('public API v1 route registry', () => {
     }
   });
 
-  it('keeps route SDK metadata backed by real SDK methods', () => {
-    const sdkSource = sdkSources();
+  it('keeps route SDK metadata backed by typed SDK calls with matching method and path', async () => {
     const routes: readonly PublicRouteMetadata[] = publicApiV1RouteRegistry;
     for (const route of routes) {
       if (!hasSdkMetadata(route)) continue;
-      const { sdk } = route;
-      const className = sdk.client === 'root'
-        ? 'ShipClient'
-        : `${sdk.client[0]?.toUpperCase()}${sdk.client.slice(1)}Client`;
-      const classStart = sdkSource.indexOf(`class ${className}`);
-      expect(classStart, `${route.operationId} SDK client ${className}`).toBeGreaterThanOrEqual(0);
-      const nextClassStart = sdkSource.indexOf('\nexport class ', classStart + 1);
-      const classSource = sdkSource.slice(
-        classStart,
-        nextClassStart === -1 ? undefined : nextClassStart
-      );
-      if (!sdk.method.includes('.')) {
-        expect(classSource, `${route.operationId} SDK method ${sdk.method}`).toMatch(
-          new RegExp(`\\b${sdk.method}\\s*\\(`)
-        );
-        continue;
-      }
+      const calls: FetchCall[] = [];
+      const client = new ShipClient({
+        baseUrl: 'https://ship.test',
+        token: 'token',
+        fetch: recordingFetch(calls),
+      });
 
-      const [propertyName, nestedMethod] = sdk.method.split('.', 2);
-      expect(classSource, `${route.operationId} SDK property ${propertyName}`).toMatch(
-        new RegExp(`(?:readonly\\s+)?${propertyName}(?::\\s*[A-Za-z0-9_]+)?`)
-      );
-      expect(classSource, `${route.operationId} SDK property ${propertyName}`).toMatch(
-        new RegExp(`(?:this\\.)?${propertyName}\\s*=\\s*new\\s+[A-Za-z0-9_]+\\(`)
-      );
-      expect(
-        sdkSource,
-        `${route.operationId} nested SDK method ${nestedMethod}`
-      ).toMatch(new RegExp(`\\b${nestedMethod}\\s*\\(`));
+      const expectedPathname = await invokeSdkRoute(route, client);
+      expect(calls, `${route.operationId} SDK fetch calls`).toHaveLength(1);
+      const call = calls[0];
+      expect(call.init?.method, `${route.operationId} SDK method`).toBe(route.method);
+      expect(new URL(String(call.input)).pathname, `${route.operationId} SDK path`).toBe(expectedPathname);
     }
   });
 
@@ -156,23 +143,87 @@ describe('public API v1 route registry', () => {
     }
   }
 
-  function sdkSources(): string {
-    const candidates = [
-      resolve(process.cwd(), '../sdk/src/index.ts'),
-      resolve(process.cwd(), 'sdk/src/index.ts'),
-      resolve(process.cwd(), '../sdk/src/resources.ts'),
-      resolve(process.cwd(), 'sdk/src/resources.ts'),
-    ];
-    const sources = candidates
-      .filter(candidate => existsSync(candidate))
-      .map(candidate => readFileSync(candidate, 'utf8'));
-    if (sources.length === 0) throw new Error('SDK source not found');
-    return sources.join('\n');
-  }
-
   function hasSdkMetadata(
     route: PublicRouteMetadata
   ): route is PublicRouteMetadata & { sdk: PublicRouteSdkMetadata } {
     return route.sdk !== undefined;
+  }
+
+  function recordingFetch(calls: FetchCall[]): FetchLike {
+    return async (input, init) => {
+      calls.push({ input, init });
+      return new Response(JSON.stringify({ data: [], next_cursor: null }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+  }
+
+  async function invokeSdkRoute(route: PublicRouteMetadata, client: ShipClient): Promise<string> {
+    const id = 'route-parity-id';
+    const deliveryId = 'delivery-parity-id';
+    switch (route.operationId) {
+      case 'fleetgraph.attentionContexts.list':
+        await client.fleetgraph.attentionContexts.list({ limit: 1 });
+        return '/api/v1/fleetgraph/attention-contexts';
+      case 'me.get':
+        await client.me();
+        return '/api/v1/me';
+      case 'documents.list':
+        await client.documents.list({ limit: 1 });
+        return '/api/v1/documents';
+      case 'documents.get':
+        await client.documents.get(id);
+        return '/api/v1/documents/route-parity-id';
+      case 'documents.create':
+        await client.documents.create({ title: 'Route parity', document_type: 'wiki' });
+        return '/api/v1/documents';
+      case 'issues.list':
+        await client.issues.list({ limit: 1 });
+        return '/api/v1/issues';
+      case 'issues.get':
+        await client.issues.get(id);
+        return '/api/v1/issues/route-parity-id';
+      case 'issues.create':
+        await client.issues.create({ title: 'Route parity issue' });
+        return '/api/v1/issues';
+      case 'issues.update':
+        await client.issues.update(id, { title: 'Route parity issue update' });
+        return '/api/v1/issues/route-parity-id';
+      case 'issues.externalLinks.upsert':
+        await client.issues.upsertExternalLink(id, {
+          provider: 'gitlab',
+          external_id: 'route-parity-link',
+          kind: 'merge_request',
+          url: 'https://gitlab.example.test/group/project/-/merge_requests/1',
+        });
+        return '/api/v1/issues/route-parity-id/external-links';
+      case 'sprints.list':
+        await client.sprints.list({ limit: 1 });
+        return '/api/v1/sprints';
+      case 'sprints.get':
+        await client.sprints.get(id);
+        return '/api/v1/sprints/route-parity-id';
+      case 'sprints.issues.list':
+        await client.sprints.listIssues(id, { limit: 1 });
+        return '/api/v1/sprints/route-parity-id/issues';
+      case 'webhooks.list':
+        await client.webhooks.list({ limit: 1 });
+        return '/api/v1/webhooks';
+      case 'webhooks.create':
+        await client.webhooks.create({
+          event: 'issue.status_changed',
+          targetUrl: 'https://integrator.example.test/webhooks/ship',
+        });
+        return '/api/v1/webhooks';
+      case 'webhooks.deliveries.list':
+        await client.webhooks.listDeliveries({ limit: 1 });
+        return '/api/v1/webhooks/deliveries';
+      case 'webhooks.deliveries.replay':
+        await client.webhooks.replay(deliveryId);
+        return '/api/v1/webhooks/deliveries/delivery-parity-id/replay';
+      default:
+        throw new Error(`No SDK parity call for ${route.operationId}`);
+    }
   }
 });

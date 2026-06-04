@@ -3,9 +3,7 @@ import { asApprovalRecord } from '../../utils/approval-workflow.js';
 
 export type EmptyRow = Record<string, never>;
 
-export type IdRow = {
-  id: string;
-};
+export type IdRow = { id: string };
 
 export type WorkspaceSprintStartRow = {
   sprint_start_date: Date | string | null;

@@ -1,0 +1,84 @@
+{
+  "metric": "plugforge-baseline-comparator",
+  "status": "measured",
+  "ok": true,
+  "generatedAt": "2026-06-04T03:53:18.536Z",
+  "durationMs": 1814,
+  "targets": {
+    "baseline": "scripts/plugforge-metrics/baseline.json",
+    "maxRegressionRatio": 1.1,
+    "samples": 5
+  },
+  "result": {
+    "publicApi": [
+      {
+        "name": "GET /api/v1/me",
+        "samples": 5,
+        "p50LatencyMs": 4,
+        "p95LatencyMs": 19,
+        "maxQueryCount": 4,
+        "queryCounts": [
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "timings": [
+          19,
+          6,
+          3,
+          4,
+          3
+        ]
+      },
+      {
+        "name": "GET /api/v1/documents?limit=1",
+        "samples": 5,
+        "p50LatencyMs": 4,
+        "p95LatencyMs": 5,
+        "maxQueryCount": 5,
+        "queryCounts": [
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "timings": [
+          5,
+          4,
+          4,
+          3,
+          3
+        ]
+      },
+      {
+        "name": "GET /api/v1/webhooks?limit=1",
+        "samples": 5,
+        "p50LatencyMs": 3,
+        "p95LatencyMs": 3,
+        "maxQueryCount": 4,
+        "queryCounts": [
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "timings": [
+          3,
+          3,
+          3,
+          3,
+          2
+        ]
+      }
+    ],
+    "sdk": {
+      "minifiedBytes": 21116,
+      "gzipBytes": 7422
+    }
+  },
+  "failures": []
+}
