@@ -6,7 +6,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
 pnpm plugforge:verify
-pnpm drill ttfe
+pnpm plugforge:metrics:ttfe
+pnpm plugforge:metrics:oauth-p95
+pnpm plugforge:metrics:webhook-p95
+pnpm plugforge:metrics:sdk-size
 
 pnpm --filter @ship/shared build
 pnpm --filter @ship/sdk build
@@ -22,5 +25,6 @@ node --test ./scripts/ci/check-integration-boundary.test.mjs
   src/fleetgraph/public-api-client.audit.test.ts
 
 pnpm --filter @ship/sdk test
+pnpm plugforge:developer-ops-e2e
 bash ./scripts/ci/check-public-openapi-drift.sh
 pnpm docs:check:strict

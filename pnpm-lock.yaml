@@ -53,6 +53,9 @@ importers:
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
+      esbuild:
+        specifier: ^0.28.0
+        version: 0.28.0
       eslint:
         specifier: ^10.4.0
         version: 10.4.0(jiti@1.21.7)

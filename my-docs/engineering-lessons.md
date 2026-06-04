@@ -344,3 +344,17 @@ The transferable rules:
 - Add the boundary check to the same final gate that proves the integration behavior.
 
 ShipShape example (2026-06): Slack and GitLab reference integrations live under `integrations/` and import Ship only through `@ship/sdk`. `scripts/ci/check-integration-boundary.mjs` blocks `api/src`, `web/src`, `shared`, `@ship/shared`, app aliases, `require()`, and dynamic internal imports; `pnpm plugforge:final` runs the checker and its negative fixture.
+
+## 29. Pending Tests Need Requirement IDs, Not Hope
+
+A large acceptance suite is not trustworthy just because it is large. For spec-driven work, keep a requirement ledger where every testable atom has an ID, status, proof command, and gap. Pending tests are useful only when the pending marker carries the same requirement ID and a checker verifies that traceability.
+
+The transferable rules:
+
+- Give each requirement atom a stable ID before writing broad proof.
+- Separate structural proof validation from final enforcement; enforcement can fail while the project is still honestly incomplete.
+- Make missing tests executable inventory with `todo` or `fixme`, not prose buried in docs.
+- Require each pending test to mention the exact ledger ID it is meant to retire.
+- Let metric probes report `not_measured` when calibration is missing instead of faking a green threshold.
+
+ShipShape example (2026-06): Week 6 PlugForge proof work upgraded `proof-ledger.yaml` into an atom ledger, with a checker that validates IDs/proof paths/covered-by targets/pending markers, Vitest and Playwright pending inventories, scoped enforcement filters, and report-first metric probes. The result is not "everything passes"; it is a reviewer-visible map of exactly what is proven, partial, manual, non-scope, open, and still missing.

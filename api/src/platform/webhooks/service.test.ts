@@ -250,6 +250,55 @@ describe('webhook delivery reliability', () => {
     }
   );
 
+  it('W6 retries 500,500,500,200 after 1s, 4s, and 16s and logs final success', async () => {
+    await createSubscription();
+    const idempotencyKey = `document.created:w6-exact-retry-${testRunId}`;
+    const documentId = await insertWebhookDocument();
+    deliverer.queue({ responseStatus: 500, responseExcerpt: 'failure 1', error: null });
+    deliverer.queue({ responseStatus: 500, responseExcerpt: 'failure 2', error: null });
+    deliverer.queue({ responseStatus: 500, responseExcerpt: 'failure 3', error: null });
+    deliverer.queue({ responseStatus: 200, responseExcerpt: '{"ok":true}', error: null });
+
+    await publishAndDispatch(idempotencyKey, documentId);
+
+    for (let index = 0; index < 3; index += 1) {
+      const attemptNumber = index + 1;
+      const retryAttemptNumber = attemptNumber + 1;
+      const expectedNextAttemptMs = clock.nowMs() + WEBHOOK_RETRY_DELAYS_MS[index];
+      const rows = await findDeliveries(idempotencyKey);
+      const failedAttempt = rows.find(row => row.attempt_number === attemptNumber);
+      const pendingRetry = rows.find(row => row.attempt_number === retryAttemptNumber);
+
+      expect(failedAttempt).toMatchObject({
+        attempt_number: attemptNumber,
+        status: 'retrying',
+        response_status: 500,
+      });
+      expect(failedAttempt?.next_attempt_at?.getTime()).toBe(expectedNextAttemptMs);
+      expect(pendingRetry).toMatchObject({
+        attempt_number: retryAttemptNumber,
+        status: 'pending',
+      });
+      expect(pendingRetry?.next_attempt_at?.getTime()).toBe(expectedNextAttemptMs);
+
+      clock.set(expectedNextAttemptMs);
+      expect(await processDueWebhookDeliveries()).toBe(1);
+    }
+
+    const rows = await findDeliveries(idempotencyKey);
+    expect(rows).toHaveLength(4);
+    expect(rows.map(row => row.status)).toEqual(['retrying', 'retrying', 'retrying', 'succeeded']);
+    expect(rows[3]).toMatchObject({
+      attempt_number: 4,
+      response_status: 200,
+      next_attempt_at: null,
+      failed_at: null,
+      last_error: null,
+    });
+    expect(rows[3]?.delivered_at?.getTime()).toBe(clock.nowMs());
+    expect(deliverer.requests).toHaveLength(4);
+  });
+
   it('claims a pending delivery once under concurrent dispatch', async () => {
     await createSubscription();
     const idempotencyKey = `document.created:claim-once-${testRunId}`;

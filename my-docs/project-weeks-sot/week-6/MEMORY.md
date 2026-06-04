@@ -63,6 +63,12 @@ Current placed anchors:
 - `web/src/pages/DeveloperSettingsTab.tsx` under workspace settings with the minimum ops UI: app selector, shown-once secret panel, rotation/revoke, subscriptions, delivery log with DLQ filter/replay, and public audit table.
 - `web/src/pages/SdkDemo.tsx` at `/sdk-demo` with browser Authorization Code + PKCE through `ShipClient.authorizationCodeFlow()`, `BrowserTokenStore`, document+issue lists, and explicit `documents:write` for the demo create button.
 - `e2e/developer-ops.spec.ts` is the targeted Playwright drill for portal create -> webhook DLQ -> replay with preserved `Idempotency-Key`.
+- `my-docs/project-weeks-sot/week-6/proof-ledger.yaml` is the canonical atom proof ledger for Week 6: 219 atoms across functional, metric, documentation, submission, manual, open-decision, and non-scope requirements.
+- `scripts/ci/check-plugforge-proof-ledger.mjs` validates ledger IDs, required fields, proof file paths, covered-by targets, and ensures every missing/partial testable P0/P1 atom names a pending test file that mentions the same requirement ID.
+- `api/src/platform/plugforge-acceptance.todo.test.ts` and `e2e/plugforge-acceptance.fixme.spec.ts` are intentional pending acceptance inventories, not passing proof. Current structural inventory is 54 Vitest todos and 15 Playwright fixmes. Do not delete a TODO/fixme until the corresponding ledger atom is proven by an executable command.
+- `api/src/platform/api/v1/public-api-fitness.test.ts` is the public API fitness suite for exact ApiError drift, list envelopes, auth-failure rate-limit headers, and cursor helper malformed-input behavior.
+- Metric probes live under `scripts/plugforge-metrics/`: TTFE timing, TTFE flake loop, OAuth Auth Code P95 placeholder, webhook P95 placeholder, and SDK minified+gzip size.
+- `pnpm plugforge:developer-ops-e2e` runs only `e2e/developer-ops.spec.ts`; `pnpm plugforge:final` now includes that targeted Playwright proof instead of relying on the full profiled E2E suite to incidentally cover it.
 
 ## Product And System Invariants
 
@@ -148,6 +154,8 @@ The final correctness pass for that earlier public work API slice proved visibil
 
 After the Agent-as-Citizen read-context foundation slice on 2026-06-02, targeted proof is `scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts src/services/issue-mutations/webhook-events.test.ts src/platform/api/v1/webhooks.test.ts src/platform/apps/routes.test.ts src/platform/oauth/agent-token-broker.test.ts src/platform/api/v1/route-metadata.test.ts src/platform/api/v1/fleetgraph.test.ts src/config/fleetgraph.test.ts src/routes/fleetgraph.test.ts src/fleetgraph/core.test.ts`, plus `pnpm --filter @ship/sdk test`, `pnpm --filter @ship/cli check`, `pnpm openapi:check:strict`, `pnpm drill ttfe`, `pnpm type-check`, `pnpm lint`, `pnpm test:api`, and `pnpm build`.
 
+After the proof-ledger slice on 2026-06-03, structural proof is `pnpm plugforge:ledger`. Targeted proof added in this slice is `scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts src/platform/plugforge-acceptance.todo.test.ts src/platform/webhooks/service.test.ts`, `pnpm --filter @ship/sdk test`, `pnpm --filter @ship/cli test`, and `node scripts/plugforge-metrics/sdk-size.mjs --no-write`.
+
 ## Leverage Points
 
 - `@ship/cli` public commands: `ship me`, `ship documents|docs`, `ship issues`, `ship sprints`, `ship fleetgraph attention-contexts`, `ship webhooks subscriptions|deliveries|tail` (all via `@ship/sdk` only). Default `ship login` scopes include `issues:read` and `sprints:read` so FleetGraph CLI matches `SHIP_AGENT_READ_SCOPES` + write/manage flags.
@@ -165,6 +173,8 @@ Public issue close conflicts return `409` with `code: conflict` and `details.inc
 Seeded OAuth access-token tests are not sufficient proof of a platform front door. Keep at least one proof that obtains a code through browser consent, exchanges it with PKCE, then uses the minted access token against `/api/v1/me`.
 
 Fresh E2E databases bootstrap from `api/src/db/schema.sql` and mark migrations applied. Any migration that adds PlugForge tables needed by E2E must update the schema snapshot too, or Playwright will fail inside a missing-table/column trap instead of the feature under test.
+
+`pnpm plugforge:ledger:enforce` is deliberately expected to fail while the ledger has P0/P1 unit/api/e2e/metric atoms whose status is not `proven`. Use plain `pnpm plugforge:ledger` for structural validation until the proof gaps are closed.
 
 ## User And Team Preferences
 

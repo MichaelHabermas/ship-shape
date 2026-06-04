@@ -45,6 +45,6 @@ publicFleetGraphRouter.get(
       limit: parsed.data.limit,
     });
 
-    res.json({ data });
+    res.json({ data, next_cursor: null });
   })
 );

@@ -1,0 +1,3086 @@
+# PlugForge Week 6 atom proof ledger.
+# Structural mode proves every atom is classified and traceable.
+# Enforcement mode proves P0/P1 unit, api, e2e, and metric atoms are closed.
+schema_version: 2
+generated_from: my-docs/project-weeks-sot/week-6/PRD.md and my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt
+status_values: proven, partial, missing, manual_pending, open_decision, non_scope, covered_by
+requirements:
+  - id: W6-GLOBAL-001
+    source: PRD.md:39; Plugforge-specs.txt:43-66
+    section: Global Pass Criteria
+    requirement: Final MVP hard gate must fail until all P0 and P1 executable and metric proof atoms are proven.
+    requirement_class: functional
+    testability: metric
+    priority: P0
+    status: partial
+    proof_command: pnpm plugforge:ledger:enforce
+    proof_files: scripts/ci/check-plugforge-proof-ledger.mjs
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Enforcement exists, but it intentionally fails while P0 and P1 atoms remain partial or missing.
+  - id: W6-GLOBAL-002
+    source: PRD.md:40; PRD.md:521; Plugforge-specs.txt:222-223
+    section: Global Pass Criteria
+    requirement: Clean-machine docs-only Time-to-First-Event is at most 30 minutes.
+    requirement_class: metric
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-METRIC-002
+    gap: none
+  - id: W6-GLOBAL-003
+    source: PRD.md:41; PRD.md:520; Plugforge-specs.txt:371-376
+    section: Global Pass Criteria
+    requirement: TTFE drill runtime in CI has P95 below 60 seconds.
+    requirement_class: metric
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-METRIC-005
+    gap: none
+  - id: W6-GLOBAL-004
+    source: PRD.md:42; PRD.md:522; Plugforge-specs.txt:379-381
+    section: Global Pass Criteria
+    requirement: TTFE drill has 0 percent flake rate over 20 consecutive CI runs.
+    requirement_class: metric
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-METRIC-006
+    gap: none
+  - id: W6-GLOBAL-005
+    source: PRD.md:43; PRD.md:235-236; Plugforge-specs.txt:226-227
+    section: Global Pass Criteria
+    requirement: OpenAPI spec parity between registered public routes and generated spec is 100 percent.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: pnpm openapi:check:strict && bash scripts/ci/check-public-openapi-drift.sh
+    proof_files: scripts/check-openapi-routes.mjs, scripts/ci/check-public-openapi-drift.sh, api/src/platform/api/v1/route-metadata.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-GLOBAL-006
+    source: PRD.md:44; PRD.md:355; Plugforge-specs.txt:228-229
+    section: Global Pass Criteria
+    requirement: Webhook first-attempt delivery latency P95 is below 2 seconds.
+    requirement_class: metric
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-METRIC-008
+    gap: none
+  - id: W6-GLOBAL-007
+    source: PRD.md:45; PRD.md:356; Plugforge-specs.txt:230-231
+    section: Global Pass Criteria
+    requirement: Webhook retry success rate after transient 5xx is 100 percent within schedule.
+    requirement_class: functional
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-WEBHOOK-023
+    gap: none
+  - id: W6-GLOBAL-008
+    source: PRD.md:46; PRD.md:664; Plugforge-specs.txt:232-233
+    section: Global Pass Criteria
+    requirement: Public API responses carry rate-limit headers 100 percent of the time.
+    requirement_class: functional
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-PORTAL-012
+    gap: none
+  - id: W6-GLOBAL-009
+    source: PRD.md:47; PRD.md:231; Plugforge-specs.txt:63-64
+    section: Global Pass Criteria
+    requirement: P95 latency, bundle size, and per-route query counts stay within plus 10 percent of the Part 1 baseline.
+    requirement_class: metric
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-METRIC-015
+    gap: none
+  - id: W6-GLOBAL-010
+    source: PRD.md:437; Plugforge-specs.txt:383-384
+    section: Global Pass Criteria
+    requirement: SDK install size with production dependencies only is below 250 KB minified and gzipped.
+    requirement_class: metric
+    testability: none
+    priority: P1
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-METRIC-010
+    gap: none
+  - id: W6-GLOBAL-011
+    source: PRD.md:357; Plugforge-specs.txt:377-379
+    section: Global Pass Criteria
+    requirement: SDK verifyWebhook helper runs below 1 ms per call.
+    requirement_class: metric
+    testability: none
+    priority: P1
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-METRIC-011
+    gap: none
+
+  - id: W6-METRIC-001
+    source: PRD.md:487-501; Plugforge-specs.txt:262-330
+    section: Metrics
+    requirement: TTFE measurement script exists and emits install, login, subscription, create, receipt, verification, and total timings.
+    requirement_class: metric
+    testability: metric
+    priority: P0
+    status: partial
+    proof_command: node scripts/plugforge-metrics/ttfe-timing.mjs --no-write
+    proof_files: scripts/plugforge-metrics/ttfe-timing.mjs, scripts/drill.mjs
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: The timing probe exists, but stage names are not yet proven one-for-one against every PRD-required stage.
+  - id: W6-METRIC-002
+    source: PRD.md:40; PRD.md:521; Plugforge-specs.txt:222-223
+    section: Metrics
+    requirement: Clean-machine docs-only TTFE target of at most 30 minutes is measured and gated.
+    requirement_class: metric
+    testability: metric
+    priority: P0
+    status: partial
+    proof_command: pnpm plugforge:metrics:ttfe -- --no-write
+    proof_files: scripts/plugforge-metrics/ttfe-timing.mjs
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Local packed-artifact measurement exists, but there is no calibrated clean-machine docs-only gate.
+  - id: W6-METRIC-003
+    source: PRD.md:487-501; Plugforge-specs.txt:262-330
+    section: Metrics
+    requirement: TTFE proof records each stage separately rather than only a total runtime.
+    requirement_class: metric
+    testability: metric
+    priority: P0
+    status: partial
+    proof_command: pnpm plugforge:metrics:ttfe -- --no-write
+    proof_files: scripts/plugforge-metrics/ttfe-timing.mjs, scripts/drill.mjs
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Stage output exists, but it does not yet assert the exact install/login/subscription/create/receipt/verify contract.
+  - id: W6-METRIC-004
+    source: PRD.md:41; Plugforge-specs.txt:371-376
+    section: Metrics
+    requirement: A 20-run TTFE loop script exists for P95 and flake measurement.
+    requirement_class: metric
+    testability: metric
+    priority: P0
+    status: proven
+    proof_command: node scripts/plugforge-metrics/ttfe-flake-loop.mjs --runs 1 --no-write
+    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-METRIC-005
+    source: PRD.md:41; PRD.md:520; Plugforge-specs.txt:371-376
+    section: Metrics
+    requirement: CI archives a calibrated 20-run TTFE sample with P95 below 60 seconds.
+    requirement_class: metric
+    testability: metric
+    priority: P0
+    status: partial
+    proof_command: node scripts/plugforge-metrics/ttfe-flake-loop.mjs --runs 20
+    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: The loop can calculate P95, but CI does not yet run and archive the calibrated 20-run result.
+  - id: W6-METRIC-006
+    source: PRD.md:42; PRD.md:522; Plugforge-specs.txt:379-381
+    section: Metrics
+    requirement: CI archives a calibrated 20-run TTFE sample with 0 percent flake rate.
+    requirement_class: metric
+    testability: metric
+    priority: P0
+    status: partial
+    proof_command: node scripts/plugforge-metrics/ttfe-flake-loop.mjs --runs 20
+    proof_files: scripts/plugforge-metrics/ttfe-flake-loop.mjs
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: The loop can count failures, but CI does not yet run and archive the 20-run zero-flake proof.
+  - id: W6-METRIC-007
+    source: PRD.md:44; PRD.md:355; Plugforge-specs.txt:228-229
+    section: Metrics
+    requirement: Webhook P95 measurement script exists for an instrumented receiver.
+    requirement_class: metric
+    testability: metric
+    priority: P0
+    status: proven
+    proof_command: node scripts/plugforge-metrics/webhook-p95.mjs --samples 1 --no-write
+    proof_files: scripts/plugforge-metrics/webhook-p95.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-METRIC-008
+    source: PRD.md:44; PRD.md:355; Plugforge-specs.txt:228-229
+    section: Metrics
+    requirement: Webhook first-attempt delivery P95 below 2 seconds is measured against a real receiver.
+    requirement_class: metric
+    testability: metric
+    priority: P0
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: The script exists, but no real receiver run with archived P95 evidence exists.
+  - id: W6-METRIC-009
+    source: PRD.md:437; Plugforge-specs.txt:383-384
+    section: Metrics
+    requirement: SDK size measurement script exists and reports minified and gzipped bytes.
+    requirement_class: metric
+    testability: metric
+    priority: P1
+    status: proven
+    proof_command: node scripts/plugforge-metrics/sdk-size.mjs
+    proof_files: scripts/plugforge-metrics/sdk-size.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-METRIC-010
+    source: PRD.md:437; Plugforge-specs.txt:383-384
+    section: Metrics
+    requirement: SDK production install size is hard-gated below 250 KB minified and gzipped.
+    requirement_class: metric
+    testability: metric
+    priority: P1
+    status: partial
+    proof_command: node scripts/plugforge-metrics/sdk-size.mjs
+    proof_files: scripts/plugforge-metrics/sdk-size.mjs
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: The script measures size, but the final gate does not yet fail on the 250 KB threshold.
+  - id: W6-METRIC-011
+    source: PRD.md:357; Plugforge-specs.txt:377-379
+    section: Metrics
+    requirement: SDK verifyWebhook benchmark proves less than 1 ms per call.
+    requirement_class: metric
+    testability: metric
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Functional verifier tests exist, but no benchmark proves the less than 1 ms target.
+  - id: W6-METRIC-012
+    source: PRD.md:119; Plugforge-specs.txt:385-387
+    section: Metrics
+    requirement: OAuth Authorization Code P95 measurement script exists.
+    requirement_class: metric
+    testability: metric
+    priority: P1
+    status: proven
+    proof_command: node scripts/plugforge-metrics/oauth-p95.mjs --samples 1 --no-write
+    proof_files: scripts/plugforge-metrics/oauth-p95.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-METRIC-013
+    source: PRD.md:119; Plugforge-specs.txt:385-387
+    section: Metrics
+    requirement: OAuth Authorization Code flow P95 target is gated and archived.
+    requirement_class: metric
+    testability: metric
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: The script exists, but no accepted threshold or CI archive exists.
+  - id: W6-METRIC-014
+    source: PRD.md:41-42; Plugforge-specs.txt:371-381
+    section: Metrics
+    requirement: CI metric artifacts are archived for TTFE, OAuth P95, webhook P95, SDK size, and verifier speed.
+    requirement_class: metric
+    testability: metric
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Metric scripts exist, but artifact archival is not wired across the set.
+  - id: W6-METRIC-015
+    source: PRD.md:47; PRD.md:231; Plugforge-specs.txt:63-64
+    section: Metrics
+    requirement: Part 1 baseline comparator gates P95 latency, bundle size, and per-route query counts within plus 10 percent.
+    requirement_class: metric
+    testability: metric
+    priority: P0
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No baseline artifact or comparator is wired for this final-submission metric.
+
+  - id: W6-OAUTH-001
+    source: PRD.md:85-86; Plugforge-specs.txt:79-81
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: OAuth app model stores client_id, redirect URIs, owner, and scopes.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts
+    proof_files: api/src/platform/apps/routes.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-002
+    source: PRD.md:86; PRD.md:125-126; Plugforge-specs.txt:79-81
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Client secrets are stored as Argon2id hashes.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts
+    proof_files: api/src/platform/apps/routes.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-003
+    source: PRD.md:87; Plugforge-specs.txt:79-81
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Raw client secret is shown once on app creation and is not recoverable later.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts
+    proof_files: api/src/platform/apps/routes.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-004
+    source: PRD.md:87; PRD.md:136; Plugforge-specs.txt:79-81
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Raw client secret is shown once on rotation and is not recoverable later.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts
+    proof_files: api/src/platform/apps/routes.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-005
+    source: PRD.md:87; PRD.md:131-132; docs/conventions/browser-storage.md
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Browser storage never persists raw OAuth client_secret after create or rotation.
+    requirement_class: functional
+    testability: e2e
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No browser-storage probe asserts client_secret never enters localStorage, sessionStorage, or inline persisted state.
+  - id: W6-OAUTH-006
+    source: PRD.md:125-126; Plugforge-specs.txt:79-81
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Client-secret verification is constant-time around hash comparison.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/apps/routes.test.ts, api/src/platform/oauth/provider.test.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Hashing behavior is covered, but there is no focused constant-time regression proof.
+  - id: W6-OAUTH-007
+    source: PRD.md:89-91; PRD.md:118-119; Plugforge-specs.txt:83-85
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Authorization Code grant records PKCE challenge when issuing an authorization code.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-008
+    source: PRD.md:89-91; PRD.md:118-119; Plugforge-specs.txt:83-85
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Authorization Code token exchange requires the correct PKCE verifier.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-009
+    source: PRD.md:89-91; PRD.md:118-119; Plugforge-specs.txt:83-85
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Wrong PKCE verifier returns invalid_grant.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-010
+    source: PRD.md:89-91; PRD.md:118-119; Plugforge-specs.txt:83-85
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Authorization Code with PKCE completes end-to-end in browser flow.
+    requirement_class: functional
+    testability: e2e
+    priority: P0
+    status: proven
+    proof_command: pnpm plugforge:oauth-e2e
+    proof_files: e2e/oauth-auth-code.spec.ts, scripts/ci/plugforge-oauth-e2e.sh
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-011
+    source: PRD.md:92-95; PRD.md:120; Plugforge-specs.txt:87-89
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Device Authorization Grant issues device_code, user_code, verification_uri, and verification_uri_complete.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-012
+    source: PRD.md:92-95; PRD.md:120; Plugforge-specs.txt:87-89
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Device verification accepts a user_code and binds the grant to the logged-in user.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-013
+    source: PRD.md:92-95; PRD.md:120; Plugforge-specs.txt:87-89
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Device token polling returns pending until the user authorizes the grant.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-014
+    source: PRD.md:92-95; PRD.md:120; Plugforge-specs.txt:87-89
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Device token polling can return slow_down at provider level.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-015
+    source: PRD.md:92-95; PRD.md:120; Plugforge-specs.txt:87-89
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: CLI Device Grant login honors slow_down while polling.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts, integrations/cli
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Provider slow_down is covered, but the CLI polling path is not directly proven.
+  - id: W6-OAUTH-016
+    source: PRD.md:96-101; Plugforge-specs.txt:51-58
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Valid bearer token populates app, user, and scopes for /api/v1/me.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/me.test.ts
+    proof_files: api/src/platform/api/v1/me.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-017
+    source: PRD.md:96-101; Plugforge-specs.txt:51-58
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Missing bearer token returns 401 on public API routes.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/me.test.ts src/platform/api/v1/public-api-fitness.test.ts
+    proof_files: api/src/platform/api/v1/me.test.ts, api/src/platform/api/v1/public-api-fitness.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-018
+    source: PRD.md:96-101; Plugforge-specs.txt:51-58
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Invalid bearer token returns 401 on public API routes.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/me.test.ts src/platform/api/v1/public-api-fitness.test.ts
+    proof_files: api/src/platform/api/v1/me.test.ts, api/src/platform/api/v1/public-api-fitness.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-019
+    source: PRD.md:96-101; Plugforge-specs.txt:51-58
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Expired bearer token returns 401 on public API routes.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/me.test.ts src/platform/api/v1/middleware.test.ts
+    proof_files: api/src/platform/api/v1/me.test.ts, api/src/platform/api/v1/middleware.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-020
+    source: PRD.md:96-101; Plugforge-specs.txt:51-58
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Insufficient scope returns 403 and names the missing scope.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/middleware.test.ts src/platform/api/v1/route-metadata.test.ts
+    proof_files: api/src/platform/api/v1/middleware.test.ts, api/src/platform/api/v1/route-metadata.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-021
+    source: PRD.md:102-103; PRD.md:121; Plugforge-specs.txt:100-101
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Refresh tokens are one-time use and rotate on successful refresh.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts src/platform/oauth/refresh-theft-drill.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts, api/src/platform/oauth/refresh-theft-drill.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-022
+    source: PRD.md:102-103; PRD.md:121; Plugforge-specs.txt:100-101
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Stolen refresh token reuse invalidates the refresh family.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/provider.test.ts src/platform/oauth/refresh-theft-drill.test.ts
+    proof_files: api/src/platform/oauth/provider.test.ts, api/src/platform/oauth/refresh-theft-drill.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-023
+    source: PRD.md:102-103; Plugforge-specs.txt:100-101
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Refresh-token family expires no later than 30 days.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No test pins the refresh-family maximum lifetime to 30 days.
+  - id: W6-OAUTH-024
+    source: PRD.md:102-103; Plugforge-specs.txt:100-101
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Access-token lifetime is pinned to the Week 6 OAuth contract.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No test asserts the exact access-token TTL required for final proof.
+  - id: W6-OAUTH-025
+    source: PRD.md:104-107; Plugforge-specs.txt:91-93
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Initial scope list is registered as data.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/route-metadata.test.ts
+    proof_files: api/src/platform/api/v1/route-metadata.test.ts, api/src/platform/scopes/registry.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-026
+    source: PRD.md:104-107; Plugforge-specs.txt:91-93
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Public API routes declare required scopes through middleware metadata.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/route-metadata.test.ts
+    proof_files: api/src/platform/api/v1/route-metadata.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-OAUTH-027
+    source: PRD.md:130; Plugforge-specs.txt:Phase 1 Security decisions
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Scope upgrades require explicit re-consent and no silent upgrades.
+    requirement_class: functional
+    testability: e2e
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No consent-upgrade browser proof exists.
+  - id: W6-OAUTH-028
+    source: PRD.md:130; Plugforge-specs.txt:Phase 1 Security decisions
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Consent screen highlights newly requested scopes and shows prior grants.
+    requirement_class: functional
+    testability: e2e
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No browser proof checks new-scope highlighting or prior-grant display.
+  - id: W6-OAUTH-029
+    source: PRD.md:131-132; Plugforge-specs.txt:156-160
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: OAuth authorize and consent responses set anti-framing headers.
+    requirement_class: functional
+    testability: e2e
+    priority: P1
+    status: partial
+    proof_command: none
+    proof_files: none
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Consent UI exists, but CSP frame-ancestors and X-Frame-Options are not proven.
+  - id: W6-OAUTH-030
+    source: PRD.md:133; Plugforge-specs.txt:162-166
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Device verification UX accepts manually entered user_code with logged-in confirmation.
+    requirement_class: functional
+    testability: e2e
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No browser proof covers manual device-code verification.
+  - id: W6-OAUTH-031
+    source: PRD.md:133; Plugforge-specs.txt:162-166
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Device verification UX accepts URL-prefilled user_code with logged-in confirmation.
+    requirement_class: functional
+    testability: e2e
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No browser proof covers URL-prefilled device-code verification.
+  - id: W6-OAUTH-032
+    source: PRD.md:135
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Deleting an OAuth app owner deactivates the app and revokes existing access and refresh tokens.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No owner-deletion revocation test exists.
+  - id: W6-OAUTH-033
+    source: PRD.md:136
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: Admin force-rotation revokes active tokens and records reason plus affected secret id without raw secret.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/apps/routes.test.ts
+    proof_files: api/src/platform/apps/routes.test.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Owner rotation exists, but admin force-rotation with audit reason and affected secret id is not proven.
+  - id: W6-OAUTH-034
+    source: PRD.md:131-132; Plugforge-specs.txt:156-160
+    section: OAuth Apps, Grants, Tokens, and Scopes
+    requirement: OAuth authorize and consent POSTs are protected against CSRF.
+    requirement_class: functional
+    testability: e2e
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No CSRF acceptance proof exists for authorize or consent POST flows.
+
+  - id: W6-API-001
+    source: PRD.md:186-189; Plugforge-specs.txt:103-104
+    section: Public API Contract
+    requirement: Public routes live only under /api/v1.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm lint && pnpm plugforge:integrations:check
+    proof_files: eslint.config.mjs, scripts/ci/check-integration-boundary.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-002
+    source: PRD.md:186-189; Plugforge-specs.txt:103-104
+    section: Public API Contract
+    requirement: Public API routes do not import internal route handlers.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm plugforge:integrations:check
+    proof_files: scripts/ci/check-integration-boundary.mjs, scripts/ci/check-integration-boundary.test.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-003
+    source: PRD.md:190-191; Plugforge-specs.txt:53-54
+    section: Public API Contract
+    requirement: Documents public API implements GET list.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/documents.test.ts
+    proof_files: api/src/platform/api/v1/documents.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-004
+    source: PRD.md:190-191; Plugforge-specs.txt:53-54
+    section: Public API Contract
+    requirement: Documents public API implements GET by id.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/documents.test.ts
+    proof_files: api/src/platform/api/v1/documents.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-005
+    source: PRD.md:190-191; Plugforge-specs.txt:53-54
+    section: Public API Contract
+    requirement: Documents public API implements POST create.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/documents.test.ts
+    proof_files: api/src/platform/api/v1/documents.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-006
+    source: PRD.md:190-191; Plugforge-specs.txt:53-54
+    section: Public API Contract
+    requirement: /api/v1/me exists for token proof and SDK me().
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/me.test.ts && pnpm --filter @ship/sdk test
+    proof_files: api/src/platform/api/v1/me.test.ts, sdk/src/index.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-007
+    source: PRD.md:192; PRD.md:201-203; Plugforge-specs.txt:59-60
+    section: Public API Contract
+    requirement: /api/v1/openapi.json serves the public OpenAPI document.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: pnpm openapi:check:strict
+    proof_files: api/src/platform/api/v1/openapi.ts, scripts/check-openapi-routes.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-008
+    source: PRD.md:192; PRD.md:201-203; Plugforge-specs.txt:59-60
+    section: Public API Contract
+    requirement: OpenAPI document is generated from in-process route metadata.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: pnpm openapi:check:strict && bash scripts/ci/check-public-openapi-drift.sh
+    proof_files: api/src/platform/api/v1/openapi.ts, scripts/ci/check-public-openapi-drift.sh, api/src/platform/api/v1/route-metadata.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-009
+    source: PRD.md:192; PRD.md:201-203; Plugforge-specs.txt:59-60
+    section: Public API Contract
+    requirement: Public OpenAPI source is not hand-written separately from route metadata.
+    requirement_class: non_scope
+    testability: none
+    priority: P0
+    status: non_scope
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: Hand-written public OpenAPI is explicitly out of scope for the final implementation path.
+  - id: W6-API-010
+    source: PRD.md:192; PRD.md:201-203; Plugforge-specs.txt:59-60
+    section: Public API Contract
+    requirement: Generated OpenAPI validates against the OpenAPI 3.1 JSON Schema.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: partial
+    proof_command: node scripts/ci/validate-public-openapi.mjs
+    proof_files: scripts/ci/validate-public-openapi.mjs
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Generator checks exist, but a true OpenAPI 3.1 JSON Schema validation proof is not complete.
+  - id: W6-API-011
+    source: PRD.md:193-196; PRD.md:223; Plugforge-specs.txt:55-56
+    section: Public API Contract
+    requirement: Public API errors return error.code, error.message, request_id, and optional details.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts src/platform/api/v1/me.test.ts
+    proof_files: api/src/platform/api/v1/public-api-fitness.test.ts, api/src/platform/api/v1/me.test.ts, shared/src/public-api.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-012
+    source: PRD.md:193-196; PRD.md:223; Plugforge-specs.txt:55-56
+    section: Public API Contract
+    requirement: Public API error code union exactly matches invalid_request, unauthorized, forbidden, not_found, rate_limited, internal.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts
+    proof_files: api/src/platform/api/v1/public-api-fitness.test.ts, shared/src/public-api.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: An it.fails sentinel exposes the known extra conflict code until the union is corrected.
+  - id: W6-API-013
+    source: PRD.md:193-196; PRD.md:223; Plugforge-specs.txt:55-56
+    section: Public API Contract
+    requirement: Every public route-specific failure path is enumerated against ApiError shape.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts
+    proof_files: api/src/platform/api/v1/public-api-fitness.test.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Fitness coverage exists, but not every route-specific failure path is enumerated.
+  - id: W6-API-014
+    source: PRD.md:197-200; PRD.md:227; Plugforge-specs.txt:109-111
+    section: Public API Contract
+    requirement: Every public list endpoint returns data and next_cursor.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts
+    proof_files: api/src/platform/api/v1/public-api-fitness.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-015
+    source: PRD.md:197-200; PRD.md:227; Plugforge-specs.txt:109-111
+    section: Public API Contract
+    requirement: Public API cursors are opaque base64 over id and timestamp.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts
+    proof_files: api/src/platform/api/v1/public-api-fitness.test.ts, api/src/platform/api/v1/pagination.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-016
+    source: PRD.md:197-200; PRD.md:227; Plugforge-specs.txt:109-111
+    section: Public API Contract
+    requirement: Malformed cursors are rejected with ApiError shape.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts
+    proof_files: api/src/platform/api/v1/public-api-fitness.test.ts, api/src/platform/api/v1/pagination.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-017
+    source: PRD.md:199; Plugforge-specs.txt:109-111
+    section: Public API Contract
+    requirement: Cursor pagination remains stable across reordering operations.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No reorder-stability scenario exists.
+  - id: W6-API-018
+    source: PRD.md:224-228; Plugforge-specs.txt:199-203
+    section: Public API Contract
+    requirement: Route metadata enumerates every public route with method, path, schemas, and required scope.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/route-metadata.test.ts
+    proof_files: api/src/platform/api/v1/route-metadata.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-019
+    source: PRD.md:224-228; Plugforge-specs.txt:199-203
+    section: Public API Contract
+    requirement: SDK source has a public method for every OpenAPI operation.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts
+    proof_files: api/src/platform/api/v1/public-api-fitness.test.ts, sdk/src/index.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-API-020
+    source: PRD.md:224-228; Plugforge-specs.txt:199-203
+    section: Public API Contract
+    requirement: SDK method signatures are type-level parity checked against every OpenAPI operation.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Source-level method presence is checked, but no type-level signature parity proof exists.
+  - id: W6-API-021
+    source: PRD.md:46; PRD.md:664; Plugforge-specs.txt:232-233
+    section: Public API Contract
+    requirement: Rate-limit headers are present on all public API paths.
+    requirement_class: functional
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-PORTAL-012
+    gap: none
+
+  - id: W6-WEBHOOK-001
+    source: PRD.md:286-288; Plugforge-specs.txt:122-124
+    section: Webhooks
+    requirement: Event registry exists as data.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/event-bus.test.ts
+    proof_files: api/src/platform/webhooks/events.ts, api/src/platform/webhooks/event-bus.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-002
+    source: PRD.md:286-288; Plugforge-specs.txt:122-124
+    section: Webhooks
+    requirement: Event registry includes all eight required event names.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/event-bus.test.ts
+    proof_files: api/src/platform/webhooks/events.ts, api/src/platform/webhooks/event-bus.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-003
+    source: PRD.md:286-288; Plugforge-specs.txt:122-124
+    section: Webhooks
+    requirement: Every required event has a specific Zod payload schema.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/event-bus.test.ts
+    proof_files: api/src/platform/webhooks/events.ts, api/src/platform/webhooks/event-bus.test.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Event names are present, but some payload contracts remain generic rather than specific Zod schemas.
+  - id: W6-WEBHOOK-004
+    source: PRD.md:289-292; Plugforge-specs.txt:126-128
+    section: Webhooks
+    requirement: IEventBus interface exists and is injected into domain write paths.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/event-bus.test.ts
+    proof_files: api/src/platform/webhooks/event-bus.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-005
+    source: PRD.md:289-292; Plugforge-specs.txt:126-128
+    section: Webhooks
+    requirement: In-process webhook event-bus implementation ships.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/event-bus.test.ts
+    proof_files: api/src/platform/webhooks/event-bus.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-006
+    source: PRD.md:289-292; Plugforge-specs.txt:126-128
+    section: Webhooks
+    requirement: document.created publishes from the domain layer rather than route layer.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/event-bus.test.ts
+    proof_files: api/src/platform/webhooks/event-bus.test.ts, api/src/services/document-mutations/webhook-events.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-007
+    source: PRD.md:289-292; Plugforge-specs.txt:126-128
+    section: Webhooks
+    requirement: Issue write events publish from the domain layer rather than route layer.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/services/issue-mutations/webhook-events.test.ts
+    proof_files: api/src/services/issue-mutations/webhook-events.test.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Some issue paths are covered, but the final set of required issue events is not proven exhaustively.
+  - id: W6-WEBHOOK-008
+    source: PRD.md:289-292; Plugforge-specs.txt:126-128
+    section: Webhooks
+    requirement: Sprint write events publish from the domain layer rather than route layer.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No sprint-event publisher proof is named.
+  - id: W6-WEBHOOK-009
+    source: PRD.md:293-296; Plugforge-specs.txt:130-132
+    section: Webhooks
+    requirement: Webhook subscriptions are scoped per OAuth app and event type.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/webhooks.test.ts
+    proof_files: api/src/platform/api/v1/webhooks.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-010
+    source: PRD.md:293-296; Plugforge-specs.txt:130-132
+    section: Webhooks
+    requirement: Webhook subscriptions store target URL, hashed signing secret, active flag, and app ownership.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/webhooks.test.ts src/platform/apps/routes.test.ts
+    proof_files: api/src/platform/api/v1/webhooks.test.ts, api/src/platform/apps/routes.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-011
+    source: PRD.md:293-296; Plugforge-specs.txt:130-132
+    section: Webhooks
+    requirement: /api/v1/webhooks management requires the webhooks.write scope.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/webhooks.test.ts src/platform/api/v1/route-metadata.test.ts
+    proof_files: api/src/platform/api/v1/webhooks.test.ts, api/src/platform/api/v1/route-metadata.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-012
+    source: PRD.md:297-335; Plugforge-specs.txt:134-136
+    section: Webhooks
+    requirement: Webhook signatures use Stripe-style t and v1 HMAC-SHA256 header.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/webhook.test.ts, sdk/src/webhook.ts, api/src/platform/webhooks/signature.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-013
+    source: PRD.md:297-335; Plugforge-specs.txt:134-136
+    section: Webhooks
+    requirement: SDK verifyWebhook accepts valid signatures.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/webhook.test.ts, sdk/src/webhook.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-014
+    source: PRD.md:297-335; Plugforge-specs.txt:134-136
+    section: Webhooks
+    requirement: SDK verifyWebhook rejects tampered payloads.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/webhook.test.ts, sdk/src/webhook.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-015
+    source: PRD.md:297-335; Plugforge-specs.txt:134-136
+    section: Webhooks
+    requirement: SDK verifyWebhook rejects expired timestamps.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/webhook.test.ts, sdk/src/webhook.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-016
+    source: PRD.md:297-335; Plugforge-specs.txt:134-136
+    section: Webhooks
+    requirement: SDK verifyWebhook rejects signatures missing a v1 component.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/webhook.test.ts, sdk/src/webhook.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-017
+    source: PRD.md:297-335; Plugforge-specs.txt:134-136
+    section: Webhooks
+    requirement: SDK verifyWebhook supports explicit timestamp tolerance.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/webhook.test.ts, sdk/src/webhook.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-018
+    source: PRD.md:300-306; PRD.md:344-346; Plugforge-specs.txt:138-144
+    section: Webhooks
+    requirement: Retry schedule is exactly 1s, 4s, 16s, 1m, 5m, and 30m.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts
+    proof_files: api/src/platform/webhooks/service.test.ts, api/src/platform/webhooks/retry-schedule.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-019
+    source: PRD.md:300-306; PRD.md:344-346; Plugforge-specs.txt:138-144
+    section: Webhooks
+    requirement: 5xx webhook delivery responses retry according to schedule.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts
+    proof_files: api/src/platform/webhooks/service.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-020
+    source: PRD.md:300-306; Plugforge-specs.txt:138-144
+    section: Webhooks
+    requirement: Webhook delivery timeouts retry according to schedule.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No timeout-specific retry test is named.
+  - id: W6-WEBHOOK-021
+    source: PRD.md:300-306; Plugforge-specs.txt:138-144
+    section: Webhooks
+    requirement: 429 webhook delivery responses retry according to schedule.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No 429-specific retry test is named.
+  - id: W6-WEBHOOK-022
+    source: PRD.md:300-306; Plugforge-specs.txt:138-144
+    section: Webhooks
+    requirement: Non-429 4xx webhook delivery responses go to DLQ without retry.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts
+    proof_files: api/src/platform/webhooks/service.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-023
+    source: PRD.md:344-346; Plugforge-specs.txt:204-206
+    section: Webhooks
+    requirement: 500, 500, 500, 200 webhook scenario succeeds on attempt 4 after 1s, 4s, and 16s waits.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts
+    proof_files: api/src/platform/webhooks/service.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-024
+    source: PRD.md:304-310; PRD.md:347-350; Plugforge-specs.txt:142-153
+    section: Webhooks
+    requirement: After six failures, webhook delivery lands in DLQ.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts src/platform/api/v1/webhooks.test.ts
+    proof_files: api/src/platform/webhooks/service.test.ts, api/src/platform/api/v1/webhooks.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-025
+    source: PRD.md:304-310; PRD.md:347-350; Plugforge-specs.txt:142-153
+    section: Webhooks
+    requirement: Developer portal shows DLQ webhook deliveries.
+    requirement_class: functional
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-PORTAL-006
+    gap: none
+  - id: W6-WEBHOOK-026
+    source: PRD.md:304-310; PRD.md:347-350; Plugforge-specs.txt:142-153
+    section: Webhooks
+    requirement: Manual replay re-emits the logged webhook event with original Idempotency-Key.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts src/platform/api/v1/webhooks.test.ts
+    proof_files: api/src/platform/webhooks/service.test.ts, api/src/platform/api/v1/webhooks.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-027
+    source: PRD.md:307-310; Plugforge-specs.txt:148-153
+    section: Webhooks
+    requirement: Delivery log records subscription_id, event_id, attempt_number, response_status, response_excerpt, and latency_ms.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts src/platform/api/v1/webhooks.test.ts
+    proof_files: api/src/platform/webhooks/service.test.ts, api/src/platform/api/v1/webhooks.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-028
+    source: PRD.md:307-310; Plugforge-specs.txt:148-153
+    section: Webhooks
+    requirement: Delivery log is queryable per app.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/webhooks.test.ts
+    proof_files: api/src/platform/api/v1/webhooks.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-WEBHOOK-029
+    source: PRD.md:339-343; Plugforge-specs.txt:204-206
+    section: Webhooks
+    requirement: Acceptance flow creates subscription via SDK, creates document, receives signed POST within 2 seconds, verifies signature, and shows tamper rejection.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: partial
+    proof_command: pnpm drill ttfe && pnpm --filter @ship/sdk test
+    proof_files: scripts/drill.mjs, sdk/src/webhook.test.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Pieces are proven separately, but no single acceptance flow proves SDK subscription creation plus less-than-2-second signed receipt plus tamper rejection.
+  - id: W6-WEBHOOK-030
+    source: PRD.md:351; Plugforge-specs.txt:513-515
+    section: Webhooks
+    requirement: Webhook timing tests use deterministic clocks or controlled timers, not long sleeps.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts
+    proof_files: api/src/platform/webhooks/service.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+
+  - id: W6-SDK-001
+    source: PRD.md:394-398; Plugforge-specs.txt:61-62,160-162
+    section: TypeScript SDK
+    requirement: @ship/sdk package exists.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test && pnpm --filter @ship/sdk type-check
+    proof_files: sdk/package.json, sdk/src/index.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-SDK-002
+    source: PRD.md:394-398; Plugforge-specs.txt:61-62,160-162
+    section: TypeScript SDK
+    requirement: ShipClient exposes documents, issues, sprints, and webhooks resources.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/index.test.ts, sdk/src/index.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-SDK-003
+    source: PRD.md:394-398; Plugforge-specs.txt:61-62,160-162
+    section: TypeScript SDK
+    requirement: new ShipClient with token exposes typed me().
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test && pnpm --filter @ship/sdk type-check
+    proof_files: sdk/src/index.test.ts, sdk/src/index.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-SDK-004
+    source: PRD.md:224-228; PRD.md:394-398
+    section: TypeScript SDK
+    requirement: SDK resources include method parity for the public documents API.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/index.test.ts, sdk/src/resources.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-SDK-005
+    source: PRD.md:399-401; Plugforge-specs.txt:164-166
+    section: TypeScript SDK
+    requirement: ShipClient.authorizationCodeFlow helper exists for OAuth Authorization Code.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: partial
+    proof_command: pnpm plugforge:oauth-e2e
+    proof_files: sdk/src/index.ts, e2e/oauth-auth-code.spec.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Browser OAuth uses the flow, but the SDK helper lacks focused callback and token-store tests.
+  - id: W6-SDK-006
+    source: PRD.md:399-401; Plugforge-specs.txt:164-166
+    section: TypeScript SDK
+    requirement: ShipClient.deviceLogin helper exists for Device Grant.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: partial
+    proof_command: pnpm drill ttfe
+    proof_files: sdk/src/index.ts, scripts/drill.mjs
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: TTFE exercises device login, but the SDK helper lacks focused polling and slow_down tests.
+  - id: W6-SDK-007
+    source: PRD.md:401-403
+    section: TypeScript SDK
+    requirement: SDK memory token store persists access token, refresh token, expiration, and scopes.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/index.test.ts, sdk/src/token-store.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-SDK-008
+    source: PRD.md:401-403
+    section: TypeScript SDK
+    requirement: SDK file and browser token stores persist tokens through the ITokenStore contract.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/token-store.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: The token-store contract exists, but focused file and browser persistence tests are incomplete.
+  - id: W6-SDK-009
+    source: PRD.md:401-403
+    section: TypeScript SDK
+    requirement: ITokenStore persists app/client id and user id when known.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No test proves app/client id and user id persistence.
+  - id: W6-SDK-010
+    source: PRD.md:403
+    section: TypeScript SDK
+    requirement: SDK refresh serializes concurrent refresh attempts per client.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/index.test.ts, sdk/src/index.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-SDK-011
+    source: PRD.md:404-406; Plugforge-specs.txt:168-170
+    section: TypeScript SDK
+    requirement: SDK iterate() walks document cursor pages transparently.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/index.test.ts, sdk/src/resources.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-SDK-012
+    source: PRD.md:404-406; Plugforge-specs.txt:168-170
+    section: TypeScript SDK
+    requirement: SDK iterate() walks issue and sprint cursor pages transparently.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/index.test.ts, sdk/src/resources.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Document iterator proof exists, but issue and sprint iterator parity is not fully named.
+  - id: W6-SDK-013
+    source: PRD.md:404-406; Plugforge-specs.txt:168-170
+    section: TypeScript SDK
+    requirement: SDK page methods expose cursor pagination when callers want manual paging.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: proven
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/index.test.ts, sdk/src/resources.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-SDK-014
+    source: PRD.md:407-410; Plugforge-specs.txt:175-177
+    section: TypeScript SDK
+    requirement: SDK errors are exposed as a discriminated union.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/sdk test && pnpm --filter @ship/sdk type-check
+    proof_files: sdk/src/errors.ts, sdk/src/http.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Error mapping exists, but exhaustive compile-time proof is incomplete.
+  - id: W6-SDK-015
+    source: PRD.md:407-410; Plugforge-specs.txt:175-177
+    section: TypeScript SDK
+    requirement: SDK error union supports exhaustive switch checks.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No compile-time exhaustiveness sentinel is present.
+  - id: W6-SDK-016
+    source: PRD.md:407-410; Plugforge-specs.txt:175-177
+    section: TypeScript SDK
+    requirement: SDK preserves request_id and details from API errors.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No request_id/details preservation test is present.
+  - id: W6-SDK-017
+    source: PRD.md:407-410; Plugforge-specs.txt:175-177
+    section: TypeScript SDK
+    requirement: SDK-only network failures use kind network.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/sdk test
+    proof_files: sdk/src/errors.ts, sdk/src/http.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: The type exists, but a focused network-failure mapping proof is not named.
+  - id: W6-SDK-018
+    source: PRD.md:411-412; Plugforge-specs.txt:171-173
+    section: TypeScript SDK
+    requirement: Public SDK surface is hand-authored and stable rather than a raw generated client.
+    requirement_class: functional
+    testability: unit
+    priority: P1
+    status: proven
+    proof_command: pnpm --filter @ship/sdk type-check
+    proof_files: sdk/src/index.ts, sdk/src/resources.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-SDK-019
+    source: PRD.md:437; Plugforge-specs.txt:383-384
+    section: TypeScript SDK
+    requirement: SDK production install size proof is available.
+    requirement_class: metric
+    testability: none
+    priority: P1
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-METRIC-010
+    gap: none
+
+  - id: W6-CLI-001
+    source: PRD.md:465-470; Plugforge-specs.txt:247-261
+    section: CLI and Time-to-First-Event Drill
+    requirement: @ship/cli package exists and can be installed from packed artifacts.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/cli check && pnpm drill ttfe
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test, scripts/drill.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-CLI-002
+    source: PRD.md:465-470; Plugforge-specs.txt:247-261
+    section: CLI and Time-to-First-Event Drill
+    requirement: CLI supports login.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/cli test && pnpm drill ttfe
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test, scripts/drill.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-CLI-003
+    source: PRD.md:465-470; Plugforge-specs.txt:247-261
+    section: CLI and Time-to-First-Event Drill
+    requirement: CLI login uses OAuth Device Grant.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm drill ttfe
+    proof_files: integrations/cli/src/index.mjs, scripts/drill.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-CLI-004
+    source: PRD.md:465-470; Plugforge-specs.txt:247-261
+    section: CLI and Time-to-First-Event Drill
+    requirement: CLI supports docs ls.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/cli test
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-CLI-005
+    source: PRD.md:465-470; Plugforge-specs.txt:247-261
+    section: CLI and Time-to-First-Event Drill
+    requirement: CLI supports docs get.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/cli test
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-CLI-006
+    source: PRD.md:465-470; Plugforge-specs.txt:247-261
+    section: CLI and Time-to-First-Event Drill
+    requirement: CLI supports docs create and uses the SDK path.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/cli test && pnpm drill ttfe
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test, scripts/drill.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-CLI-007
+    source: PRD.md:465-470; Plugforge-specs.txt:247-261
+    section: CLI and Time-to-First-Event Drill
+    requirement: CLI supports webhooks tail and streams signed deliveries.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm --filter @ship/cli test && pnpm drill ttfe
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test, scripts/drill.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-CLI-008
+    source: PRD.md:465-470; Plugforge-specs.txt:247-261
+    section: CLI and Time-to-First-Event Drill
+    requirement: CLI persists OAuth tokens for reuse after login.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: partial
+    proof_command: pnpm --filter @ship/cli test
+    proof_files: integrations/cli/src/index.mjs, integrations/cli/test
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Login is exercised, but durable token persistence across CLI invocations is not fully proven.
+  - id: W6-CLI-009
+    source: PRD.md:92-95; PRD.md:120; Plugforge-specs.txt:87-89
+    section: CLI and Time-to-First-Event Drill
+    requirement: CLI handles Device Grant slow_down responses.
+    requirement_class: functional
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-OAUTH-015
+    gap: none
+  - id: W6-CLI-010
+    source: PRD.md:487-501; Plugforge-specs.txt:262-330
+    section: CLI and Time-to-First-Event Drill
+    requirement: TTFE drill measures install, login, subscription, document create, webhook receipt, signature verify, event type, and total.
+    requirement_class: metric
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-METRIC-003
+    gap: none
+  - id: W6-CLI-011
+    source: PRD.md:487-501; Plugforge-specs.txt:262-330
+    section: CLI and Time-to-First-Event Drill
+    requirement: TTFE subscription is created through ShipClient.webhooks.create.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: partial
+    proof_command: pnpm drill ttfe
+    proof_files: scripts/drill.mjs, sdk/src/index.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Drill creates subscriptions, but no probe pins the exact SDK method usage.
+  - id: W6-CLI-012
+    source: PRD.md:487-501; Plugforge-specs.txt:262-330
+    section: CLI and Time-to-First-Event Drill
+    requirement: TTFE document is created through ShipClient.documents.create.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: partial
+    proof_command: pnpm drill ttfe
+    proof_files: scripts/drill.mjs, sdk/src/index.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Drill creates a document, but no probe pins the exact SDK method usage.
+  - id: W6-CLI-013
+    source: PRD.md:487-501; Plugforge-specs.txt:262-330
+    section: CLI and Time-to-First-Event Drill
+    requirement: TTFE verifies final event type is document.created.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm drill ttfe
+    proof_files: scripts/drill.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-CLI-014
+    source: PRD.md:487-501; Plugforge-specs.txt:262-330
+    section: CLI and Time-to-First-Event Drill
+    requirement: TTFE total runtime is hard-gated below 60000 ms in CI.
+    requirement_class: metric
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-METRIC-005
+    gap: none
+
+  - id: W6-INT-001
+    source: PRD.md:553-590; Plugforge-specs.txt:357-366
+    section: Selected Integrations and Drills
+    requirement: Final integration matrix includes CLI, Slack, browser SDK demo, GitLab, refresh-token rotation drill, and Idempotency-Key drill.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: partial
+    proof_command: pnpm plugforge:integrations:check && pnpm drill ttfe && pnpm plugforge:developer-ops-e2e
+    proof_files: integrations, scripts/ci/check-integration-boundary.mjs, scripts/drill.mjs, e2e/developer-ops.spec.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: CLI, refresh, and idempotency are strong; Slack, browser demo, and GitLab are not final end-to-end proofs.
+  - id: W6-INT-002
+    source: PRD.md:553-557; Plugforge-specs.txt:357-358
+    section: Selected Integrations and Drills
+    requirement: CLI integration demonstrates login, document creation, webhook subscription, receipt, and verification.
+    requirement_class: functional
+    testability: none
+    priority: P0
+    status: covered_by
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: W6-CLI-010
+    gap: none
+  - id: W6-INT-003
+    source: PRD.md:558-565; Plugforge-specs.txt:360-361
+    section: Selected Integrations and Drills
+    requirement: Slack integration receives signed Ship webhooks.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/slack-integration check
+    proof_files: integrations/slack
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Slack code checks exist, but no signed webhook acceptance proof exists.
+  - id: W6-INT-004
+    source: PRD.md:558-565; Plugforge-specs.txt:360-361
+    section: Selected Integrations and Drills
+    requirement: Slack integration posts document.created to a Slack channel.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/slack-integration check
+    proof_files: integrations/slack
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No final acceptance proof posts document.created through Slack OAuth.
+  - id: W6-INT-005
+    source: PRD.md:558-565; Plugforge-specs.txt:360-361
+    section: Selected Integrations and Drills
+    requirement: Slack integration posts issue.assigned to a Slack channel.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/slack-integration check
+    proof_files: integrations/slack
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No final acceptance proof posts issue.assigned through Slack OAuth.
+  - id: W6-INT-006
+    source: PRD.md:558-565; Plugforge-specs.txt:360-361
+    section: Selected Integrations and Drills
+    requirement: Slack integration uses Slack OAuth.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/slack-integration check
+    proof_files: integrations/slack
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Slack OAuth wiring is not proven in a final acceptance run.
+  - id: W6-INT-007
+    source: PRD.md:600-603; Plugforge-specs.txt:518-520
+    section: Selected Integrations and Drills
+    requirement: External integrations import only @ship/sdk and never api/src internals.
+    requirement_class: functional
+    testability: unit
+    priority: P0
+    status: proven
+    proof_command: pnpm plugforge:integrations:check && node --test scripts/ci/check-integration-boundary.test.mjs
+    proof_files: scripts/ci/check-integration-boundary.mjs, scripts/ci/check-integration-boundary.test.mjs
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-INT-008
+    source: PRD.md:567-572; Plugforge-specs.txt:362
+    section: Selected Integrations and Drills
+    requirement: Browser SDK demo is a SPA using Authorization Code with PKCE.
+    requirement_class: functional
+    testability: e2e
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/web exec vitest run src/pages/SdkDemo.test.tsx
+    proof_files: web/src/pages/SdkDemo.tsx, web/src/pages/SdkDemo.test.tsx
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Component proof exists, but no running-browser PKCE callback acceptance proof exists.
+  - id: W6-INT-009
+    source: PRD.md:567-572; Plugforge-specs.txt:362
+    section: Selected Integrations and Drills
+    requirement: Browser SDK demo lists authenticated user documents.
+    requirement_class: functional
+    testability: e2e
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/web exec vitest run src/pages/SdkDemo.test.tsx
+    proof_files: web/src/pages/SdkDemo.tsx, web/src/pages/SdkDemo.test.tsx
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Component proof exists, but no full browser acceptance proof lists authenticated documents.
+  - id: W6-INT-010
+    source: PRD.md:574-579; Plugforge-specs.txt:363
+    section: Selected Integrations and Drills
+    requirement: GitLab integration links Ship issues to GitLab merge requests.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/gitlab-integration check
+    proof_files: integrations/gitlab
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: GitLab checks exist, but no final issue-to-MR linking acceptance proof exists.
+  - id: W6-INT-011
+    source: PRD.md:574-579; Plugforge-specs.txt:363
+    section: Selected Integrations and Drills
+    requirement: GitLab integration is driven by Ship webhook origin plus GitLab application wiring.
+    requirement_class: functional
+    testability: api
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/gitlab-integration check
+    proof_files: integrations/gitlab
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Ship webhook origin and GitLab App wiring are not proven end-to-end.
+  - id: W6-INT-012
+    source: PRD.md:581-584; Plugforge-specs.txt:364
+    section: Selected Integrations and Drills
+    requirement: Refresh-token theft drill proves reuse invalidates the family.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/refresh-theft-drill.test.ts
+    proof_files: api/src/platform/oauth/refresh-theft-drill.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-INT-013
+    source: PRD.md:586-590; Plugforge-specs.txt:365
+    section: Selected Integrations and Drills
+    requirement: Idempotency-Key drill deduplicates duplicate webhook delivery and shows original key on replay.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/webhooks.test.ts && pnpm plugforge:developer-ops-e2e
+    proof_files: api/src/platform/api/v1/webhooks.test.ts, e2e/developer-ops.spec.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-INT-014
+    source: PRD.md:591-594
+    section: Selected Integrations and Drills
+    requirement: Plugin runtime integration is optional stretch work and not required for final submission.
+    requirement_class: non_scope
+    testability: none
+    priority: P2
+    status: non_scope
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: Plugin runtime integration is explicitly not part of the required MVP proof.
+
+  - id: W6-PORTAL-001
+    source: PRD.md:650-657; Plugforge-specs.txt:186-188
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Developer portal is reachable in the existing app.
+    requirement_class: functional
+    testability: e2e
+    priority: P0
+    status: proven
+    proof_command: pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-PORTAL-002
+    source: PRD.md:650-657; Plugforge-specs.txt:186-188
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Developer portal lists OAuth apps.
+    requirement_class: functional
+    testability: e2e
+    priority: P0
+    status: partial
+    proof_command: pnpm --filter @ship/web exec vitest run src/pages/DeveloperSettingsTab.test.tsx
+    proof_files: web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Component proof exists, but no full portal flow proves app listing in browser.
+  - id: W6-PORTAL-003
+    source: PRD.md:650-657; Plugforge-specs.txt:186-188
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Developer portal registers OAuth apps and shows the client secret exactly once.
+    requirement_class: functional
+    testability: e2e
+    priority: P0
+    status: partial
+    proof_command: pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Portal E2E covers app creation, but not the complete shown-once/no-storage secret contract.
+  - id: W6-PORTAL-004
+    source: PRD.md:650-657; Plugforge-specs.txt:186-188
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Developer portal rotates client secrets with shown-once behavior.
+    requirement_class: functional
+    testability: e2e
+    priority: P0
+    status: partial
+    proof_command: pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Rotation exists, but the full shown-once/no-storage portal proof is incomplete.
+  - id: W6-PORTAL-005
+    source: PRD.md:650-657; Plugforge-specs.txt:186-188
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Developer portal manages webhook subscriptions.
+    requirement_class: functional
+    testability: e2e
+    priority: P0
+    status: proven
+    proof_command: pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-PORTAL-006
+    source: PRD.md:650-657; Plugforge-specs.txt:186-188
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Developer portal browses webhook delivery logs and DLQ rows.
+    requirement_class: functional
+    testability: e2e
+    priority: P0
+    status: proven
+    proof_command: pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-PORTAL-007
+    source: PRD.md:650-657; Plugforge-specs.txt:186-188
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Developer portal replays failed webhook deliveries.
+    requirement_class: functional
+    testability: e2e
+    priority: P0
+    status: proven
+    proof_command: pnpm plugforge:developer-ops-e2e
+    proof_files: e2e/developer-ops.spec.ts, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-PORTAL-008
+    source: PRD.md:650-657; Plugforge-specs.txt:186-188
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Developer portal exposes audit views.
+    requirement_class: functional
+    testability: e2e
+    priority: P0
+    status: partial
+    proof_command: pnpm --filter @ship/web exec vitest run src/pages/DeveloperSettingsTab.test.tsx
+    proof_files: web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Audit UI coverage is not complete as a browser acceptance proof.
+  - id: W6-PORTAL-009
+    source: PRD.md:650-657; Plugforge-specs.txt:186-188
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Developer portal uses the public/developer-service path rather than direct internal route shortcuts.
+    requirement_class: functional
+    testability: e2e
+    priority: P1
+    status: partial
+    proof_command: pnpm --filter @ship/web exec vitest run src/pages/DeveloperSettingsTab.test.tsx
+    proof_files: web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Component coverage exists, but no acceptance proof asserts the portal never bypasses public/developer APIs.
+  - id: W6-PORTAL-010
+    source: PRD.md:645-649; Plugforge-specs.txt:179-184
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Rate limits are token-bucket based per app and token.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/middleware.test.ts
+    proof_files: api/src/platform/api/v1/middleware.test.ts, api/src/platform/ratelimit
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Focused middleware tests exist, but not a full all-route rate-limit proof.
+  - id: W6-PORTAL-011
+    source: PRD.md:645-649; Plugforge-specs.txt:179-184
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: 429 responses include Retry-After.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/middleware.test.ts
+    proof_files: api/src/platform/api/v1/middleware.test.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Middleware proof exists, but all public route coverage is incomplete.
+  - id: W6-PORTAL-012
+    source: PRD.md:645-649; PRD.md:664; Plugforge-specs.txt:179-184,232-233
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Every public API success and failure response carries rate-limit headers.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/public-api-fitness.test.ts src/platform/api/v1/middleware.test.ts
+    proof_files: api/src/platform/api/v1/public-api-fitness.test.ts, api/src/platform/api/v1/middleware.test.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Auth failure and middleware paths are covered, but not every registered public success and failure route.
+  - id: W6-PORTAL-013
+    source: PRD.md:645-649; Plugforge-specs.txt:179-184
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Every public API call records audit timestamp, client_id, user_id, route, scope, status, and latency.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: partial
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/api/v1/middleware.test.ts
+    proof_files: api/src/platform/api/v1/middleware.test.ts
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Focused audit assertions exist, but all public success/failure paths are not proven.
+  - id: W6-PORTAL-014
+    source: PRD.md:645-649; PRD.md:650-657; Plugforge-specs.txt:179-188
+    section: Developer Portal, Rate Limiting, and Public Audit Trail
+    requirement: Audit rows are queryable from the portal by app.
+    requirement_class: functional
+    testability: e2e
+    priority: P0
+    status: partial
+    proof_command: pnpm --filter @ship/web exec vitest run src/pages/DeveloperSettingsTab.test.tsx
+    proof_files: web/src/pages/DeveloperSettingsTab.test.tsx, web/src/pages/DeveloperSettingsTab.tsx
+    pending_test: e2e/plugforge-acceptance.fixme.spec.ts
+    manual_evidence: none
+    covered_by: none
+    gap: Audit view is not proven in the final portal browser flow.
+
+  - id: W6-AGENT-001
+    source: PRD.md:701-706; Plugforge-specs.txt:388-394,516-517
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: Platform OAuth, public API, webhooks, SDK, CLI, portal, and integrations trigger zero LLM calls.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No no-LLM guard or trace/cost assertion covers non-agent platform traffic.
+  - id: W6-AGENT-002
+    source: PRD.md:701-706; Plugforge-specs.txt:388-394,516-517
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: LLM calls occur only on user-initiated agent turns.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: missing
+    proof_command: none
+    proof_files: none
+    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
+    manual_evidence: none
+    covered_by: none
+    gap: No guard proves that platform traffic does not invoke the agent model path.
+  - id: W6-AGENT-003
+    source: PRD.md:704-705; PRD.md:720; Plugforge-specs.txt:20-23,597-599
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: Agent authenticates as a first-party OAuth app.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/platform/oauth/agent-token-broker.test.ts
+    proof_files: api/src/platform/oauth/agent-token-broker.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-AGENT-004
+    source: PRD.md:704-705; PRD.md:720; Plugforge-specs.txt:20-23,597-599
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: Agent consumes public API through the SDK.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/fleetgraph/public-api-client.audit.test.ts
+    proof_files: api/src/fleetgraph/public-api-client.audit.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-AGENT-005
+    source: PRD.md:704-705; PRD.md:720; Plugforge-specs.txt:20-23,597-599
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: Agent traffic uses the same scopes, rate limits, and audit trail as external apps.
+    requirement_class: functional
+    testability: api
+    priority: P0
+    status: proven
+    proof_command: ./scripts/run-api-tests.sh -- src/fleetgraph/public-api-client.audit.test.ts src/platform/oauth/agent-token-broker.test.ts
+    proof_files: api/src/fleetgraph/public-api-client.audit.test.ts, api/src/platform/oauth/agent-token-broker.test.ts
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: none
+  - id: W6-AGENT-006
+    source: PRD.md:710-719; Plugforge-specs.txt:395-432
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: AI cost analysis explains that OAuth, API, SDK, CLI, portal, and webhooks do not add LLM cost.
+    requirement_class: documentation
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final AI cost analysis document
+    covered_by: none
+    gap: Final cost document is not present as submission evidence.
+  - id: W6-AGENT-007
+    source: PRD.md:710-719; Plugforge-specs.txt:395-432
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: AI cost analysis tracks token volume assumptions.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final AI cost analysis document
+    covered_by: none
+    gap: Token-volume section is not present as final evidence.
+  - id: W6-AGENT-008
+    source: PRD.md:710-719; Plugforge-specs.txt:395-432
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: AI cost analysis tracks development spend and CI compute minutes.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final AI cost analysis document
+    covered_by: none
+    gap: Dev-spend and CI-minute cost section is not present as final evidence.
+  - id: W6-AGENT-009
+    source: PRD.md:710-719; Plugforge-specs.txt:395-432
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: AI cost analysis tracks OpenAPI generation overhead.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final AI cost analysis document
+    covered_by: none
+    gap: OpenAPI-overhead section is not present as final evidence.
+  - id: W6-AGENT-010
+    source: PRD.md:710-719; Plugforge-specs.txt:395-432
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: AI cost analysis tracks webhook storage and egress assumptions.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final AI cost analysis document
+    covered_by: none
+    gap: Storage and egress cost section is not present as final evidence.
+  - id: W6-AGENT-011
+    source: PRD.md:710-719; Plugforge-specs.txt:395-432
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: AI cost analysis includes production projections for fanout, active rate, turns, retention, and LLM usage.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final AI cost analysis document
+    covered_by: none
+    gap: Production projection assumptions are not present as final evidence.
+  - id: W6-AGENT-012
+    source: PRD.md:701-706; Plugforge-specs.txt:388-394,516-517
+    section: Agent-as-Citizen and AI Cost Analysis
+    requirement: Adding platform OAuth, API, webhooks, SDK, CLI, and portal must not add new platform AI features.
+    requirement_class: non_scope
+    testability: none
+    priority: P2
+    status: non_scope
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: New platform AI features are explicitly out of scope for the PlugForge proof.
+
+  - id: W6-DOC-001
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Architecture document exists.
+    requirement_class: documentation
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final architecture document
+    covered_by: none
+    gap: Final architecture document is not present as submission evidence.
+  - id: W6-DOC-002
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Architecture document includes module tree.
+    requirement_class: documentation
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final architecture document
+    covered_by: none
+    gap: Module tree section is not present as final evidence.
+  - id: W6-DOC-003
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Architecture document explains SOLID and composition-root rationale.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final architecture document
+    covered_by: none
+    gap: SOLID and composition-root rationale is not present as final evidence.
+  - id: W6-DOC-004
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Architecture document includes public/internal API sequence.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final architecture document
+    covered_by: none
+    gap: Public/internal sequence is not present as final evidence.
+  - id: W6-DOC-005
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Architecture document includes OAuth diagrams marking PKCE, refresh rotation, CSRF, and anti-framing decisions.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final architecture document
+    covered_by: none
+    gap: OAuth security diagram section is not present as final evidence.
+  - id: W6-DOC-006
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Architecture document includes webhook pipeline, retry, idempotency, and DLQ.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final architecture document
+    covered_by: none
+    gap: Webhook pipeline section is not present as final evidence.
+  - id: W6-DOC-007
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Architecture document includes SDK public surface and stability rationale.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final architecture document
+    covered_by: none
+    gap: SDK surface section is not present as final evidence.
+  - id: W6-DOC-008
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Architecture document includes agent-as-citizen diagram and audit payoff.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final architecture document
+    covered_by: none
+    gap: Agent-as-citizen section is not present as final evidence.
+  - id: W6-DOC-009
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Architecture document includes failure modes for token store, secret rotation, queue crash, and OpenAPI boot.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final architecture document
+    covered_by: none
+    gap: Failure-mode section is not present as final evidence.
+  - id: W6-DOC-010
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Per-epic implementation and test writeups exist for required Week 6 epics.
+    requirement_class: documentation
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final per-epic writeups
+    covered_by: none
+    gap: Final per-epic writeups are not present as submission evidence.
+  - id: W6-DOC-011
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Discovery log includes gaps, tradeoffs, and decisions found while building.
+    requirement_class: documentation
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final discoveries document
+    covered_by: none
+    gap: Final discoveries artifact is not present as submission evidence.
+
+  - id: W6-SUBMIT-001
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Repository is public for final review.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final submission checklist
+    covered_by: none
+    gap: Public repository state is not recorded as final evidence.
+  - id: W6-SUBMIT-002
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Deployed app URL is included in final submission.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final submission checklist
+    covered_by: none
+    gap: Deployed app URL is not recorded as final evidence.
+  - id: W6-SUBMIT-003
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Deployed API URL is included in final submission.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final submission checklist
+    covered_by: none
+    gap: Deployed API URL is not recorded as final evidence.
+  - id: W6-SUBMIT-004
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Live /api/v1/openapi.json URL is reachable and included.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final submission checklist
+    covered_by: none
+    gap: Live OpenAPI URL is not recorded as final evidence.
+  - id: W6-SUBMIT-005
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Static OpenAPI JSON artifact is attached or linked.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final submission checklist
+    covered_by: none
+    gap: Static OpenAPI artifact is not recorded as final evidence.
+  - id: W6-SUBMIT-006
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Grader OAuth app is pre-registered.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final submission checklist
+    covered_by: none
+    gap: Grader OAuth app details are not recorded as final evidence.
+  - id: W6-SUBMIT-007
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: README includes reviewer credentials and OAuth app instructions.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: README.md
+    covered_by: none
+    gap: Final README reviewer-credential section is not recorded as complete.
+  - id: W6-SUBMIT-008
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Developer portal URL is reachable for reviewers.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final submission checklist
+    covered_by: none
+    gap: Portal reviewer URL is not recorded as final evidence.
+  - id: W6-SUBMIT-009
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Demo video is 2 to 5 minutes long.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final demo video link
+    covered_by: none
+    gap: Demo video link and duration are not recorded as final evidence.
+  - id: W6-SUBMIT-010
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Demo video shows OAuth app registration and token flow.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final demo video link
+    covered_by: none
+    gap: Demo video OAuth segment is not recorded as final evidence.
+  - id: W6-SUBMIT-011
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Demo video shows webhook DLQ and replay.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final demo video link
+    covered_by: none
+    gap: Demo video webhook replay segment is not recorded as final evidence.
+  - id: W6-SUBMIT-012
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Demo video shows SDK or CLI Time-to-First-Event drill.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final demo video link
+    covered_by: none
+    gap: Demo video SDK or CLI segment is not recorded as final evidence.
+  - id: W6-SUBMIT-013
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Pre-search artifact is included.
+    requirement_class: submission
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final pre-search artifact
+    covered_by: none
+    gap: Pre-search artifact is not recorded as final evidence.
+  - id: W6-SUBMIT-014
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Saved AI conversation artifact is included.
+    requirement_class: submission
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final AI conversation artifact
+    covered_by: none
+    gap: Saved AI conversation artifact is not recorded as final evidence.
+  - id: W6-SUBMIT-015
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Epic 6 and Epic 7 proof writeups are included.
+    requirement_class: submission
+    testability: manual
+    priority: P0
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final per-epic writeups
+    covered_by: none
+    gap: Epic 6 and Epic 7 proof writeups are not recorded as final evidence.
+  - id: W6-SUBMIT-016
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Documentation and Submission Evidence
+    requirement: Social post screenshot with required tag is included.
+    requirement_class: submission
+    testability: manual
+    priority: P1
+    status: manual_pending
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: final social post screenshot
+    covered_by: none
+    gap: Social screenshot is not recorded as final evidence.
+
+  - id: W6-DECISION-001
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Open Decisions
+    requirement: Final deployment host and URL naming are not yet selected in submission evidence.
+    requirement_class: open_decision
+    testability: none
+    priority: P2
+    status: open_decision
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: Deployment target must be chosen before final evidence can be completed.
+  - id: W6-DECISION-002
+    source: PRD.md:767-818; Plugforge-specs.txt:570-611
+    section: Open Decisions
+    requirement: Grader OAuth credential delivery mechanism is not yet selected.
+    requirement_class: open_decision
+    testability: none
+    priority: P2
+    status: open_decision
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: Need final decision on how reviewer credentials are shared safely.
+  - id: W6-DECISION-003
+    source: PRD.md:197-203; Plugforge-specs.txt:109-111
+    section: Open Decisions
+    requirement: Public API versioning and deprecation policy beyond /api/v1 is not part of the required proof.
+    requirement_class: open_decision
+    testability: none
+    priority: P2
+    status: open_decision
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: Versioning policy can be decided after final MVP proof.
+  - id: W6-DECISION-004
+    source: PRD.md:304-310; Plugforge-specs.txt:142-153
+    section: Open Decisions
+    requirement: Webhook delivery-log retention duration is not finalized.
+    requirement_class: open_decision
+    testability: none
+    priority: P2
+    status: open_decision
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: Retention assumption must be stated in final architecture or cost docs.
+
+  - id: W6-SCOPE-001
+    source: PRD.md:83-138
+    section: Explicit Non-Scope
+    requirement: Replacing Ship OAuth with a third-party OAuth provider is not required.
+    requirement_class: non_scope
+    testability: none
+    priority: P2
+    status: non_scope
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: The Week 6 requirement is first-party Ship OAuth.
+  - id: W6-SCOPE-002
+    source: PRD.md:411-412; Plugforge-specs.txt:171-173
+    section: Explicit Non-Scope
+    requirement: Shipping a raw generated SDK client as the public SDK is not required.
+    requirement_class: non_scope
+    testability: none
+    priority: P2
+    status: non_scope
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: The accepted path is a hand-authored SDK surface backed by OpenAPI parity.
+  - id: W6-SCOPE-003
+    source: PRD.md:192; PRD.md:201-203
+    section: Explicit Non-Scope
+    requirement: Maintaining a separate hand-written OpenAPI file as source of truth is not required.
+    requirement_class: non_scope
+    testability: none
+    priority: P2
+    status: non_scope
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: OpenAPI must be generated from route metadata.
+  - id: W6-SCOPE-004
+    source: PRD.md:304-310; Plugforge-specs.txt:142-153
+    section: Explicit Non-Scope
+    requirement: Redis or a managed queue is not required unless in-process webhook delivery blocks proof.
+    requirement_class: non_scope
+    testability: none
+    priority: P2
+    status: non_scope
+    proof_command: none
+    proof_files: none
+    pending_test: none
+    manual_evidence: none
+    covered_by: none
+    gap: In-process implementation is the required MVP unless evidence shows it cannot pass.
