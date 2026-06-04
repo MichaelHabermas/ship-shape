@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 
 export interface UseSelectionOptions<T> {
   items: T[];
@@ -47,7 +47,8 @@ export function useSelection<T>({
 }: UseSelectionOptions<T>): UseSelectionReturn {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => initialSelectedIds || new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
-  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+  const focusedIdRef = useRef<string | null>(null);
+  const lastSelectedIdRef = useRef<string | null>(null);
 
   // Get ordered list of IDs for navigation
   const itemIds = useMemo(() => items.map(getItemId), [items, getItemId]);
@@ -56,6 +57,15 @@ export function useSelection<T>({
   useEffect(() => {
     onSelectionChange?.(selectedIds);
   }, [selectedIds, onSelectionChange]);
+
+  const updateFocusedId = useCallback((id: string | null) => {
+    focusedIdRef.current = id;
+    setFocusedId(id);
+  }, []);
+
+  const updateLastSelectedId = useCallback((id: string | null) => {
+    lastSelectedIdRef.current = id;
+  }, []);
 
   // Toggle selection of a single item (Enter/Space or simple click)
   const toggleSelection = useCallback((id: string) => {
@@ -68,8 +78,8 @@ export function useSelection<T>({
       }
       return next;
     });
-    setLastSelectedId(id);
-  }, []);
+    updateLastSelectedId(id);
+  }, [updateLastSelectedId]);
 
   // Toggle item in group (Cmd/Ctrl+click) - adds/removes without affecting others
   const toggleInGroup = useCallback((id: string) => {
@@ -82,17 +92,18 @@ export function useSelection<T>({
       }
       return next;
     });
-    setLastSelectedId(id);
-  }, []);
+    updateLastSelectedId(id);
+  }, [updateLastSelectedId]);
 
   // Select range from last selected to target (Shift+click)
   const selectRange = useCallback((targetId: string) => {
-    if (!lastSelectedId) {
+    const currentLastSelectedId = lastSelectedIdRef.current;
+    if (!currentLastSelectedId) {
       toggleSelection(targetId);
       return;
     }
 
-    const startIdx = itemIds.indexOf(lastSelectedId);
+    const startIdx = itemIds.indexOf(currentLastSelectedId);
     const endIdx = itemIds.indexOf(targetId);
 
     if (startIdx === -1 || endIdx === -1) {
@@ -111,7 +122,7 @@ export function useSelection<T>({
       }
       return next;
     });
-  }, [itemIds, lastSelectedId, toggleSelection]);
+  }, [itemIds, toggleSelection]);
 
   // Select all visible items
   const selectAll = useCallback(() => {
@@ -128,8 +139,8 @@ export function useSelection<T>({
   // Clear all selection
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());
-    setLastSelectedId(null);
-  }, []);
+    updateLastSelectedId(null);
+  }, [updateLastSelectedId]);
 
   // Move focus without changing selection
   const moveFocus = useCallback((direction: 'up' | 'down' | 'home' | 'end') => {
@@ -137,32 +148,31 @@ export function useSelection<T>({
       return;
     }
 
-    setFocusedId(prev => {
-      const currentIdx = prev ? itemIds.indexOf(prev) : -1;
+    const currentId = focusedIdRef.current;
+    const currentIdx = currentId ? itemIds.indexOf(currentId) : -1;
 
-      let newFocusedId: string | null = prev;
-      switch (direction) {
-        case 'up':
-          if (currentIdx <= 0) newFocusedId = itemIds[0];
-          else newFocusedId = itemIds[currentIdx - 1];
-          break;
-        case 'down':
-          if (currentIdx === -1) newFocusedId = itemIds[0];
-          else if (currentIdx >= itemIds.length - 1) newFocusedId = itemIds[itemIds.length - 1];
-          else newFocusedId = itemIds[currentIdx + 1];
-          break;
-        case 'home':
-          newFocusedId = itemIds[0];
-          break;
-        case 'end':
-          newFocusedId = itemIds[itemIds.length - 1];
-          break;
-        default:
-          newFocusedId = prev;
-      }
-      return newFocusedId;
-    });
-  }, [itemIds]);
+    let newFocusedId: string | null = currentId;
+    switch (direction) {
+      case 'up':
+        if (currentIdx <= 0) newFocusedId = itemIds[0];
+        else newFocusedId = itemIds[currentIdx - 1];
+        break;
+      case 'down':
+        if (currentIdx === -1) newFocusedId = itemIds[0];
+        else if (currentIdx >= itemIds.length - 1) newFocusedId = itemIds[itemIds.length - 1];
+        else newFocusedId = itemIds[currentIdx + 1];
+        break;
+      case 'home':
+        newFocusedId = itemIds[0];
+        break;
+      case 'end':
+        newFocusedId = itemIds[itemIds.length - 1];
+        break;
+      default:
+        newFocusedId = currentId;
+    }
+    updateFocusedId(newFocusedId);
+  }, [itemIds, updateFocusedId]);
 
   // Extend selection with arrow keys (Shift+Arrow)
   const extendSelection = useCallback((direction: 'up' | 'down' | 'home' | 'end') => {
@@ -170,13 +180,15 @@ export function useSelection<T>({
 
     // Determine anchor point (where selection started)
     // Priority: lastSelectedId > focusedId > hoveredId > first item
-    const anchor = lastSelectedId || focusedId || hoveredId || itemIds[0];
+    const currentFocusedId = focusedIdRef.current;
+    const currentLastSelectedId = lastSelectedIdRef.current;
+    const anchor = currentLastSelectedId || currentFocusedId || hoveredId || itemIds[0];
     const anchorIdx = itemIds.indexOf(anchor);
     if (anchorIdx === -1) return;
 
     // Get current position - use hovered position if nothing else is set
-    const currentIdx = focusedId
-      ? itemIds.indexOf(focusedId)
+    const currentIdx = currentFocusedId
+      ? itemIds.indexOf(currentFocusedId)
       : hoveredId
         ? itemIds.indexOf(hoveredId)
         : anchorIdx;
@@ -212,13 +224,13 @@ export function useSelection<T>({
       return next;
     });
 
-    setFocusedId(itemIds[newIdx]);
+    updateFocusedId(itemIds[newIdx]);
 
     // Keep lastSelectedId at anchor for continued range operations
-    if (!lastSelectedId) {
-      setLastSelectedId(anchor);
+    if (!currentLastSelectedId) {
+      updateLastSelectedId(anchor);
     }
-  }, [itemIds, focusedId, lastSelectedId, hoveredId]);
+  }, [itemIds, hoveredId, updateFocusedId, updateLastSelectedId]);
 
   // Derived state
   const isSelected = useCallback((id: string) => selectedIds.has(id), [selectedIds]);
@@ -244,11 +256,11 @@ export function useSelection<T>({
         }
         return next;
       });
-      setLastSelectedId(id);
+      updateLastSelectedId(id);
     }
 
-    setFocusedId(id);
-  }, [selectRange, toggleInGroup]);
+    updateFocusedId(id);
+  }, [selectRange, toggleInGroup, updateFocusedId, updateLastSelectedId]);
 
   // Keyboard handler
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -341,7 +353,7 @@ export function useSelection<T>({
     selectRange,
     selectAll,
     clearSelection,
-    setFocusedId,
+    setFocusedId: updateFocusedId,
     moveFocus,
     extendSelection,
     isSelected,
