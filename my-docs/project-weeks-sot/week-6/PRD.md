@@ -97,7 +97,7 @@ Requirement classes used below:
 - Invalid tokens must return `401`. Source: Plugforge-specs.txt lines 51-52, MVP Requirements; Plugforge-specs.txt lines 97-99, Core Technical Requirements > Token Middleware.
 - Missing tokens must return `401`. Source: Plugforge-specs.txt lines 51-52, MVP Requirements.
 - Expired tokens must return `401` with a distinct error code. Source: Plugforge-specs.txt lines 51-52, MVP Requirements.
-- For expired access tokens, the public error response must use top-level `code: "unauthorized"` and include a machine-readable expired-token subcode in `details.reason`, preserving the exact `ApiError.code` union while satisfying the distinct expired-token requirement. Source: Interpretation of Plugforge-specs.txt lines 51-56, MVP Requirements; Plugforge-specs.txt lines 270-277, Signature Challenge > Interface Definitions.
+- For expired access tokens, the public error response must use top-level `code: "expired_token"` with HTTP `401` and no `details.reason` shim. Source: Plugforge-specs.txt lines 51-52, MVP Requirements; reviewer feedback on distinct top-level error codes.
 - Insufficient scope must return `403` and name the missing scope explicitly. Source: Plugforge-specs.txt lines 57-58, MVP Requirements; Plugforge-specs.txt lines 97-99, Core Technical Requirements > Token Middleware.
 - Refresh tokens must be one-time-use with rotation. Source: Plugforge-specs.txt lines 100-101, Core Technical Requirements > Refresh Tokens.
 - Reuse of a refresh token must invalidate the token family. Source: Plugforge-specs.txt lines 100-101, Core Technical Requirements > Refresh Tokens.

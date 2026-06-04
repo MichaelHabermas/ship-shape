@@ -226,7 +226,7 @@ describe('ShipClient public work SDK', () => {
       }
 
       if (authorizationHeader(init) === 'Bearer stale-token') {
-        return jsonResponse({ code: 'unauthorized', message: 'stale token' }, 401);
+        return jsonResponse({ code: 'expired_token', message: 'Bearer token expired' }, 401);
       }
       if (url.endsWith('/api/v1/me')) {
         return jsonResponse({ id: 'user-1' });
@@ -276,7 +276,7 @@ describe('ShipClient public work SDK', () => {
         });
       }
       if (authorizationHeader(init) === 'Bearer stale-token') {
-        return jsonResponse({ code: 'unauthorized', message: 'stale', request_id: 'req-stale' }, 401);
+        return jsonResponse({ code: 'expired_token', message: 'Bearer token expired', request_id: 'req-stale' }, 401);
       }
       return jsonResponse({
         user: {

@@ -352,11 +352,20 @@ function sendUnauthorized(
   message: string,
   reason?: string
 ): void {
+  if (reason === 'access_token_expired') {
+    req.publicApiErrorCode = 'expired_token';
+    sendPublicApiError(res, 401, {
+      code: 'expired_token',
+      message: 'Bearer token expired',
+      request_id: requestId,
+    });
+    return;
+  }
+
   req.publicApiErrorCode = 'unauthorized';
   sendPublicApiError(res, 401, {
     code: 'unauthorized',
     message,
-    ...(reason === 'access_token_expired' ? { details: { reason } } : {}),
     request_id: requestId,
   });
 }

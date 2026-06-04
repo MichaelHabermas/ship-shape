@@ -83,7 +83,7 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 ## 2026-06-03 — Public API Follow-Up Hardening
 
 - Public `PATCH /api/v1/issues/:id` keeps HTTP `409` for parent close attempts with incomplete children, but canon wins: the public `ApiError.code` is `validation_failed` and the machine conflict reason lives in `details.reason: "incomplete_children"`.
-- `conflict` is not a public `PUBLIC_API_ERROR_CODES` value; the exact public union is `unauthorized | forbidden | not_found | validation_failed | rate_limited | server_error`.
+- `conflict` is not a public `PUBLIC_API_ERROR_CODES` value; the exact public union is `unauthorized | expired_token | forbidden | not_found | validation_failed | rate_limited | server_error`.
 - `pnpm drill ttfe` always resolves `ship_test_audit` via `resolve-database-url.sh`; only `TTFE_DATABASE_URL` overrides. Shell `DATABASE_URL` is ignored so fixtures and API cannot diverge.
 - Plugforge CI regenerates `docs/openapi.json` and fails on drift; registry `operationId`s must match `route-openapi-contracts.ts` keys and the committed spec operation set.
 - `exchangeAuthorizationCode` is exported from `provider.ts` via `refresh-rotation.ts` (not re-exported through `authorization-code.ts`).
@@ -103,6 +103,11 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 ## 2026-06-03 — External Client Proof Pack
 
 - The final bar is `pnpm plugforge:final`: MVP verify, TTFE, refresh-token theft drill, webhook replay/idempotency drill, SDK/OpenAPI parity, integration boundary proof, FleetGraph public audit proof, Slack/GitLab checks, and docs drift checks.
+
+## 2026-06-04 — Reviewer API contract closure
+
+- Expired OAuth bearer tokens on `/api/v1/*` return HTTP `401` with top-level `ApiError.code: "expired_token"` (not `unauthorized` + `details.reason`).
+- `docs/openapi.json` is validated against the OpenAPI 3.1 JSON Schema via `@seriousme/openapi-schema-validator` in `api/src/platform/api/v1/public-openapi-schema.test.ts` and `scripts/lib/validate-public-openapi-document.mjs`.
 
 ## 2026-06-04 — External Developer Trust Boundary Closure
 
@@ -133,3 +138,13 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - GitLab acceptance stays on the public issue seam: deterministic MR webhook -> `client.issues.upsertExternalLink()` -> public `/api/v1/issues/:id` readback. No API internals and no schema change.
 - Browser SDK acceptance is a real Playwright flow through `/sdk-demo`: Authorization Code + PKCE, consent, callback, token exchange, and authenticated document listing through `@ship/sdk`.
 - The final INT closure signal is `pnpm plugforge:ledger:enforce -- --area INT --status missing,partial`; global enforcement remains intentionally out of scope until unrelated gaps close.
+
+## 2026-06-04 — Final Submission Evidence Decisions
+
+- Final deployment host is Render for this submission. Public URL names are `https://ship-shape-web.onrender.com/` for web and `https://ship-shape-api.onrender.com/` for API; live OpenAPI is `https://ship-shape-api.onrender.com/api/v1/openapi.json`.
+- Grader credential delivery uses public README credentials for the Ship demo session and private submission-channel delivery or portal regeneration for any raw OAuth `client_secret`. The public repository can safely include `client_id`, redirect URI, and scopes, but not a reusable raw secret.
+- Reviewer read-only OAuth app shape is `documents:read`, `issues:read`, and `sprints:read`. Reviewers can create/regenerate it from Workspace Settings -> Developer; confidential one-time secrets are not durable public evidence.
+- API versioning beyond `/api/v1` remains explicitly deferred. The Week 6 contract is additive within `/api/v1`; breaking changes require a future `/api/v2` decision, not final-submission work.
+- Webhook delivery-log retention for final evidence is 30 days with a target cap of 10,000 delivery rows per app. A production archival/pruning policy can be decided after the submission.
+- `pnpm plugforge:submission` is the final submission evidence gate. `--allow-manual-pending` is only for pre-handoff checks before grader OAuth app delivery notes, video, saved AI conversation, and social screenshot attachments exist.
+- Do not mark `W6-GLOBAL-001` proven until `pnpm plugforge:submission` passes without `--allow-manual-pending` and global `pnpm plugforge:ledger:enforce` passes.

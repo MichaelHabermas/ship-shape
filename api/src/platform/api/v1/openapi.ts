@@ -20,7 +20,10 @@ type PublicOpenApiResponses = PublicOpenApiPathConfig['responses'];
 
 const standardErrorResponses: PublicOpenApiResponses = {
   '400': jsonResponse(publicApiErrorSchema, 'Validation error'),
-  '401': jsonResponse(publicApiErrorSchema, 'Missing, invalid, revoked, or expired bearer token'),
+  '401': jsonResponse(
+    publicApiErrorSchema,
+    'Missing, invalid, or revoked bearer token (code unauthorized); expired bearer token (code expired_token)'
+  ),
   '403': jsonResponse(publicApiErrorSchema, 'Insufficient OAuth scope'),
   '404': jsonResponse(publicApiErrorSchema, 'Not found'),
   '429': jsonResponse(publicApiErrorSchema, 'Rate limited'),

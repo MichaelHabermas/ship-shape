@@ -158,3 +158,6 @@ my-docs/evidence/plugforge-metrics-ci/
 my-docs/evidence/security-audit/suggested-ledger-update.json
 web/public/fleetgraph-observability/index.html
 web/public/fleetgraph-observability/provider-history.json
+
+# Riptide artifacts (cloud-synced)
+.humanlayer/tasks/

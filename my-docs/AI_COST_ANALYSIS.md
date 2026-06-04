@@ -43,6 +43,39 @@ Week 6 non-AI cost assumptions:
 
 Budget pressure from this pack is database rows and outbound HTTP, not LLM spend. The final gate (`pnpm plugforge:final`) proves this boundary by running refresh-token, webhook replay/idempotency, SDK/OpenAPI parity, integration boundary, Slack/GitLab, and FleetGraph public-audit checks without adding platform-layer model calls.
 
+### Week 6 Development And CI Cost Tracking
+
+The Week 6 build added platform proof commands and evidence JSON rather than new model-calling product paths. Local timing evidence is current-run command cost, not cloud invoice data.
+
+| Cost lane | Evidence | Measured runtime / volume | Cost conclusion |
+| --- | --- | ---: | --- |
+| TTFE drill | `my-docs/evidence/plugforge-metrics/ttfe-timing.json` | 11,226 ms total | CI compute only; zero platform LLM calls |
+| 20-run TTFE flake/P95 loop | `my-docs/evidence/plugforge-metrics/ttfe-flake-loop.json` | 233,713 ms child runtime in metrics summary | CI compute only; catches packed install and webhook regressions |
+| OAuth P95 probe | `my-docs/evidence/plugforge-metrics/oauth-p95.json` | 2,045 ms child runtime in metrics summary | CI compute only; no model boundary |
+| Webhook P95 probe | `my-docs/evidence/plugforge-metrics/webhook-p95.json` | 1,990 ms child runtime in metrics summary | DB rows and local HTTP delivery only |
+| SDK package size probe | `my-docs/evidence/plugforge-metrics/sdk-size.json` | 102 ms child runtime in metrics summary | Build/check overhead only |
+| Webhook verifier speed probe | `my-docs/evidence/plugforge-metrics/verify-webhook-speed.json` | 228 ms child runtime in metrics summary | CPU-only HMAC verification |
+| Baseline comparator | `my-docs/evidence/plugforge-metrics/baseline-comparator.json` | 1,926 ms child runtime in metrics summary | CI compute only |
+| Full metrics aggregate | `my-docs/evidence/plugforge-metrics/summary.json` | 251,685 ms | About 4.2 local CI minutes for the calibrated metrics gate |
+| Integration acceptance aggregate | `my-docs/evidence/plugforge-integrations/all-runner.json` | 87,930 ms | About 1.5 local CI minutes for Slack/GitLab/browser/matrix proof |
+| OpenAPI generation/drift check | `bash scripts/ci/check-public-openapi-drift.sh` | 643 ms measured locally on 2026-06-04 | Build/check overhead only; source of truth remains generated route metadata |
+
+### Week 6 Production Projection
+
+The production model cost projection does not change for OAuth, public API, SDK, CLI, webhooks, portal, Slack, or GitLab because those paths do not call a model. The incremental production costs are ordinary platform costs:
+
+| Assumption | Value | Monthly pressure at demo/reviewer scale |
+| --- | ---: | --- |
+| Public API calls | 5 concurrent reviewers, 2 req/sec sustained, 10 req/sec bursts | Existing API/DB tier; rate limits protect abuse before audit writes |
+| Webhook fanout | Normal 1-2 matching subscriptions; proof/load target 10 matching subscriptions | Delivery rows and outbound HTTP; no LLM spend |
+| Delivery retention | 30 days, target cap 10,000 delivery rows per app | Storage grows with attempts and replay, then prunes/archive policy before production |
+| Public audit retention | 90 days for reviewer/demo analysis | Storage grows with `/api/v1` calls; useful for agent-as-citizen proof |
+| Agent active rate | 20% monthly active users ask FleetGraph questions | Only user-initiated FleetGraph turns can cross the LLM boundary |
+| Agent turns | 6 turns per active user per month | Reuses FleetGraph projection tables below |
+| Platform model calls | 0 for OAuth/API/webhooks/SDK/CLI/portal/integrations | Enforced by `pnpm plugforge:llm-boundary` and architecture boundary |
+
+The budget rule for Week 6 is therefore: size database retention and outbound webhook egress separately from FleetGraph LLM spend. If future platform features want model-backed scope suggestions, webhook summaries, or portal copilots, they are new product scope and must update this cost analysis before shipping.
+
 ## Assignment Criteria
 
 Week 5 asks for:
