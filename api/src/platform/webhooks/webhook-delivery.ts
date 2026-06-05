@@ -28,6 +28,7 @@ export type WebhookDeliveryRow = {
   id: string;
   subscription_id: string;
   event_id: string;
+  event_type: WebhookEventType;
   workspace_id: string;
   attempt_number: number;
   status: WebhookDeliveryStatus;
@@ -42,7 +43,6 @@ export type WebhookDeliveryRow = {
 };
 
 export type DeliveryContextRow = WebhookDeliveryRow & {
-  event_type: WebhookEventType;
   event_payload: Record<string, unknown>;
   event_created_at: Date;
   target_url: string;
@@ -69,12 +69,13 @@ export async function listWebhookDeliveries(input: {
   const limitParam = values.length;
 
   const result = await webhookDb().query<WebhookDeliveryRow>(
-    `SELECT d.id, d.subscription_id, d.event_id, d.workspace_id, d.attempt_number,
+    `SELECT d.id, d.subscription_id, d.event_id, e.event_type, d.workspace_id, d.attempt_number,
             d.status, d.idempotency_key, d.response_status, d.response_excerpt,
             d.latency_ms, d.next_attempt_at, d.replay_of_delivery_id,
             d.created_at, d.updated_at
        FROM webhook_deliveries d
        JOIN webhook_subscriptions s ON s.id = d.subscription_id
+       JOIN webhook_events e ON e.id = d.event_id
       WHERE s.app_id = $1
         AND d.workspace_id = $2
         ${cursorClause}
@@ -229,12 +230,13 @@ export async function createReplayDeliveryAttempt(original: WebhookDeliveryRow):
 
 export async function findDelivery(deliveryId: string): Promise<WebhookDeliveryRow> {
   const result = await webhookDb().query<WebhookDeliveryRow>(
-    `SELECT id, subscription_id, event_id, workspace_id, attempt_number,
-            status, idempotency_key, response_status, response_excerpt,
-            latency_ms, next_attempt_at, replay_of_delivery_id,
-            created_at, updated_at
-       FROM webhook_deliveries
-      WHERE id = $1`,
+    `SELECT d.id, d.subscription_id, d.event_id, e.event_type, d.workspace_id, d.attempt_number,
+            d.status, d.idempotency_key, d.response_status, d.response_excerpt,
+            d.latency_ms, d.next_attempt_at, d.replay_of_delivery_id,
+            d.created_at, d.updated_at
+       FROM webhook_deliveries d
+       JOIN webhook_events e ON e.id = d.event_id
+      WHERE d.id = $1`,
     [deliveryId]
   );
   return requireWebhookRow(result.rows[0], 'Webhook delivery not found');
@@ -245,6 +247,7 @@ export function publicDeliveryFromRow(row: WebhookDeliveryRow): PublicWebhookDel
     id: row.id,
     subscription_id: row.subscription_id,
     event_id: row.event_id,
+    event_type: row.event_type,
     attempt_number: row.attempt_number,
     status: row.status,
     idempotency_key: row.idempotency_key,

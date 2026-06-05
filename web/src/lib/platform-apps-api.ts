@@ -53,6 +53,7 @@ export interface WebhookDelivery {
   id: string;
   subscription_id: string;
   event_id: string;
+  event_type: string;
   attempt_number: number;
   status: 'pending' | 'sending' | 'succeeded' | 'retrying' | 'failed' | 'dlq';
   idempotency_key: string;

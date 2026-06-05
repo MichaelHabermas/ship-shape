@@ -75,6 +75,7 @@
     "security:console": "node ./packages/shipshape-security/src/console/server.mjs",
     "submission:validate": "node ./scripts/submission/validate-ledger.mjs",
     "submission:render": "pnpm submission:validate && node ./scripts/submission/render-dashboard.mjs && node ./scripts/submission/render-markdown-sections.mjs && node ./scripts/submission/render-evidence-bundle.mjs",
+    "submission:render-bundle": "node ./scripts/submission/render-evidence-bundle.mjs",
     "submission:check": "node ./scripts/submission/check-generated.mjs && node ./scripts/submission/check-evidence-bundle.mjs",
     "submission:test": "node --test ./scripts/submission/submission-pipeline.test.mjs",
     "worktree:init": "./scripts/worktree-init.sh",

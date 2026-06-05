@@ -24,6 +24,5 @@ export const evidenceBundleRequiredFiles = [
   week4.securityBrief,
   week4.gfaBrief,
   week4.improvementReport,
-  week4.submissionChecklist,
-  week4.cat8Plan,
+  'my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md',
 ];

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "bundleGeneratedAt": "2026-06-01T02:20:35.637Z",
+  "generator": "scripts/submission/evidence-bundle-utils.mjs",
+  "generatorCommand": "pnpm submission:render-bundle",
+  "git": {
+    "branch": "master",
+    "commit": "e40ebccfd4ea0465b0aa752a9d792b5a9dd6571c",
+    "dirtyWorktree": true
+  },
+  "security": {
+    "runId": "cat8-2026-06-01T02-20-34-693Z",
+    "mode": "local-active",
+    "apiUrl": "http://localhost:3000",
+    "webUrl": "http://localhost:5173",
+    "latestConfirmedFindings": 1,
+    "triageCounts": {
+      "knownOpen": 0,
+      "resolved": 0,
+      "new": 1,
+      "regression": 0
+    }
+  },
+  "sourcePaths": [
+    "my-docs/project-weeks-sot/week-4/reviewer-dashboard.html",
+    "my-docs/evidence/submission-ledger.json",
+    "my-docs/evidence/security-audit/latest.json",
+    "my-docs/evidence/security-audit/latest.md",
+    "my-docs/evidence/security-audit/cat8-audit-deliverable.json",
+    "my-docs/evidence/security-audit/security-findings.json",
+    "my-docs/evidence/security-audit/security-findings-ledger.md",
+    "my-docs/project-weeks-sot/week-4/w4-specs/Shipshape-Security-Audit.txt",
+    "my-docs/project-weeks-sot/week-4/w4-specs/GFA-Week-4-ShipShape.txt",
+    "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
+    "my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md"
+  ],
+  "includedArtifacts": [
+    "my-docs/project-weeks-sot/week-4/reviewer-dashboard.html",
+    "my-docs/evidence/submission-ledger.json",
+    "my-docs/evidence/security-audit/latest.json",
+    "my-docs/evidence/security-audit/latest.md",
+    "my-docs/evidence/security-audit/cat8-audit-deliverable.json",
+    "my-docs/evidence/security-audit/security-findings.json",
+    "my-docs/evidence/security-audit/security-findings-ledger.md",
+    "my-docs/project-weeks-sot/week-4/w4-specs/Shipshape-Security-Audit.txt",
+    "my-docs/project-weeks-sot/week-4/w4-specs/GFA-Week-4-ShipShape.txt",
+    "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
+    "my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md",
+    "index.html"
+  ],
+  "redaction": {
+    "localPathsRedacted": true,
+    "obviousSecretScan": "passed"
+  }
+}

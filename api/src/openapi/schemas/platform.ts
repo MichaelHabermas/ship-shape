@@ -134,6 +134,7 @@ const PlatformWebhookDeliverySchema = z.object({
   id: UuidSchema,
   subscription_id: UuidSchema,
   event_id: UuidSchema,
+  event_type: z.enum(WEBHOOK_EVENT_TYPES),
   attempt_number: z.number().int(),
   status: WebhookDeliveryStatusSchema,
   idempotency_key: z.string(),

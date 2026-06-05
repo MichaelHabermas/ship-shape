@@ -370,6 +370,7 @@ export const PublicWebhookDeliverySchema = z.object({
   id: z.string().uuid(),
   subscription_id: z.string().uuid(),
   event_id: z.string().uuid(),
+  event_type: z.enum(WEBHOOK_EVENT_TYPES),
   attempt_number: z.number().int(),
   status: z.enum(WEBHOOK_DELIVERY_STATUS_VALUES),
   idempotency_key: z.string(),
