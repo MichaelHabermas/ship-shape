@@ -1,7 +1,7 @@
 // Bootstraps Ship's authenticated React app, route tree, and global providers.
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, queryPersister } from '@/lib/queryClient';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
@@ -104,6 +104,7 @@ function Cat6ErrorBoundaryProbe() {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -114,10 +115,68 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
+    const returnTo = new URLSearchParams(location.search).get('returnTo');
+    if (returnTo && isValidPublicReturnTo(returnTo)) {
+      return <PublicReturnToRedirect target={returnTo} />;
+    }
     return <Navigate to="/docs" replace />;
   }
 
   return <>{children}</>;
+}
+
+function isValidPublicReturnTo(target: string): boolean {
+  try {
+    if (target.startsWith('/') && !target.startsWith('//')) {
+      return true;
+    }
+    const url = new URL(target, window.location.origin);
+    return url.origin === window.location.origin || isApiOAuthAuthorizeReturn(url);
+  } catch {
+    return false;
+  }
+}
+
+function isApiOAuthAuthorizeReturn(url: URL): boolean {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (!apiUrl) return false;
+
+  try {
+    const apiOrigin = new URL(apiUrl, window.location.origin).origin;
+    return url.origin === apiOrigin && url.pathname === '/oauth/authorize';
+  } catch {
+    return false;
+  }
+}
+
+function sameOriginReturnPath(target: string): string | null {
+  try {
+    const url = new URL(target, window.location.origin);
+    if (url.origin !== window.location.origin) return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+function PublicReturnToRedirect({ target }: { target: string }) {
+  const sameOriginPath = sameOriginReturnPath(target);
+
+  React.useEffect(() => {
+    if (!sameOriginPath) {
+      window.location.assign(target);
+    }
+  }, [sameOriginPath, target]);
+
+  if (sameOriginPath) {
+    return <Navigate to={sameOriginPath} replace />;
+  }
+
+  return (
+    <div className="flex h-screen items-center justify-center bg-background">
+      <div className="text-muted">Continuing...</div>
+    </div>
+  );
 }
 
 function SuperAdminRoute({ children }: { children: React.ReactNode }) {
