@@ -2,7 +2,7 @@
   "metric": "sdk-minified-gzip-size",
   "status": "measured",
   "ok": true,
-  "generatedAt": "2026-06-05T01:10:20.914Z",
+  "generatedAt": "2026-06-05T19:54:39.743Z",
   "durationMs": 19,
   "targets": {
     "maxGzipBytes": 256000
@@ -18,8 +18,8 @@
     ]
   },
   "result": {
-    "minifiedBytes": 21403,
-    "gzipBytes": 7508
+    "minifiedBytes": 21501,
+    "gzipBytes": 7537
   },
   "metafile": {
     "inputs": {
@@ -45,7 +45,7 @@
         "format": "esm"
       },
       "sdk/src/resources.ts": {
-        "bytes": 6093,
+        "bytes": 6331,
         "imports": [
           {
             "path": "@ship/shared",
@@ -161,7 +161,7 @@
         "format": "esm"
       },
       "sdk/src/index.ts": {
-        "bytes": 16524,
+        "bytes": 16535,
         "imports": [
           {
             "path": "node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js",
@@ -280,7 +280,7 @@
             "bytesInOutput": 3089
           },
           "sdk/src/resources.ts": {
-            "bytesInOutput": 2096
+            "bytesInOutput": 2194
           },
           "sdk/src/token-store.ts": {
             "bytesInOutput": 1601
@@ -298,7 +298,7 @@
             "bytesInOutput": 774
           }
         },
-        "bytes": 21403
+        "bytes": 21501
       }
     }
   }

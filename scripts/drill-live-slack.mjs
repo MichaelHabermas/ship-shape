@@ -11,12 +11,44 @@ import {
   listen,
   openUrl,
   parseArgs,
-  requireEnv,
   runId,
   truncate,
   waitFor,
-  writeEvidence,
+  writeLiveEvidence,
 } from './lib/plugforge-live-drill.mjs';
+
+const REQUIRED_ENV = [
+  {
+    name: 'SHIP_API_URL',
+    secret: false,
+    source: 'Ship API URL that the Slack integration calls',
+  },
+  {
+    name: 'SHIP_ACCESS_TOKEN',
+    secret: true,
+    source: 'Ship public API OAuth token used to create documents, issues, and webhook subscriptions',
+  },
+  {
+    name: 'SLACK_CLIENT_ID',
+    secret: false,
+    source: 'Slack app client id',
+  },
+  {
+    name: 'SLACK_CLIENT_SECRET',
+    secret: true,
+    source: 'Slack app client secret',
+  },
+  {
+    name: 'SLACK_REDIRECT_URI',
+    secret: false,
+    source: 'Local Slack OAuth callback URL, for example http://127.0.0.1:8080/slack/oauth/callback',
+  },
+  {
+    name: 'SLACK_CHANNEL_ID',
+    secret: false,
+    source: 'Real Slack channel id where proof messages will be posted',
+  },
+];
 
 const args = parseArgs();
 const id = runId('slack-live');
@@ -27,14 +59,7 @@ let cleanupAttempted = false;
 const createdSubscriptionIds = [];
 
 try {
-  const env = requireEnv([
-    'SHIP_API_URL',
-    'SHIP_ACCESS_TOKEN',
-    'SLACK_CLIENT_ID',
-    'SLACK_CLIENT_SECRET',
-    'SLACK_REDIRECT_URI',
-    'SLACK_CHANNEL_ID',
-  ]);
+  const env = requireSlackLiveEnv();
   await ensureSdkBuild();
   const { ShipClient } = await importBuiltSdk();
   const { createSlackIntegrationServer, MemoryInstallStore } = await import('../integrations/slack/src/index.mjs');
@@ -188,7 +213,7 @@ try {
     },
   };
 
-  const output = await writeEvidence('slack', evidence, args.get('output'));
+  const output = await writeLiveEvidence('slack', evidence, args.get('output'));
   console.log(JSON.stringify({ ok: true, evidence: output }, null, 2));
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
@@ -200,6 +225,37 @@ try {
     });
   }
   if (server) await closeServer(server).catch(() => {});
+}
+
+function requireSlackLiveEnv(env = process.env) {
+  const missing = REQUIRED_ENV.filter(({ name }) => !env[name]);
+  if (missing.length > 0) {
+    throw new Error(formatMissingSlackEnv(missing));
+  }
+  return Object.fromEntries(REQUIRED_ENV.map(({ name }) => [name, env[name]]));
+}
+
+function formatMissingSlackEnv(missing) {
+  const required = REQUIRED_ENV
+    .map(({ name, secret, source }) => `  ${name.padEnd(24)} ${secret ? 'secret' : 'not secret'}  ${source}`)
+    .join('\n');
+  const missingNames = missing.map(({ name }) => `  - ${name}`).join('\n');
+  return `Missing env for Slack live proof:
+
+Missing:
+${missingNames}
+
+Required:
+${required}
+
+Optional:
+  SLACK_INTEGRATION_PUBLIC_URL   Public tunnel/deployed URL if SHIP_API_URL is not local
+  SHIP_ISSUE_ASSIGNEE_ID         Ship user id to assign the proof issue to; defaults to current user
+  PLUGFORGE_OPEN_BROWSER=1       Open Slack install URL automatically
+  PLUGFORGE_KEEP_SHIP_WEBHOOKS=1 Keep created Ship webhook subscriptions
+  PLUGFORGE_LIVE_TIMEOUT_MS      Defaults to 180000
+
+Nothing was run. No evidence was written.`;
 }
 
 async function waitForDelivery(client, input, timeoutMs) {

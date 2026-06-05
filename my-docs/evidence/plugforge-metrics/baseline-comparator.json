@@ -2,8 +2,8 @@
   "metric": "plugforge-baseline-comparator",
   "status": "measured",
   "ok": true,
-  "generatedAt": "2026-06-05T01:10:22.641Z",
-  "durationMs": 1473,
+  "generatedAt": "2026-06-05T19:54:41.493Z",
+  "durationMs": 1503,
   "targets": {
     "baseline": "scripts/plugforge-metrics/baseline.json",
     "maxRegressionRatio": 1.1,
@@ -44,10 +44,7 @@
           4,
           3,
           2,
-          2,
           3,
-          3,
-          2,
           2,
           2,
           2,
@@ -57,7 +54,10 @@
           2,
           2,
           2,
-          1,
+          2,
+          2,
+          3,
+          2,
           2,
           2
         ]
@@ -144,6 +144,9 @@
         "timings": [
           2,
           2,
+          1,
+          1,
+          2,
           2,
           1,
           1,
@@ -154,11 +157,8 @@
           1,
           1,
           1,
+          1,
           2,
-          1,
-          1,
-          1,
-          1,
           1,
           1,
           1
@@ -166,8 +166,8 @@
       }
     ],
     "sdk": {
-      "minifiedBytes": 21403,
-      "gzipBytes": 7508
+      "minifiedBytes": 21501,
+      "gzipBytes": 7537
     }
   },
   "failures": []

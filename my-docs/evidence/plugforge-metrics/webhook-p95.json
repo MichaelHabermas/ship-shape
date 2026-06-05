@@ -2,8 +2,8 @@
   "metric": "webhook-first-attempt-p95",
   "status": "measured",
   "ok": true,
-  "generatedAt": "2026-06-05T01:10:20.829Z",
-  "durationMs": 1646,
+  "generatedAt": "2026-06-05T19:54:39.667Z",
+  "durationMs": 1458,
   "targets": {
     "maxP95Ms": 2000,
     "samples": 25
@@ -11,10 +11,10 @@
   "result": {
     "samplesSucceeded": 25,
     "samplesFailed": 0,
-    "minMs": 5,
-    "maxMs": 23,
-    "p50Ms": 5,
-    "p95Ms": 12
+    "minMs": 4,
+    "maxMs": 20,
+    "p50Ms": 4,
+    "p95Ms": 8
   },
   "failures": []
 }

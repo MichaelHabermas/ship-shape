@@ -7,14 +7,47 @@ import {
   closeServer,
   ensureSdkBuild,
   importBuiltSdk,
+  isRealExternalHttpsUrl,
   listen,
   parseArgs,
-  requireEnv,
   runId,
   truncate,
   waitFor,
-  writeEvidence,
+  writeLiveEvidence,
 } from './lib/plugforge-live-drill.mjs';
+
+const REQUIRED_ENV = [
+  {
+    name: 'SHIP_API_URL',
+    secret: false,
+    source: 'Deployed Ship public API base URL, for example https://ship-shape-api.onrender.com',
+  },
+  {
+    name: 'SHIP_ACCESS_TOKEN',
+    secret: true,
+    source: 'Ship public API OAuth token that can create/read issues and upsert issue external links',
+  },
+  {
+    name: 'GITLAB_TOKEN',
+    secret: true,
+    source: 'GitLab token for the target project with permission to create hooks, branches, files, and merge requests',
+  },
+  {
+    name: 'GITLAB_PROJECT_ID',
+    secret: false,
+    source: 'GitLab numeric project id or URL-encoded path such as namespace/project',
+  },
+  {
+    name: 'GITLAB_WEBHOOK_PUBLIC_URL',
+    secret: false,
+    source: 'Public HTTPS URL that reaches this running integration; /gitlab/webhook is appended if omitted',
+  },
+  {
+    name: 'GITLAB_WEBHOOK_SECRET',
+    secret: true,
+    source: 'Random shared secret registered on the GitLab hook and checked by the integration',
+  },
+];
 
 const args = parseArgs();
 const id = runId('gitlab-live');
@@ -22,14 +55,7 @@ const timeoutMs = Number(args.get('timeout-ms') ?? process.env.PLUGFORGE_LIVE_TI
 let server = null;
 
 try {
-  const env = requireEnv([
-    'SHIP_API_URL',
-    'SHIP_ACCESS_TOKEN',
-    'GITLAB_TOKEN',
-    'GITLAB_PROJECT_ID',
-    'GITLAB_WEBHOOK_PUBLIC_URL',
-    'GITLAB_WEBHOOK_SECRET',
-  ]);
+  const env = requireGitLabLiveEnv();
   const webhookPublicUrl = normalizeGitLabWebhookUrl(env.GITLAB_WEBHOOK_PUBLIC_URL);
   assert(webhookPublicUrl.startsWith('https://'), 'GITLAB_WEBHOOK_PUBLIC_URL must be an HTTPS URL that reaches this integration server');
 
@@ -143,7 +169,7 @@ try {
       },
     };
 
-    const output = await writeEvidence('gitlab', evidence, args.get('output'));
+    const output = await writeLiveEvidence('gitlab', evidence, args.get('output'));
     console.log(JSON.stringify({ ok: true, evidence: output }, null, 2));
   } finally {
     if (mergeRequest && process.env.GITLAB_KEEP_MR !== '1') {
@@ -163,6 +189,38 @@ try {
   process.exitCode = 1;
 } finally {
   if (server) await closeServer(server).catch(() => {});
+}
+
+function requireGitLabLiveEnv(env = process.env) {
+  const missing = REQUIRED_ENV.filter(({ name }) => !env[name]);
+  if (missing.length > 0) {
+    throw new Error(formatMissingGitLabEnv(missing));
+  }
+  return Object.fromEntries(REQUIRED_ENV.map(({ name }) => [name, env[name]]));
+}
+
+function formatMissingGitLabEnv(missing) {
+  const required = REQUIRED_ENV
+    .map(({ name, secret, source }) => `  ${name.padEnd(28)} ${secret ? 'secret' : 'not secret'}  ${source}`)
+    .join('\n');
+  const missingNames = missing.map(({ name }) => `  - ${name}`).join('\n');
+  return `Missing env for GitLab live proof:
+
+Missing:
+${missingNames}
+
+Required:
+${required}
+
+Optional:
+  GITLAB_API_URL                Defaults to https://gitlab.com/api/v4
+  GITLAB_INTEGRATION_PORT       Defaults to 8081 for the local integration server
+  PLUGFORGE_LIVE_TIMEOUT_MS     Defaults to 180000
+  GITLAB_KEEP_MR=1              Keep the proof merge request open
+  GITLAB_KEEP_BRANCH=1          Keep the proof branch
+  GITLAB_KEEP_HOOK=1            Keep the GitLab project hook
+
+Nothing was run. No evidence was written.`;
 }
 
 async function gitlabJson(baseUrl, token, method, pathname, body) {
@@ -204,12 +262,5 @@ function isRealExternalHttpsHost(url) {
     hostname.includes('gitlab') ||
     hostname === 'labs.gauntletai.com' ||
     process.env.PLUGFORGE_ALLOW_CUSTOM_GITLAB_API_HOST === '1';
-  return url.protocol === 'https:' &&
-    knownGitLabHost &&
-    !['localhost', '127.0.0.1', '::1'].includes(hostname) &&
-    !hostname.endsWith('.example.com') &&
-    !hostname.endsWith('.test') &&
-    !hostname.endsWith('.example') &&
-    !hostname.endsWith('.invalid') &&
-    hostname !== 'example.com';
+  return knownGitLabHost && isRealExternalHttpsUrl(url.toString());
 }

@@ -1,3 +1,4 @@
+// Vitest config for API unit tests and their Node dependency resolution.
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
@@ -6,6 +7,11 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     setupFiles: ['./src/test/setup.ts'],
+    server: {
+      deps: {
+        external: [/[/\\]sdk[/\\]dist[/\\].*\.js$/],
+      },
+    },
     // Run test files sequentially to prevent database conflicts
     // Tests within each file can still run in parallel
     fileParallelism: false,

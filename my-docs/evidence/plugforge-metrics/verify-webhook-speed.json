@@ -2,18 +2,18 @@
   "metric": "verify-webhook-speed",
   "status": "measured",
   "ok": true,
-  "generatedAt": "2026-06-05T01:10:21.088Z",
-  "durationMs": 117,
+  "generatedAt": "2026-06-05T19:54:39.917Z",
+  "durationMs": 123,
   "targets": {
     "maxP95Ms": 1,
     "samples": 5000,
     "warmup": 250
   },
   "result": {
-    "averageMs": 0.004916272600000138,
-    "minMs": 0.003540999999984251,
-    "maxMs": 1.4041660000000036,
-    "p50Ms": 0.003999999999990678,
-    "p95Ms": 0.006750000000010914
+    "averageMs": 0.0042148206000000585,
+    "minMs": 0.0033749999999770353,
+    "maxMs": 0.09491700000000947,
+    "p50Ms": 0.003833000000014408,
+    "p95Ms": 0.005417000000022654
   }
 }

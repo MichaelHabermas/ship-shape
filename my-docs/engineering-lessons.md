@@ -400,3 +400,17 @@ The transferable rules:
 - Let drills keep subscriptions only behind an explicit debug flag.
 
 ShipShape example (2026-06): `DELETE /api/v1/webhooks/:id` now soft-deactivates public webhook subscriptions, cancels pending attempts, blocks inactive replay, the SDK exposes `webhooks.delete()`/`webhooks.deactivate()`, and the Slack live drill deactivates its Ship subscriptions by default after writing proof.
+
+## 32. Treat Proof Evidence As Hostile Input
+
+Evidence files sit between test automation and release claims, so they need the same suspicion as API input. A validator that trusts arbitrary paths, commands, screenshots, or token-looking fields can turn a proof gate into a data leak or a self-certified assertion.
+
+The transferable rules:
+
+- Reject secrets, cookies, auth headers, CSRF values, and token-shaped strings anywhere in evidence JSON.
+- Accept only repository-relative evidence paths, and verify containment with canonical path resolution.
+- Allowlist proof files and commands for security-sensitive matrix claims instead of accepting free-form citations.
+- Make screenshots opt-in for live drills unless the capture target is known to be redacted.
+- Fail before writing passed evidence when a live proof is missing the exact external artifact the claim requires.
+
+ShipShape example (2026-06): PlugForge live INT review found that live evidence validators needed stronger secret detection, exact matrix proof allowlists, canonical path containment, and opt-in browser screenshots before they could safely validate deployed browser, Slack, and GitLab proof artifacts.

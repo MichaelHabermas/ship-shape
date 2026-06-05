@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const evidenceDir = path.join(rootDir, 'my-docs/evidence/plugforge-integrations');
+export const liveEvidenceDir = path.join(evidenceDir, 'live');
 
 export function parseArgs(argv = process.argv.slice(2)) {
   const args = new Map();
@@ -50,6 +51,14 @@ export async function writeEvidence(fileName, payload, outputPath) {
   await fs.mkdir(path.dirname(target), { recursive: true });
   await fs.writeFile(target, `${JSON.stringify(payload, null, 2)}\n`);
   return target;
+}
+
+export async function writeLiveEvidence(fileName, payload, outputPath) {
+  return writeEvidence(
+    fileName,
+    payload,
+    outputPath ?? path.join('my-docs/evidence/plugforge-integrations/live', `${fileName}.json`)
+  );
 }
 
 export async function ensureSdkBuild() {
@@ -127,6 +136,22 @@ export function isLocalUrl(value) {
   try {
     const host = new URL(value).hostname;
     return ['localhost', '127.0.0.1', '::1'].includes(host);
+  } catch {
+    return false;
+  }
+}
+
+export function isRealExternalHttpsUrl(value) {
+  if (typeof value !== 'string' || !value.startsWith('https://')) return false;
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return !['localhost', '127.0.0.1', '::1', 'example.com', 'example.org', 'example.net'].includes(hostname) &&
+      !hostname.endsWith('.example.com') &&
+      !hostname.endsWith('.example.org') &&
+      !hostname.endsWith('.example.net') &&
+      !hostname.endsWith('.test') &&
+      !hostname.endsWith('.example') &&
+      !hostname.endsWith('.invalid');
   } catch {
     return false;
   }
