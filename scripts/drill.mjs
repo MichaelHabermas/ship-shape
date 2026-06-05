@@ -8,14 +8,17 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import bcrypt from 'bcryptjs';
 
-const [, , drillName] = process.argv;
+const [drillName, ...drillArgs] = process.argv.slice(2);
+const drillFlags = new Set(drillArgs);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const requireFromApi = createRequire(new URL('../api/package.json', import.meta.url));
 const { Pool } = requireFromApi('pg');
+const useDevShortcut = drillFlags.has('--dev-shortcut');
 
 if (drillName !== 'ttfe') {
-  console.error('Usage: pnpm drill ttfe');
+  console.error('Usage: pnpm drill ttfe [--dev-shortcut]');
   process.exit(1);
 }
 
@@ -23,17 +26,29 @@ const timings = [];
 const debugTimings = [];
 const startedAt = Date.now();
 let apiProcess = null;
+let webProcess = null;
 let fixtures = null;
 let databaseUrl = '';
+let proof = {
+  proofClass: useDevShortcut ? 'dev_shortcut' : 'live',
+  approvalMethod: useDevShortcut ? 'sql_dev_shortcut' : 'oauth_device_ui',
+  origins: null,
+  approval: null,
+  tailEvent: null,
+};
 
 try {
   await runTtfeDrill();
   stage('total', startedAt);
-  console.log(JSON.stringify({ ok: true, timings, debugTimings }, null, 2));
+  console.log(JSON.stringify({ ok: true, ...proof, timings, debugTimings }, null, 2));
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
 } finally {
+  if (webProcess) {
+    webProcess.kill('SIGTERM');
+    await onceExit(webProcess, 5_000).catch(() => webProcess?.kill('SIGKILL'));
+  }
   if (apiProcess) {
     apiProcess.kill('SIGTERM');
     await onceExit(apiProcess, 5_000).catch(() => apiProcess?.kill('SIGKILL'));
@@ -49,7 +64,10 @@ async function runTtfeDrill() {
   // Always resolve ship_test_audit so shell DATABASE_URL cannot seed one DB and start the API on another.
   databaseUrl = process.env.TTFE_DATABASE_URL ?? resolveDatabaseUrl('ship_test_audit');
   const apiPort = await freePort();
+  const webPort = await freePort();
   const apiUrl = `http://127.0.0.1:${apiPort}`;
+  const webUrl = `http://127.0.0.1:${webPort}`;
+  proof.origins = { apiUrl, webUrl };
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ship-ttfe-'));
   const tokenPath = path.join(tempDir, 'tokens.json');
 
@@ -78,8 +96,9 @@ async function runTtfeDrill() {
       DATABASE_URL: databaseUrl,
       PORT: String(apiPort),
       HOST: '127.0.0.1',
-      CORS_ORIGIN: apiUrl,
-      FRONTEND_URL: apiUrl,
+      CORS_ORIGIN: webUrl,
+      FRONTEND_URL: webUrl,
+      WEB_URL: webUrl,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -87,13 +106,39 @@ async function runTtfeDrill() {
   apiProcess.stderr.on('data', chunk => process.stderr.write(`[api] ${chunk}`));
   await debugTimed('api-ready', () => waitForHttp(`${apiUrl}/api/v1/openapi.json`, 30_000));
 
+  webProcess = spawn('pnpm', [
+    '--filter',
+    '@ship/web',
+    'exec',
+    'vite',
+    '--host',
+    '127.0.0.1',
+    '--port',
+    String(webPort),
+  ], {
+    cwd: rootDir,
+    env: {
+      ...process.env,
+      API_PORT: String(apiPort),
+      VITE_PORT: String(webPort),
+      VITE_API_URL: '',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  webProcess.stdout.on('data', chunk => process.stderr.write(`[web] ${chunk}`));
+  webProcess.stderr.on('data', chunk => process.stderr.write(`[web] ${chunk}`));
+  await debugTimed('web-ready', () => waitForHttp(`${webUrl}/oauth/device`, 30_000));
+
   const shipBin = path.join(tempDir, 'node_modules', '.bin', 'ship');
   await timed('login', () => runLoginAndApprove({
     shipBin,
     apiUrl,
+    webUrl,
     clientId: fixtures.clientId,
     tokenPath,
     userId: fixtures.userId,
+    email: fixtures.email,
+    password: fixtures.password,
   }));
 
   const tail = spawn(shipBin, [
@@ -146,6 +191,7 @@ async function runTtfeDrill() {
     const event = lines.map(line => parseJson(line)).find(line => line?.event === 'document.created');
     if (!event) throw new Error(`ship webhooks tail did not receive document.created. Output: ${lines.join('\n')}`);
     if (event.verified !== true) throw new Error(`ship webhooks tail received an unsigned/invalid event: ${JSON.stringify(event)}`);
+    proof.tailEvent = sanitizeTailEvent(event);
   });
 }
 
@@ -180,7 +226,20 @@ async function runLoginAndApprove(input) {
   login.stderr.on('data', chunk => process.stderr.write(`[login] ${chunk}`));
   const output = collectOutput(login.stdout);
   const code = await waitForOutput(login.stdout, /Code: ([A-Z0-9-]+)/, 10_000);
-  await approveDeviceCode(databaseUrl, code[1], input.userId);
+  if (useDevShortcut) {
+    await approveDeviceCodeViaSqlDevShortcut(databaseUrl, code[1], input.userId);
+    proof.approval = {
+      method: 'sql_dev_shortcut',
+      userCodeSuffix: code[1].slice(-4),
+    };
+  } else {
+    proof.approval = await approveDeviceCodeThroughWebUi({
+      webUrl: input.webUrl,
+      userCode: code[1],
+      email: input.email,
+      password: input.password,
+    });
+  }
   await onceExit(login, 30_000);
   const loginText = await output;
   if (!loginText.includes('Logged in as')) {
@@ -192,6 +251,8 @@ async function seedFixtures(url) {
   const pool = new Pool({ connectionString: url });
   const runId = crypto.randomBytes(6).toString('hex');
   const clientId = `ship_ttfe_${runId}`;
+  const password = `ttfe-${runId}-password`;
+  const passwordHash = await bcrypt.hash(password, 8);
   try {
     const workspace = await pool.query(
       'INSERT INTO workspaces (name) VALUES ($1) RETURNING id',
@@ -200,9 +261,9 @@ async function seedFixtures(url) {
     const workspaceId = workspace.rows[0].id;
     const user = await pool.query(
       `INSERT INTO users (email, password_hash, name, last_workspace_id)
-       VALUES ($1, 'ttfe-drill', 'TTFE Drill User', $2)
+       VALUES ($1, $2, 'TTFE Drill User', $3)
        RETURNING id`,
-      [`ttfe-${runId}@ship.local`, workspaceId]
+      [`ttfe-${runId}@ship.local`, passwordHash, workspaceId]
     );
     const userId = user.rows[0].id;
     await pool.query(
@@ -230,13 +291,13 @@ async function seedFixtures(url) {
         ['documents:read', 'documents:write', 'issues:read', 'sprints:read', 'webhooks:manage'],
       ]
     );
-    return { workspaceId, userId, appId: app.rows[0].id, clientId };
+    return { workspaceId, userId, appId: app.rows[0].id, clientId, email: `ttfe-${runId}@ship.local`, password };
   } finally {
     await pool.end();
   }
 }
 
-async function approveDeviceCode(url, userCode, userId) {
+async function approveDeviceCodeViaSqlDevShortcut(url, userCode, userId) {
   const pool = new Pool({ connectionString: url });
   const client = await pool.connect();
   try {
@@ -279,6 +340,34 @@ async function approveDeviceCode(url, userCode, userId) {
   } finally {
     client.release();
     await pool.end();
+  }
+}
+
+async function approveDeviceCodeThroughWebUi(input) {
+  const { chromium } = await import('@playwright/test');
+  const started = Date.now();
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ baseURL: input.webUrl });
+  const verificationPath = `/oauth/device?user_code=${encodeURIComponent(input.userCode)}`;
+  try {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.locator('#email').waitFor({ state: 'visible', timeout: 15_000 });
+    await page.locator('#email').fill(input.email);
+    await page.locator('#password').fill(input.password);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.waitForURL(url => url.pathname !== '/login', { timeout: 15_000 });
+    await page.goto(verificationPath, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Approve device login' }).waitFor({ timeout: 15_000 });
+    await page.getByRole('button', { name: 'Approve', exact: true }).click();
+    await page.getByText('Approved. You can return to the CLI.').waitFor({ timeout: 15_000 });
+    return {
+      method: 'oauth_device_ui',
+      verificationPath: '/oauth/device',
+      usedUserCodeParam: true,
+      durationMs: Date.now() - started,
+    };
+  } finally {
+    await browser.close();
   }
 }
 
@@ -450,4 +539,13 @@ function parseJson(value) {
   } catch {
     return null;
   }
+}
+
+function sanitizeTailEvent(event) {
+  return {
+    verified: event.verified === true,
+    event: event.event ?? null,
+    idempotency_key: event.idempotency_key ?? null,
+    payload: event.payload ?? null,
+  };
 }

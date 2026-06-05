@@ -27,10 +27,28 @@ const probes = [
   ['webhook-p95', ['webhook-p95.mjs', '--samples', webhookSamples, ...childPassthroughArgs]],
   ['sdk-size', ['sdk-size.mjs', ...childPassthroughArgs]],
   ['verify-webhook-speed', ['verify-webhook-speed.mjs', ...childPassthroughArgs]],
-  ['baseline-comparator', ['baseline-comparator.mjs', ...childPassthroughArgs]],
+  ['baseline-comparator', ['baseline-comparator.mjs', '--samples', samples, ...childPassthroughArgs]],
 ];
 
 const results = [];
+const browserInstall = await runProcess('pnpm', ['exec', 'playwright', 'install', 'chromium', '--with-deps'], {
+  cwd: rootDir,
+  forwardOutput: Boolean(args.verbose),
+});
+results.push({
+  name: 'playwright-chromium',
+  ok: browserInstall.exitCode === 0,
+  exitCode: browserInstall.exitCode,
+  durationMs: browserInstall.durationMs,
+  metric: null,
+  status: browserInstall.exitCode === 0 ? 'ready' : 'failed',
+  outputPath: null,
+  malformed: false,
+  timedOut: Boolean(browserInstall.timedOut),
+  stderrTail: browserInstall.stderr.slice(-2000),
+  stdoutTail: browserInstall.stdout.slice(-2000),
+});
+
 for (const [name, commandArgs] of probes) {
   const result = await runProcess(process.execPath, [
     path.join(rootDir, 'scripts', 'plugforge-metrics', commandArgs[0]),

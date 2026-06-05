@@ -212,20 +212,20 @@
         <tbody>
           <tr><td>1</td><td>OAuth app + secret shown once</td><td>Developer tab → Create app</td></tr>
           <tr><td>2</td><td>Auth Code + PKCE end-to-end</td><td>SDK demo page</td></tr>
-          <tr><td>3</td><td>Bearer on every /api/v1/*</td><td>curl the health or documents endpoints with bad token (401 JSON)</td></tr>
+          <tr><td>3</td><td>Bearer on every /api/v1/*</td><td><code>curl</code> <code>/api/v1/documents</code> with no token or a bad Bearer token (401 JSON)</td></tr>
           <tr><td>4</td><td>Documents + proper scopes</td><td>Platform docs viewer + create in SDK demo</td></tr>
           <tr><td>5</td><td>Consistent ApiError shape</td><td>Any 401/403 from above</td></tr>
           <tr><td>6</td><td>403 names the missing scope</td><td>Create read-only app → try write action in SDK demo</td></tr>
           <tr><td>7</td><td>OpenAPI 3.1 at /api/v1/openapi.json</td><td>Direct link + viewer</td></tr>
           <tr><td>8</td><td>SDK .me() + typed calls</td><td>SDK demo after connect</td></tr>
-          <tr><td>9</td><td>Perf + regression</td><td>Public CI (the workflow linked in the packet) — not runnable by hand on deployed</td></tr>
-          <tr><td>10</td><td>Fully deployed + grader can self-serve</td><td>Health has plugforge:true + anyone can create a read-only app in the Developer tab</td></tr>
+          <tr><td>9</td><td>Regression + perf within +10%</td><td>Public CI (<a href="https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml">plugforge-submission workflow</a>) — not runnable by hand on deployed</td></tr>
+          <tr><td>10</td><td>Deployed + pre-registered grader OAuth</td><td>Health has <code>plugforge:true</code>; grader read-only app credentials in README / submission channel (spec gate 10)</td></tr>
         </tbody>
       </table>
 
       <div class="callout">
-        <strong>Everything above is live on this one deployed site.</strong><br>
-        The CI (public GitHub workflow) proves the automated TTFE drill, full regression, Slack reference integration behavior, and perf numbers. You don't have to run it.
+        <strong>Gates 1–8 above are live on this deployed site.</strong><br>
+        Gates 9–10 are closed in CI and the submission packet: <code>pnpm plugforge:submission</code> runs Playwright regression, the proof pack, TTFE/webhook metric probes, and the +10% baseline comparator (<code>baseline-comparator.mjs</code> vs Part 1). Gate 10 also requires the pre-registered read-only grader OAuth app delivered in the private submission channel.
       </div>
 
       <div class="footer">

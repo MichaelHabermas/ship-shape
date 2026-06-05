@@ -1,87 +1,125 @@
 {
   "metric": "ttfe-flake-loop",
+  "proofClass": "live",
   "status": "measured",
   "ok": true,
-  "generatedAt": "2026-06-04T03:53:12.253Z",
-  "durationMs": 233640,
+  "generatedAt": "2026-06-05T01:10:17.379Z",
+  "durationMs": 204983,
   "targets": {
     "maxP95Ms": 60000,
-    "maxFailedRuns": 0
+    "maxFailedRuns": 0,
+    "requiredProofClass": "live"
   },
   "requestedRuns": 20,
   "passedRuns": 20,
   "failedRuns": 0,
   "passRate": 1,
   "totalTimingMs": {
-    "min": 11006,
-    "max": 11559,
-    "p50": 11135,
-    "p95": 11535
+    "min": 9797,
+    "max": 10247,
+    "p50": 9864,
+    "p95": 10246
   },
   "runs": [
     {
       "run": 1,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11923,
+      "durationMs": 10200,
       "timings": [
         {
           "stage": "install",
-          "ms": 3354
+          "ms": 2127
         },
         {
           "stage": "login",
-          "ms": 5355
+          "ms": 5274
         },
         {
           "stage": "subscription",
-          "ms": 147
+          "ms": 120
         },
         {
           "stage": "create",
-          "ms": 194
+          "ms": 133
         },
         {
           "stage": "receipt",
-          "ms": 1
+          "ms": 6
         },
         {
           "stage": "verification",
-          "ms": 0
+          "ms": 1
         },
         {
           "stage": "total",
-          "ms": 11535
+          "ms": 9909
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 647
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:53966",
+          "webUrl": "http://127.0.0.1:53967"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:1c7dfe3b-e5d8-465e-a54f-fba1ac67c85c",
+          "payload": {
+            "id": "a17d245b-15e7-4aee-8f6c-8b40c4bfcd52",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:07:02.537Z",
+            "data": {
+              "actor": {
+                "id": "516463a9-a1c5-47de-8015-b04d7e4c1a29"
+              },
+              "document": {
+                "id": "1c7dfe3b-e5d8-465e-a54f-fba1ac67c85c",
+                "title": "hello",
+                "ui_url": "/documents/1c7dfe3b-e5d8-465e-a54f-fba1ac67c85c",
+                "api_url": "/api/v1/documents/1c7dfe3b-e5d8-465e-a54f-fba1ac67c85c",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 2,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11574,
+      "durationMs": 10093,
       "timings": [
         {
           "stage": "install",
-          "ms": 2936
+          "ms": 2068
         },
         {
           "stage": "login",
-          "ms": 5491
+          "ms": 5267
         },
         {
           "stage": "subscription",
-          "ms": 151
+          "ms": 117
         },
         {
           "stage": "create",
-          "ms": 197
+          "ms": 142
         },
         {
           "stage": "receipt",
-          "ms": 1
+          "ms": 6
         },
         {
           "stage": "verification",
@@ -89,37 +127,72 @@
         },
         {
           "stage": "total",
-          "ms": 11182
+          "ms": 9819
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 661
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:54100",
+          "webUrl": "http://127.0.0.1:54101"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:bc40db0b-114e-4d6f-bc85-7547370333ce",
+          "payload": {
+            "id": "1bf191e2-095a-4fad-90f6-10810d5f9344",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:07:12.690Z",
+            "data": {
+              "actor": {
+                "id": "066690a6-9584-48c9-b2f5-ba3bc84f2f33"
+              },
+              "document": {
+                "id": "bc40db0b-114e-4d6f-bc85-7547370333ce",
+                "title": "hello",
+                "ui_url": "/documents/bc40db0b-114e-4d6f-bc85-7547370333ce",
+                "api_url": "/api/v1/documents/bc40db0b-114e-4d6f-bc85-7547370333ce",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 3,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11832,
+      "durationMs": 10155,
       "timings": [
         {
           "stage": "install",
-          "ms": 3229
+          "ms": 2178
         },
         {
           "stage": "login",
-          "ms": 5462
+          "ms": 5254
         },
         {
           "stage": "subscription",
-          "ms": 152
+          "ms": 113
         },
         {
           "stage": "create",
-          "ms": 197
+          "ms": 126
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 5
         },
         {
           "stage": "verification",
@@ -127,37 +200,72 @@
         },
         {
           "stage": "total",
-          "ms": 11447
+          "ms": 9880
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 647
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:54251",
+          "webUrl": "http://127.0.0.1:54252"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:b2e1ede8-b45a-413f-a8a0-862e056cf173",
+          "payload": {
+            "id": "8fe9f447-e409-4483-95ae-a9f8388a9347",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:07:22.897Z",
+            "data": {
+              "actor": {
+                "id": "950ddca5-6999-47e5-a6d0-28979cbd18c0"
+              },
+              "document": {
+                "id": "b2e1ede8-b45a-413f-a8a0-862e056cf173",
+                "title": "hello",
+                "ui_url": "/documents/b2e1ede8-b45a-413f-a8a0-862e056cf173",
+                "api_url": "/api/v1/documents/b2e1ede8-b45a-413f-a8a0-862e056cf173",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 4,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11459,
+      "durationMs": 10193,
       "timings": [
         {
           "stage": "install",
-          "ms": 2932
+          "ms": 2154
         },
         {
           "stage": "login",
-          "ms": 5329
+          "ms": 5268
         },
         {
           "stage": "subscription",
-          "ms": 148
+          "ms": 124
         },
         {
           "stage": "create",
-          "ms": 198
+          "ms": 135
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 5
         },
         {
           "stage": "verification",
@@ -165,37 +273,72 @@
         },
         {
           "stage": "total",
-          "ms": 11074
+          "ms": 9916
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 660
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:54383",
+          "webUrl": "http://127.0.0.1:54384"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:44497e6e-8284-47b4-9180-b58ea0644109",
+          "payload": {
+            "id": "a69256df-06d0-462e-b350-4e0f53602c73",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:07:33.131Z",
+            "data": {
+              "actor": {
+                "id": "6f7d8c12-eeb5-4fbe-8de4-afa67bfa1355"
+              },
+              "document": {
+                "id": "44497e6e-8284-47b4-9180-b58ea0644109",
+                "title": "hello",
+                "ui_url": "/documents/44497e6e-8284-47b4-9180-b58ea0644109",
+                "api_url": "/api/v1/documents/44497e6e-8284-47b4-9180-b58ea0644109",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 5,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11546,
+      "durationMs": 10123,
       "timings": [
         {
           "stage": "install",
-          "ms": 2985
+          "ms": 2110
         },
         {
           "stage": "login",
-          "ms": 5425
+          "ms": 5264
         },
         {
           "stage": "subscription",
-          "ms": 149
+          "ms": 119
         },
         {
           "stage": "create",
-          "ms": 197
+          "ms": 134
         },
         {
           "stage": "receipt",
-          "ms": 1
+          "ms": 7
         },
         {
           "stage": "verification",
@@ -203,37 +346,72 @@
         },
         {
           "stage": "total",
-          "ms": 11153
+          "ms": 9846
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 702
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:54535",
+          "webUrl": "http://127.0.0.1:54536"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:2c07cd80-b006-4d6e-a83f-eaa864dc1657",
+          "payload": {
+            "id": "93638ec9-5761-4ffd-a6ed-c05e6d15e65e",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:07:43.301Z",
+            "data": {
+              "actor": {
+                "id": "15179e75-82f2-475f-891a-04b11f0a737a"
+              },
+              "document": {
+                "id": "2c07cd80-b006-4d6e-a83f-eaa864dc1657",
+                "title": "hello",
+                "ui_url": "/documents/2c07cd80-b006-4d6e-a83f-eaa864dc1657",
+                "api_url": "/api/v1/documents/2c07cd80-b006-4d6e-a83f-eaa864dc1657",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 6,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11395,
+      "durationMs": 10204,
       "timings": [
         {
           "stage": "install",
-          "ms": 2924
+          "ms": 2152
         },
         {
           "stage": "login",
-          "ms": 5349
+          "ms": 5270
         },
         {
           "stage": "subscription",
-          "ms": 150
+          "ms": 123
         },
         {
           "stage": "create",
-          "ms": 197
+          "ms": 135
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 5
         },
         {
           "stage": "verification",
@@ -241,75 +419,145 @@
         },
         {
           "stage": "total",
-          "ms": 11006
+          "ms": 9928
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 706
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:54677",
+          "webUrl": "http://127.0.0.1:54678"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:5c574e18-d962-41e4-b584-9685a497415e",
+          "payload": {
+            "id": "28003f1d-ea13-478e-b6e9-efb58c84ed84",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:07:53.554Z",
+            "data": {
+              "actor": {
+                "id": "b91cb573-092a-4837-ba3e-d2b98d783623"
+              },
+              "document": {
+                "id": "5c574e18-d962-41e4-b584-9685a497415e",
+                "title": "hello",
+                "ui_url": "/documents/5c574e18-d962-41e4-b584-9685a497415e",
+                "api_url": "/api/v1/documents/5c574e18-d962-41e4-b584-9685a497415e",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 7,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11518,
+      "durationMs": 10134,
       "timings": [
         {
           "stage": "install",
-          "ms": 2946
+          "ms": 2106
         },
         {
           "stage": "login",
-          "ms": 5432
+          "ms": 5268
         },
         {
           "stage": "subscription",
-          "ms": 160
+          "ms": 120
         },
         {
           "stage": "create",
-          "ms": 202
+          "ms": 131
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 5
         },
         {
           "stage": "verification",
-          "ms": 0
+          "ms": 1
         },
         {
           "stage": "total",
-          "ms": 11132
+          "ms": 9853
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 662
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:54811",
+          "webUrl": "http://127.0.0.1:54812"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:bc94e379-4acc-45be-a34e-b8dcdfaba264",
+          "payload": {
+            "id": "5fb7fd5e-1460-43df-aa5b-5a43cc8f3cc8",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:08:03.738Z",
+            "data": {
+              "actor": {
+                "id": "56faa23f-b8e8-4768-b1be-89eec59ed1e5"
+              },
+              "document": {
+                "id": "bc94e379-4acc-45be-a34e-b8dcdfaba264",
+                "title": "hello",
+                "ui_url": "/documents/bc94e379-4acc-45be-a34e-b8dcdfaba264",
+                "api_url": "/api/v1/documents/bc94e379-4acc-45be-a34e-b8dcdfaba264",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 8,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11944,
+      "durationMs": 10115,
       "timings": [
         {
           "stage": "install",
-          "ms": 3288
+          "ms": 2100
         },
         {
           "stage": "login",
-          "ms": 5380
+          "ms": 5273
         },
         {
           "stage": "subscription",
-          "ms": 150
+          "ms": 121
         },
         {
           "stage": "create",
-          "ms": 197
+          "ms": 132
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 5
         },
         {
           "stage": "verification",
@@ -317,37 +565,72 @@
         },
         {
           "stage": "total",
-          "ms": 11559
+          "ms": 9835
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 688
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:54941",
+          "webUrl": "http://127.0.0.1:54942"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:a08db05e-b5f5-4bce-bf6d-cb97db46d5be",
+          "payload": {
+            "id": "57c02b90-dc20-4810-8c23-f1d40f94059d",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:08:13.903Z",
+            "data": {
+              "actor": {
+                "id": "0055cb9d-4c20-4c96-afcb-c3663d7aa875"
+              },
+              "document": {
+                "id": "a08db05e-b5f5-4bce-bf6d-cb97db46d5be",
+                "title": "hello",
+                "ui_url": "/documents/a08db05e-b5f5-4bce-bf6d-cb97db46d5be",
+                "api_url": "/api/v1/documents/a08db05e-b5f5-4bce-bf6d-cb97db46d5be",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 9,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11503,
+      "durationMs": 10073,
       "timings": [
         {
           "stage": "install",
-          "ms": 3021
+          "ms": 2064
         },
         {
           "stage": "login",
-          "ms": 5357
+          "ms": 5275
         },
         {
           "stage": "subscription",
-          "ms": 151
+          "ms": 117
         },
         {
           "stage": "create",
-          "ms": 195
+          "ms": 129
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 7
         },
         {
           "stage": "verification",
@@ -355,37 +638,72 @@
         },
         {
           "stage": "total",
-          "ms": 11122
+          "ms": 9797
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 694
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:55092",
+          "webUrl": "http://127.0.0.1:55093"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:311d3259-a2d3-425d-8b51-f7040c1670dd",
+          "payload": {
+            "id": "3e6caaba-9b59-4f28-a42b-b2b309da7abe",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:08:24.025Z",
+            "data": {
+              "actor": {
+                "id": "8b335191-fec7-4846-b543-2703fcb7d18a"
+              },
+              "document": {
+                "id": "311d3259-a2d3-425d-8b51-f7040c1670dd",
+                "title": "hello",
+                "ui_url": "/documents/311d3259-a2d3-425d-8b51-f7040c1670dd",
+                "api_url": "/api/v1/documents/311d3259-a2d3-425d-8b51-f7040c1670dd",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 10,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11699,
+      "durationMs": 10133,
       "timings": [
         {
           "stage": "install",
-          "ms": 3072
+          "ms": 2101
         },
         {
           "stage": "login",
-          "ms": 5352
+          "ms": 5267
         },
         {
           "stage": "subscription",
-          "ms": 149
+          "ms": 118
         },
         {
           "stage": "create",
-          "ms": 196
+          "ms": 134
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 5
         },
         {
           "stage": "verification",
@@ -393,37 +711,72 @@
         },
         {
           "stage": "total",
-          "ms": 11309
+          "ms": 9855
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 671
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:55246",
+          "webUrl": "http://127.0.0.1:55247"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:00dd3dd0-dcbf-47f1-b6b0-4a49c3733596",
+          "payload": {
+            "id": "ad505c6b-9145-4936-a73b-ac53ab86736d",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:08:34.199Z",
+            "data": {
+              "actor": {
+                "id": "73d3629b-455a-43e7-90e5-5f3cf8485092"
+              },
+              "document": {
+                "id": "00dd3dd0-dcbf-47f1-b6b0-4a49c3733596",
+                "title": "hello",
+                "ui_url": "/documents/00dd3dd0-dcbf-47f1-b6b0-4a49c3733596",
+                "api_url": "/api/v1/documents/00dd3dd0-dcbf-47f1-b6b0-4a49c3733596",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 11,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11510,
+      "durationMs": 10213,
       "timings": [
         {
           "stage": "install",
-          "ms": 2945
+          "ms": 2147
         },
         {
           "stage": "login",
-          "ms": 5428
+          "ms": 5268
         },
         {
           "stage": "subscription",
-          "ms": 149
+          "ms": 119
         },
         {
           "stage": "create",
-          "ms": 198
+          "ms": 136
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 6
         },
         {
           "stage": "verification",
@@ -431,37 +784,72 @@
         },
         {
           "stage": "total",
-          "ms": 11118
+          "ms": 9936
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 660
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:55380",
+          "webUrl": "http://127.0.0.1:55381"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:374ddabd-18a4-4689-b771-742145bbd8f5",
+          "payload": {
+            "id": "d4b12009-85ca-479b-863f-214606500a31",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:08:44.458Z",
+            "data": {
+              "actor": {
+                "id": "511d909a-97e5-453b-b39d-aab91795abf0"
+              },
+              "document": {
+                "id": "374ddabd-18a4-4689-b771-742145bbd8f5",
+                "title": "hello",
+                "ui_url": "/documents/374ddabd-18a4-4689-b771-742145bbd8f5",
+                "api_url": "/api/v1/documents/374ddabd-18a4-4689-b771-742145bbd8f5",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 12,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11459,
+      "durationMs": 10136,
       "timings": [
         {
           "stage": "install",
-          "ms": 2974
+          "ms": 2120
         },
         {
           "stage": "login",
-          "ms": 5364
+          "ms": 5269
         },
         {
           "stage": "subscription",
-          "ms": 149
+          "ms": 119
         },
         {
           "stage": "create",
-          "ms": 201
+          "ms": 134
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 5
         },
         {
           "stage": "verification",
@@ -469,37 +857,72 @@
         },
         {
           "stage": "total",
-          "ms": 11078
+          "ms": 9849
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 689
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:55518",
+          "webUrl": "http://127.0.0.1:55519"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:14428c1e-ca2a-4ebe-81be-64d7fbacbcbe",
+          "payload": {
+            "id": "0a10eacb-b3f8-4b46-bbe2-485055be029d",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:08:54.642Z",
+            "data": {
+              "actor": {
+                "id": "a6c947a3-e4aa-4cce-bb26-1cd013fa4868"
+              },
+              "document": {
+                "id": "14428c1e-ca2a-4ebe-81be-64d7fbacbcbe",
+                "title": "hello",
+                "ui_url": "/documents/14428c1e-ca2a-4ebe-81be-64d7fbacbcbe",
+                "api_url": "/api/v1/documents/14428c1e-ca2a-4ebe-81be-64d7fbacbcbe",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 13,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11475,
+      "durationMs": 10139,
       "timings": [
         {
           "stage": "install",
-          "ms": 2967
+          "ms": 2117
         },
         {
           "stage": "login",
-          "ms": 5325
+          "ms": 5275
         },
         {
           "stage": "subscription",
-          "ms": 148
+          "ms": 118
         },
         {
           "stage": "create",
-          "ms": 197
+          "ms": 131
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 7
         },
         {
           "stage": "verification",
@@ -507,37 +930,72 @@
         },
         {
           "stage": "total",
-          "ms": 11089
+          "ms": 9864
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 683
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:55673",
+          "webUrl": "http://127.0.0.1:55674"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:33bb4803-6986-4bf2-ac55-b375c10660c0",
+          "payload": {
+            "id": "652f38ac-659a-4fb2-917f-9ed3fef0e2ae",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:09:04.839Z",
+            "data": {
+              "actor": {
+                "id": "4742f793-1d73-466f-b3da-01d88e5584f6"
+              },
+              "document": {
+                "id": "33bb4803-6986-4bf2-ac55-b375c10660c0",
+                "title": "hello",
+                "ui_url": "/documents/33bb4803-6986-4bf2-ac55-b375c10660c0",
+                "api_url": "/api/v1/documents/33bb4803-6986-4bf2-ac55-b375c10660c0",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 14,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11520,
+      "durationMs": 10169,
       "timings": [
         {
           "stage": "install",
-          "ms": 2996
+          "ms": 2154
         },
         {
           "stage": "login",
-          "ms": 5369
+          "ms": 5257
         },
         {
           "stage": "subscription",
-          "ms": 151
+          "ms": 116
         },
         {
           "stage": "create",
-          "ms": 198
+          "ms": 136
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 6
         },
         {
           "stage": "verification",
@@ -545,37 +1003,72 @@
         },
         {
           "stage": "total",
-          "ms": 11135
+          "ms": 9893
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 647
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:55806",
+          "webUrl": "http://127.0.0.1:55807"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:d60562f0-61b4-43d4-8496-aaab51c77c10",
+          "payload": {
+            "id": "16f42a85-38fe-4020-8753-7a61c8b9c220",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:09:15.050Z",
+            "data": {
+              "actor": {
+                "id": "f530bcf1-57f8-48b3-9961-85e967d621de"
+              },
+              "document": {
+                "id": "d60562f0-61b4-43d4-8496-aaab51c77c10",
+                "title": "hello",
+                "ui_url": "/documents/d60562f0-61b4-43d4-8496-aaab51c77c10",
+                "api_url": "/api/v1/documents/d60562f0-61b4-43d4-8496-aaab51c77c10",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 15,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11698,
+      "durationMs": 10124,
       "timings": [
         {
           "stage": "install",
-          "ms": 3024
+          "ms": 2077
         },
         {
           "stage": "login",
-          "ms": 5342
+          "ms": 5284
         },
         {
           "stage": "subscription",
-          "ms": 152
+          "ms": 119
         },
         {
           "stage": "create",
-          "ms": 196
+          "ms": 135
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 5
         },
         {
           "stage": "verification",
@@ -583,37 +1076,72 @@
         },
         {
           "stage": "total",
-          "ms": 11310
+          "ms": 9842
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 702
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:55938",
+          "webUrl": "http://127.0.0.1:55939"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:9fa63773-06e3-40f6-a9a9-87774744a724",
+          "payload": {
+            "id": "5e2799e5-2c64-4762-b7e0-e3515f037199",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:09:25.222Z",
+            "data": {
+              "actor": {
+                "id": "2f80bfc0-b6eb-43fc-b2f3-16f82bc24a81"
+              },
+              "document": {
+                "id": "9fa63773-06e3-40f6-a9a9-87774744a724",
+                "title": "hello",
+                "ui_url": "/documents/9fa63773-06e3-40f6-a9a9-87774744a724",
+                "api_url": "/api/v1/documents/9fa63773-06e3-40f6-a9a9-87774744a724",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 16,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11508,
+      "durationMs": 10113,
       "timings": [
         {
           "stage": "install",
-          "ms": 2985
+          "ms": 2111
         },
         {
           "stage": "login",
-          "ms": 5341
+          "ms": 5259
         },
         {
           "stage": "subscription",
-          "ms": 150
+          "ms": 112
         },
         {
           "stage": "create",
-          "ms": 193
+          "ms": 138
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 6
         },
         {
           "stage": "verification",
@@ -621,37 +1149,72 @@
         },
         {
           "stage": "total",
-          "ms": 11122
+          "ms": 9837
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 709
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:56073",
+          "webUrl": "http://127.0.0.1:56074"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:ae9d9b7d-186d-4d0a-aaa9-15f70e5e5f53",
+          "payload": {
+            "id": "3d54befe-bc6e-444f-bb52-64bc9448e891",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:09:35.381Z",
+            "data": {
+              "actor": {
+                "id": "db463823-ece0-4688-a2ef-f207656eec39"
+              },
+              "document": {
+                "id": "ae9d9b7d-186d-4d0a-aaa9-15f70e5e5f53",
+                "title": "hello",
+                "ui_url": "/documents/ae9d9b7d-186d-4d0a-aaa9-15f70e5e5f53",
+                "api_url": "/api/v1/documents/ae9d9b7d-186d-4d0a-aaa9-15f70e5e5f53",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 17,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11883,
+      "durationMs": 10457,
       "timings": [
         {
           "stage": "install",
-          "ms": 3161
+          "ms": 2181
         },
         {
           "stage": "login",
-          "ms": 5517
+          "ms": 5271
         },
         {
           "stage": "subscription",
-          "ms": 151
+          "ms": 119
         },
         {
           "stage": "create",
-          "ms": 200
+          "ms": 136
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 6
         },
         {
           "stage": "verification",
@@ -659,37 +1222,72 @@
         },
         {
           "stage": "total",
-          "ms": 11492
+          "ms": 10017
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 652
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:56204",
+          "webUrl": "http://127.0.0.1:56205"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:94a97c38-fb3b-4d32-b736-053aaada2bb0",
+          "payload": {
+            "id": "f9d85d08-845a-47fe-8816-a3d663173648",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:09:45.885Z",
+            "data": {
+              "actor": {
+                "id": "975f45d0-6b5c-4637-af2c-3c145c036642"
+              },
+              "document": {
+                "id": "94a97c38-fb3b-4d32-b736-053aaada2bb0",
+                "title": "hello",
+                "ui_url": "/documents/94a97c38-fb3b-4d32-b736-053aaada2bb0",
+                "api_url": "/api/v1/documents/94a97c38-fb3b-4d32-b736-053aaada2bb0",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 18,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11419,
+      "durationMs": 10159,
       "timings": [
         {
           "stage": "install",
-          "ms": 2973
+          "ms": 2132
         },
         {
           "stage": "login",
-          "ms": 5348
+          "ms": 5271
         },
         {
           "stage": "subscription",
-          "ms": 150
+          "ms": 120
         },
         {
           "stage": "create",
-          "ms": 197
+          "ms": 134
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 6
         },
         {
           "stage": "verification",
@@ -697,37 +1295,72 @@
         },
         {
           "stage": "total",
-          "ms": 11035
+          "ms": 9878
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 666
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:56363",
+          "webUrl": "http://127.0.0.1:56364"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:3c237680-a148-4c4f-8cd6-4196e010be35",
+          "payload": {
+            "id": "089dbc61-1870-4040-99fb-7c603d39b0f0",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:09:56.097Z",
+            "data": {
+              "actor": {
+                "id": "33e32f83-b6be-42cf-a173-3d539ded113d"
+              },
+              "document": {
+                "id": "3c237680-a148-4c4f-8cd6-4196e010be35",
+                "title": "hello",
+                "ui_url": "/documents/3c237680-a148-4c4f-8cd6-4196e010be35",
+                "api_url": "/api/v1/documents/3c237680-a148-4c4f-8cd6-4196e010be35",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 19,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11698,
+      "durationMs": 10539,
       "timings": [
         {
           "stage": "install",
-          "ms": 3141
+          "ms": 2369
         },
         {
           "stage": "login",
-          "ms": 5331
+          "ms": 5284
         },
         {
           "stage": "subscription",
-          "ms": 147
+          "ms": 125
         },
         {
           "stage": "create",
-          "ms": 198
+          "ms": 139
         },
         {
           "stage": "receipt",
-          "ms": 0
+          "ms": 4
         },
         {
           "stage": "verification",
@@ -735,37 +1368,72 @@
         },
         {
           "stage": "total",
-          "ms": 11312
+          "ms": 10247
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 745
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:56492",
+          "webUrl": "http://127.0.0.1:56493"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:4fcca900-e02e-41a1-b7c9-097c64eb0414",
+          "payload": {
+            "id": "4911dbbc-1068-49a4-8f4e-c2180eb22843",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:10:06.683Z",
+            "data": {
+              "actor": {
+                "id": "52053880-61b6-497a-b980-d084a8dd32eb"
+              },
+              "document": {
+                "id": "4fcca900-e02e-41a1-b7c9-097c64eb0414",
+                "title": "hello",
+                "ui_url": "/documents/4fcca900-e02e-41a1-b7c9-097c64eb0414",
+                "api_url": "/api/v1/documents/4fcca900-e02e-41a1-b7c9-097c64eb0414",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     },
     {
       "run": 20,
       "ok": true,
+      "proofClass": "live",
       "exitCode": 0,
-      "durationMs": 11663,
+      "durationMs": 10539,
       "timings": [
         {
           "stage": "install",
-          "ms": 2987
+          "ms": 2306
         },
         {
           "stage": "login",
-          "ms": 5493
+          "ms": 5314
         },
         {
           "stage": "subscription",
-          "ms": 153
+          "ms": 131
         },
         {
           "stage": "create",
-          "ms": 195
+          "ms": 141
         },
         {
           "stage": "receipt",
-          "ms": 1
+          "ms": 5
         },
         {
           "stage": "verification",
@@ -773,9 +1441,43 @@
         },
         {
           "stage": "total",
-          "ms": 11279
+          "ms": 10246
         }
       ],
+      "evidence": {
+        "approval": {
+          "method": "oauth_device_ui",
+          "verificationPath": "/oauth/device",
+          "usedUserCodeParam": true,
+          "durationMs": 734
+        },
+        "origins": {
+          "apiUrl": "http://127.0.0.1:56641",
+          "webUrl": "http://127.0.0.1:56642"
+        },
+        "tailEvent": {
+          "verified": true,
+          "event": "document.created",
+          "idempotency_key": "document.created:6fce1861-2cd3-46c2-a06e-2887007a6254",
+          "payload": {
+            "id": "41dfe4e2-6958-4719-8499-4fb4b602ac65",
+            "type": "document.created",
+            "created_at": "2026-06-05T01:10:17.268Z",
+            "data": {
+              "actor": {
+                "id": "2e840e18-c99b-4cce-86c6-db0c9df8b964"
+              },
+              "document": {
+                "id": "6fce1861-2cd3-46c2-a06e-2887007a6254",
+                "title": "hello",
+                "ui_url": "/documents/6fce1861-2cd3-46c2-a06e-2887007a6254",
+                "api_url": "/api/v1/documents/6fce1861-2cd3-46c2-a06e-2887007a6254",
+                "document_type": "wiki"
+              }
+            }
+          }
+        }
+      },
       "stderrTail": "",
       "stdoutTail": null
     }

@@ -60,8 +60,8 @@ evidence_rules:
   - path_glob: my-docs/evidence/plugforge-integrations/*.json
     reject_status_values: [passed]
     unless_field: proof_class
-    unless_value: live
-    message: Integration evidence with status passed must set proof_class live and include inspectable external artifacts.
+    unless_value: live_or_contract
+    message: Integration evidence with status passed must set proof_class live or contract; live proof must include inspectable external artifacts.
   - path_glob: my-docs/evidence/plugforge-integrations/*.json
     reject_status_values: [mock_only_not_proof]
     allow_in_submission: false

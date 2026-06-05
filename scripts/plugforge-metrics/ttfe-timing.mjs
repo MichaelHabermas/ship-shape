@@ -2,7 +2,7 @@
 // Gated TTFE wrapper runs `pnpm drill ttfe`, validates canonical stages, and writes normalized evidence.
 import process from 'node:process';
 import path from 'node:path';
-import { allowsDevShortcuts, failDevShortcut } from '../ci/plugforge-gate-lib.mjs';
+import { failDevShortcut } from '../ci/plugforge-gate-lib.mjs';
 import { nowIso, parseArgs, parseTrailingJson, requireNumber, rootDir, runProcess, writeJsonReport } from './lib.mjs';
 
 const args = parseArgs(process.argv.slice(2));
@@ -23,19 +23,26 @@ const missingStages = requiredStages.filter(stage => !stageNames.includes(stage)
 const totalMs = Array.isArray(drillJson?.timings)
   ? drillJson.timings.find(timing => timing.stage === 'total' || timing.name === 'total')?.ms
   : null;
+const proofClass = typeof drillJson?.proofClass === 'string' ? drillJson.proofClass : 'unknown';
+const approvalMethod = typeof drillJson?.approvalMethod === 'string' ? drillJson.approvalMethod : 'unknown';
+const tailEvent = drillJson?.tailEvent && typeof drillJson.tailEvent === 'object' ? drillJson.tailEvent : null;
+const liveApprovalOk = proofClass === 'live'
+  && approvalMethod === 'oauth_device_ui'
+  && drillJson?.approval?.method === 'oauth_device_ui';
+const tailOk = tailEvent?.verified === true && tailEvent?.event === 'document.created';
 const ok = result.exitCode === 0
   && drillJson?.ok === true
   && missingStages.length === 0
   && typeof totalMs === 'number'
-  && totalMs < maxTotalMs;
-const proofClass = allowsDevShortcuts() ? 'dev_shortcut' : 'dev_shortcut';
-const behavioralOk = allowsDevShortcuts() && ok;
+  && totalMs < maxTotalMs
+  && liveApprovalOk
+  && tailOk;
 const report = {
   metric: 'ttfe-timing',
   proofClass,
-  behavioralOk,
-  status: behavioralOk ? 'measured' : 'failed',
-  ok: behavioralOk,
+  approvalMethod,
+  status: ok ? 'measured' : 'failed',
+  ok,
   generatedAt: nowIso(),
   durationMs: Date.now() - startedAt,
   command: [command, ...commandArgs].join(' '),
@@ -47,6 +54,13 @@ const report = {
   result: {
     missingStages,
     totalMs: totalMs ?? null,
+    liveApprovalOk,
+    tailOk,
+  },
+  evidence: {
+    approval: drillJson?.approval ?? null,
+    origins: drillJson?.origins ?? null,
+    tailEvent,
   },
   process: {
     exitCode: result.exitCode,
@@ -63,12 +77,12 @@ const outputName = args.name ? `${args.name}.json` : 'ttfe-timing.json';
 const outputPath = await writeJsonReport(outputName, report, args);
 if (outputPath) report.outputPath = path.relative(rootDir, outputPath);
 console.log(JSON.stringify(report, null, 2));
-if (!behavioralOk) {
+if (!ok) {
   failDevShortcut(
     'ttfe-timing',
-    ok
+    proofClass === 'dev_shortcut'
       ? 'TTFE stages completed via dev shortcut (SQL device approval), not live /oauth/device UI login.'
       : 'TTFE drill did not complete required stages within the runtime gate.'
   );
 }
-process.exitCode = behavioralOk ? 0 : 1;
+process.exitCode = ok ? 0 : 1;

@@ -39,7 +39,7 @@ describe('SdkDemoPage', () => {
     expect(authHeader(documentListCall)).toBe('Bearer token');
     expect(authHeader(issueListCall)).toBe('Bearer token');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create via SDK' }));
 
     const createCall = await waitForCall('/api/v1/documents', 'POST');
     expect(authHeader(createCall)).toBe('Bearer token');

@@ -134,6 +134,7 @@ async function writeBrowserEvidence(payload: {
   await fs.mkdir(path.dirname(evidencePath), { recursive: true });
   await fs.writeFile(evidencePath, `${JSON.stringify({
     flow: 'browser',
+    proof_class: 'contract',
     run_id: runId,
     generated_at: new Date().toISOString(),
     ...payload,

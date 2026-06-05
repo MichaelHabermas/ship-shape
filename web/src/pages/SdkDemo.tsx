@@ -177,6 +177,7 @@ export function SdkDemoPage() {
               <div className="mb-3 text-sm font-medium">1. Paste client_id from the Developer tab</div>
               <div className="flex gap-2">
                 <input
+                  id="sdk-client-id"
                   value={clientId}
                   onChange={(event) => setClientId(event.target.value)}
                   className="flex-1 rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
@@ -205,6 +206,7 @@ export function SdkDemoPage() {
               <div className="mb-3 text-sm font-medium">2. Create a document (real authenticated write)</div>
               <div className="flex gap-2">
                 <input
+                  id="sdk-document-title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"

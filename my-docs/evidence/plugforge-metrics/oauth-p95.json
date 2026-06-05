@@ -2,8 +2,8 @@
   "metric": "oauth-auth-code-p95",
   "status": "measured",
   "ok": true,
-  "generatedAt": "2026-06-04T03:53:14.291Z",
-  "durationMs": 1960,
+  "generatedAt": "2026-06-05T01:10:19.103Z",
+  "durationMs": 1666,
   "targets": {
     "maxP95Ms": 3000,
     "samples": 20
@@ -11,10 +11,10 @@
   "result": {
     "samplesSucceeded": 20,
     "samplesFailed": 0,
-    "minMs": 9,
-    "maxMs": 33,
-    "p50Ms": 10,
-    "p95Ms": 13
+    "minMs": 7,
+    "maxMs": 28,
+    "p50Ms": 12,
+    "p95Ms": 19
   },
   "failures": []
 }
