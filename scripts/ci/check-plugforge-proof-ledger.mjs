@@ -335,6 +335,12 @@ function hasValue(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function hasJsonValue(value) {
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'boolean') return true;
+  return hasValue(value);
+}
+
 function isNone(value) {
   return !hasValue(value) || value.trim().toLowerCase() === 'none';
 }
@@ -479,28 +485,33 @@ function validateTtfeFlakeEvidence(json) {
 function validateSlackLiveEvidence(json, entry) {
   const problems = [];
   if (json.flow !== 'slack') problems.push('Slack atoms require flow "slack"');
+  if (liveProofClass(json) !== 'live') problems.push('Slack live evidence must set proof_class live');
+  if (json.status !== 'passed') problems.push('Slack live evidence must have status passed');
+  if (!isHttpUrl(json.api_url)) problems.push('Slack live evidence must include api_url');
+  if (!isHttpUrl(json.integration_target_url)) problems.push('Slack live evidence must include integration_target_url');
   if (json.mocked === true || json.mock === true || json.proofClass === 'dev_shortcut' || json.proof_class === 'dev_shortcut') {
     problems.push('Slack live evidence must not be mocked or a dev shortcut');
   }
-  if (entry.id === 'W6-INT-006') {
-    const oauth = json.oauth ?? json.slack_oauth ?? {};
-    if (!(oauth.provider === 'slack' && oauth.completed === true && oauth.live === true)) {
-      problems.push('W6-INT-006 requires live Slack OAuth evidence with provider slack, completed true, and live true');
-    }
+  const oauth = json.oauth ?? json.slack_oauth ?? {};
+  if (!(oauth.provider === 'slack' && oauth.completed === true && oauth.live === true && hasValue(oauth.team_id ?? oauth.teamId))) {
+    problems.push('Slack evidence requires live OAuth with provider slack, completed true, live true, and team id');
   }
+  const documentWebhook = findSignedWebhook(json, 'document.created');
+  const issueWebhook = findSignedWebhook(json, 'issue.assigned');
+  if (!documentWebhook) problems.push('Slack evidence requires signed document.created delivery with ids and 2xx response');
+  if (!issueWebhook) problems.push('Slack evidence requires signed issue.assigned delivery with ids and 2xx response');
+  const documentMessage = findSlackMessage(json, 'document.created');
+  const issueMessage = findSlackMessage(json, 'issue.assigned');
+  if (!documentMessage) problems.push('Slack evidence requires real document.created Slack message with live marker and message_ts or permalink');
+  if (!issueMessage) problems.push('Slack evidence requires real issue.assigned Slack message with live marker and message_ts or permalink');
   if (entry.id === 'W6-INT-003') {
-    const signedWebhook = findArrayItem(json.signed_webhooks ?? json.signedWebhooks ?? json.webhooks, item =>
-      item?.event === 'document.created' && item?.signatureVerified === true
-    );
-    if (!signedWebhook) problems.push('W6-INT-003 requires a live signed document.created webhook with signatureVerified true');
+    if (!documentWebhook) problems.push('W6-INT-003 requires a live signed document.created webhook with signatureVerified true');
   }
   if (entry.id === 'W6-INT-004') {
-    const message = findSlackMessage(json, 'document.created');
-    if (!message) problems.push('W6-INT-004 requires a real Slack document.created message with message_ts or permalink');
+    if (!documentMessage) problems.push('W6-INT-004 requires a real Slack document.created message with message_ts or permalink');
   }
   if (entry.id === 'W6-INT-005') {
-    const message = findSlackMessage(json, 'issue.assigned');
-    if (!message) problems.push('W6-INT-005 requires a real Slack issue.assigned message with message_ts or permalink');
+    if (!issueMessage) problems.push('W6-INT-005 requires a real Slack issue.assigned message with message_ts or permalink');
   }
   return problems;
 }
@@ -531,13 +542,34 @@ function validateBrowserSdkLiveEvidence(json, entry) {
 function validateGitLabLiveEvidence(json, entry) {
   const problems = [];
   if (json.flow !== 'gitlab') problems.push('GitLab atoms require flow "gitlab"');
+  if (liveProofClass(json) !== 'live') problems.push('GitLab live evidence must set proof_class live');
+  if (json.status !== 'passed') problems.push('GitLab live evidence must have status passed');
+  if (!isHttpUrl(json.api_url)) problems.push('GitLab live evidence must include api_url');
   if (json.mocked === true || json.mock === true || json.proofClass === 'dev_shortcut' || json.proof_class === 'dev_shortcut') {
     problems.push('GitLab live evidence must not be mocked or a dev shortcut');
   }
+  const link = json.external_link ?? json.externalLink ?? {};
+  const mergeRequest = json.merge_request ?? json.mergeRequest ?? {};
+  const webhook = json.webhook ?? json.gitlabWebhook ?? {};
+  const observedWebhook = json.observed_webhook ?? json.observedWebhook ?? {};
+  const projectUrl = webhook.projectUrl ?? webhook.project_url ?? json.project_url;
+  if (!isRealExternalHttpsUrl(projectUrl)) problems.push('GitLab evidence requires a real HTTPS project URL');
+  if (!(webhook.live === true && isRealExternalHttpsUrl(webhook.target_url ?? webhook.targetUrl) && String(webhook.target_url ?? webhook.targetUrl).endsWith('/gitlab/webhook'))) {
+    problems.push('GitLab evidence requires a live HTTPS /gitlab/webhook target URL');
+  }
+  if (!hasJsonValue(webhook.hook_id ?? webhook.hookId)) problems.push('GitLab evidence requires hook id');
+  if (!(Number(observedWebhook.linked) >= 1)) problems.push('GitLab evidence requires observed webhook linked >= 1');
+  if (hasJsonValue(observedWebhook.merge_request_iid ?? observedWebhook.mergeRequestIid) && hasJsonValue(mergeRequest.iid) &&
+    String(observedWebhook.merge_request_iid ?? observedWebhook.mergeRequestIid) !== String(mergeRequest.iid)) {
+    problems.push('GitLab observed webhook iid must match merge request iid');
+  }
+  if (!isRealExternalHttpsUrl(mergeRequest.url)) problems.push('GitLab evidence requires a real HTTPS merge request URL');
+  if (link.url !== mergeRequest.url) problems.push('GitLab external link URL must match merge request URL');
+  if (hasJsonValue(mergeRequest.iid) && !String(link.external_id ?? link.externalId ?? '').endsWith(`!${mergeRequest.iid}`)) {
+    problems.push('GitLab external link external_id must end with merge request iid');
+  }
   if (entry.id === 'W6-INT-010') {
-    const link = json.external_link ?? json.externalLink ?? {};
-    const mergeRequest = json.merge_request ?? json.mergeRequest ?? {};
-    if (!(link.provider === 'gitlab' && link.kind === 'merge_request' && isHttpsUrl(link.url))) {
+    if (!(link.provider === 'gitlab' && link.kind === 'merge_request' && isRealExternalHttpsUrl(link.url))) {
       problems.push('W6-INT-010 requires a live GitLab merge-request external link URL');
     }
     if (!(mergeRequest.iid || mergeRequest.id || json.webhook_response?.merge_request_iid)) {
@@ -545,8 +577,7 @@ function validateGitLabLiveEvidence(json, entry) {
     }
   }
   if (entry.id === 'W6-INT-011') {
-    const webhook = json.webhook ?? json.gitlabWebhook ?? {};
-    if (!(webhook.live === true && isHttpsUrl(webhook.projectUrl ?? webhook.project_url ?? json.project_url))) {
+    if (!(webhook.live === true && isRealExternalHttpsUrl(webhook.projectUrl ?? webhook.project_url ?? json.project_url))) {
       problems.push('W6-INT-011 requires a live GitLab project webhook URL');
     }
   }
@@ -596,11 +627,57 @@ function findArrayItem(value, predicate) {
 function findSlackMessage(json, event) {
   return findArrayItem(json.messages ?? json.posts, item =>
     item?.event === event &&
+    item?.live === true &&
     hasValue(item.channel) &&
-    (hasValue(item.message_ts) || hasValue(item.messageTs) || hasValue(item.permalink))
+    (isSlackMessageTs(item.message_ts ?? item.messageTs) || isRealExternalHttpsUrl(item.permalink))
   );
 }
 
 function isHttpsUrl(value) {
   return typeof value === 'string' && value.startsWith('https://');
+}
+
+function findSignedWebhook(json, event) {
+  return findArrayItem(json.signed_webhooks ?? json.signedWebhooks ?? json.webhooks, item =>
+    item?.event === event &&
+    item?.signatureVerified === true &&
+    isUuid(item.subscription_id ?? item.subscriptionId) &&
+    isUuid(item.delivery_id ?? item.deliveryId) &&
+    hasValue(item.idempotency_key ?? item.idempotencyKey) &&
+    isSuccessStatus(item.response_status ?? item.responseStatus)
+  );
+}
+
+function liveProofClass(json) {
+  return json.proof_class ?? json.proofClass;
+}
+
+function isHttpUrl(value) {
+  return typeof value === 'string' && /^https?:\/\//.test(value);
+}
+
+function isRealExternalHttpsUrl(value) {
+  if (!isHttpsUrl(value)) return false;
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return !['localhost', '127.0.0.1', '::1', 'example.com'].includes(hostname) &&
+      !hostname.endsWith('.example.com') &&
+      !hostname.endsWith('.test') &&
+      !hostname.endsWith('.example') &&
+      !hostname.endsWith('.invalid');
+  } catch {
+    return false;
+  }
+}
+
+function isSlackMessageTs(value) {
+  return typeof value === 'string' && /^\d{10}\.\d{6}$/.test(value);
+}
+
+function isUuid(value) {
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function isSuccessStatus(value) {
+  return Number.isInteger(value) && value >= 200 && value < 300;
 }

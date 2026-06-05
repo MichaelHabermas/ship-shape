@@ -45,6 +45,15 @@ commands:
   plugforge:integrations:
     default_gate_class: behavior_live
     note: Not in submission; live flows fail loudly until real proof exists.
+  plugforge:live:slack:
+    gate_class: behavior_live
+    note: Real Slack OAuth + signed Ship webhooks + real Slack channel messages.
+  plugforge:live:gitlab:
+    gate_class: behavior_live
+    note: Real GitLab project webhook + merge request + Ship issue external link.
+  plugforge:live:int:
+    gate_class: behavior_live
+    note: Convenience wrapper for Slack and GitLab live drills.
   plugforge:integrations:mock:
     gate_class: behavior_dev_shortcut
     note: Dev only; always exits non-zero.

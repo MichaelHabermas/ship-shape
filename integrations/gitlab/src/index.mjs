@@ -17,6 +17,7 @@ export function createGitLabIntegrationServer(options = {}) {
     token: config.shipAccessToken,
     fetch: options.fetch,
   });
+  const webhookSink = options.webhookSink ?? null;
 
   return http.createServer(async (req, res) => {
     try {
@@ -26,7 +27,7 @@ export function createGitLabIntegrationServer(options = {}) {
         return;
       }
       if (req.method === 'POST' && url.pathname === '/gitlab/webhook') {
-        await handleGitLabWebhook(req, res, { config, shipClient });
+        await handleGitLabWebhook(req, res, { config, shipClient, webhookSink });
         return;
       }
       sendJson(res, 404, { ok: false, error: 'not_found' });
@@ -63,6 +64,12 @@ async function handleGitLabWebhook(req, res, deps) {
   for (const issueId of issueIds) {
     await deps.shipClient.issues.upsertExternalLink(issueId, linkInput);
   }
+  deps.webhookSink?.({
+    object_kind: event.object_kind,
+    linked: issueIds.length,
+    merge_request_iid: mergeRequest.iid ?? null,
+    project_url: event.project?.web_url ?? null,
+  });
   sendJson(res, 202, {
     ok: true,
     linked: issueIds.length,

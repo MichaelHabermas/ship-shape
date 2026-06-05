@@ -1,7 +1,7 @@
 {
   "flow": "last-failure",
-  "run_id": "plugforge-1780614270490-9fc317f7",
-  "generated_at": "2026-06-04T23:05:28.225Z",
+  "run_id": "plugforge-1780677631182-e45b4084",
+  "generated_at": "2026-06-05T16:41:06.272Z",
   "proof_class": "dev_shortcut",
   "status": "failed",
   "failed_flow": "all",
@@ -17,19 +17,19 @@
       "stderr_tail": ""
     },
     "pnpm --filter @ship/slack-integration check": {
-      "stdout_tail": "\n> @ship/slack-integration@0.0.0 check /Users/michaelhabermas/repos/GAI/ship-shape/integrations/slack\n> node --check src/index.mjs && node --test test/*.test.mjs\n\n✔ Slack OAuth install stores token and signed Ship webhooks post once per Idempotency-Key (18.728916ms)\n✔ signed issue.assigned webhooks post to Slack with env bot token (4.84475ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 133.1685\n",
+      "stdout_tail": "\n> @ship/slack-integration@0.0.0 check /Users/michaelhabermas/repos/GAI/ship-shape/integrations/slack\n> node --check src/index.mjs && node --test test/*.test.mjs\n\n✔ Slack OAuth install stores token and signed Ship webhooks post once per Idempotency-Key (40.24575ms)\n✔ signed issue.assigned webhooks post to Slack with env bot token (9.917125ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 253.5055\n",
       "stderr_tail": ""
     },
     "pnpm --filter @ship/api db:migrate": {
-      "stdout_tail": "\n> @ship/api@0.0.0 db:migrate /Users/michaelhabermas/repos/GAI/ship-shape/api\n> tsx src/db/migrate.ts\n\n◇ injected env (11) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]\nRunning database migrations...\nDatabase schema exists, skipping bootstrap schema.sql\n✅ All migrations already applied\n",
+      "stdout_tail": "\n> @ship/api@0.0.0 db:migrate /Users/michaelhabermas/repos/GAI/ship-shape/api\n> tsx src/db/migrate.ts\n\n◇ injected env (11) from .env.local // tip: ⌘ override existing { override: true }\nRunning database migrations...\nDatabase schema exists, skipping bootstrap schema.sql\n✅ All migrations already applied\n",
       "stderr_tail": ""
     },
     "pnpm --filter @ship/gitlab-integration check": {
-      "stdout_tail": "\n> @ship/gitlab-integration@0.0.0 check /Users/michaelhabermas/repos/GAI/ship-shape/integrations/gitlab\n> node --check src/index.mjs && node --test test/*.test.mjs\n\n✔ extracts Ship issue UUID markers and URLs from merge requests (1.225083ms)\n✔ rejects GitLab webhooks with invalid token (14.731ms)\n✔ links GitLab merge requests to existing Ship issues through the SDK (4.807ms)\n✔ merge requests without Ship UUID markers are acknowledged without linking (3.852416ms)\nℹ tests 4\nℹ suites 0\nℹ pass 4\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 209.771875\n",
+      "stdout_tail": "\n> @ship/gitlab-integration@0.0.0 check /Users/michaelhabermas/repos/GAI/ship-shape/integrations/gitlab\n> node --check src/index.mjs && node --test test/*.test.mjs\n\n✔ extracts Ship issue UUID markers and URLs from merge requests (1.890333ms)\n✔ rejects GitLab webhooks with invalid token (17.837292ms)\n✔ links GitLab merge requests to existing Ship issues through the SDK (11.191917ms)\n✔ merge requests without Ship UUID markers are acknowledged without linking (1.920625ms)\nℹ tests 4\nℹ suites 0\nℹ pass 4\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 184.682709\n",
       "stderr_tail": ""
     },
     "pnpm test:e2e:run e2e/plugforge-acceptance.spec.ts": {
-      "stdout_tail": "\n> ship@0.0.0 test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape\n> ./scripts/run-e2e-profiled.sh e2e/plugforge-acceptance.spec.ts\n\nStarting Playwright E2E suite in the background...\nLog: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/e2e-run.log\nProgress: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/summary.json\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 1s ago\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 7s ago\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 12s ago\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 17s ago\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 22s ago\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 27s ago\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 32s ago\n\n\u001b[0;32mPassed: 1\u001b[0m | Failed: 0 | Pending: 0 | \u001b[0;34mTotal: 1\u001b[0m | Last update: 3s ago\n\nPlaywright exited with status 0.\n",
+      "stdout_tail": "\n> ship@0.0.0 test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape\n> ./scripts/run-e2e-profiled.sh e2e/plugforge-acceptance.spec.ts\n\nStarting Playwright E2E suite in the background...\nLog: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/e2e-run.log\nProgress: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/summary.json\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\n\u001b[0;32mPassed: 1\u001b[0m | Failed: 0 | Pending: 0 | \u001b[0;34mTotal: 1\u001b[0m | Last update: 0s ago\n\nPlaywright exited with status 0.\n",
       "stderr_tail": ""
     },
     "pnpm plugforge:integrations:check": {
@@ -37,7 +37,7 @@
       "stderr_tail": ""
     },
     "node --test ./scripts/ci/check-integration-boundary.test.mjs": {
-      "stdout_tail": "✔ allows integrations that import Ship only through @ship/sdk (47.688708ms)\n✔ blocks app internals from package dependencies, require, and dynamic import (46.70125ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 156.4765\n",
+      "stdout_tail": "✔ allows integrations that import Ship only through @ship/sdk (54.629417ms)\n✔ blocks app internals from package dependencies, require, and dynamic import (60.041834ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 181.149333\n",
       "stderr_tail": ""
     }
   }

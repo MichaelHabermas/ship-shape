@@ -270,13 +270,17 @@ Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-do
 | **Final submission gate** | `pnpm plugforge:submission` |
 | Proof pack building block (called by submission) | `pnpm plugforge:final` |
 | Slack reference integration | [`integrations/slack`](./integrations/slack) |
+| Slack live proof drill | `pnpm plugforge:live:slack` |
 | GitLab reference integration | [`integrations/gitlab`](./integrations/gitlab) |
+| GitLab live proof drill | `pnpm plugforge:live:gitlab` |
 
 Demo login remains `dev@ship.local` / `admin123` for live gate proofs in the Developer tab. Per [`Plugforge-specs.txt`](./my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt), graders receive a **pre-registered** read-only OAuth app (`documents:read`, `issues:read`, `sprints:read`): public repo and README list `client_id`, redirect URI, and scopes; `client_secret` is delivered only through the private submission channel (`W6-SUBMIT-006`). Run the drill live — it produces the verified signed webhook that is the actual acceptance bar.
 
 `pnpm plugforge:submission` runs the full proof pack, OAuth PKCE E2E, gate-honesty, evidence file validation, deployed URL checks, and `plugforge:ledger:enforce`. Demo video, presearch attachment upload, and social post are **`non_scope`** in the ledger and never block the gate. Use `pnpm plugforge:submission -- --allow-manual-pending` only while the grader OAuth secret delivery note (`W6-SUBMIT-006`) is still pending.
 
 The public GitLab link seam is `POST /api/v1/issues/:id/external-links` plus `client.issues.upsertExternalLink()`, stored as issue document metadata in `properties.external_links`.
+
+Slack/GitLab unit checks are contract proof only. The live drills require real provider credentials and write validator-shaped evidence to `my-docs/evidence/plugforge-integrations/`; the ledger should move only after those JSON artifacts pass `plugforge:ledger:enforce`. The Slack drill refuses non-local Ship APIs unless persistent webhook subscriptions are explicitly acknowledged; the GitLab drill rejects local/test API hosts and requires an explicit override for unusual self-managed GitLab domains.
 
 ---
 

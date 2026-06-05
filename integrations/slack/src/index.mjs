@@ -17,6 +17,7 @@ export function createSlackIntegrationServer(options = {}) {
   const processedKeys = options.processedKeys ?? new Set();
   const pendingStates = options.pendingStates ?? new Set();
   const webhookSecrets = options.webhookSecrets ?? parseWebhookSecrets(env);
+  const messageSink = options.messageSink ?? null;
   const config = {
     clientId: env.SLACK_CLIENT_ID,
     clientSecret: env.SLACK_CLIENT_SECRET,
@@ -42,7 +43,7 @@ export function createSlackIntegrationServer(options = {}) {
         return;
       }
       if (req.method === 'POST' && url.pathname === '/ship/webhooks') {
-        await handleWebhook(req, res, { config, fetchImpl, installStore, processedKeys });
+        await handleWebhook(req, res, { config, fetchImpl, installStore, processedKeys, messageSink });
         return;
       }
       sendJson(res, 404, { ok: false, error: 'not_found' });
@@ -132,7 +133,14 @@ async function handleWebhook(req, res, deps) {
   const event = JSON.parse(rawBody);
   const message = slackMessageForEvent(event);
   if (message) {
-    await postSlackMessage(message, deps);
+    const postResult = await postSlackMessage(message, deps);
+    deps.messageSink?.({
+      event: event.type ?? event.event_type,
+      channel: postResult.channel,
+      message_ts: postResult.ts,
+      permalink: postResult.permalink ?? null,
+      text: message,
+    });
   }
   deps.processedKeys.add(idempotencyKey);
   sendJson(res, 200, { ok: true, deduped: false, posted: Boolean(message) });
@@ -157,6 +165,10 @@ async function postSlackMessage(text, deps) {
   if (!response.ok || payload.ok === false) {
     throw new Error('SLACK_POST_MESSAGE_FAILED');
   }
+  return {
+    ...payload,
+    channel: payload.channel ?? channel,
+  };
 }
 
 export function slackMessageForEvent(event) {

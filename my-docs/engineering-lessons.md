@@ -373,3 +373,16 @@ The transferable rules:
 - Keep mock and contract evidence useful, but structurally unable to satisfy behavior-live gates.
 
 ShipShape example (2026-06): TTFE/CLI proof now requires live `/oauth/device` UI approval plus a verified `document.created` tail, while Slack, GitLab, and deployed browser SDK atoms have separate validator slots that cannot be satisfied by generic TTFE JSON.
+
+## 30. Live Drills Must Fail Before Writing Weak Evidence
+
+A downstream validator is a seatbelt, not the brake pedal. If a live proof script can write `status: passed` before checking the exact external artifact fields a reviewer needs, it creates confusing evidence even when the final ledger later rejects it.
+
+The transferable rules:
+
+- Assert provider-visible identifiers before writing passed evidence: Slack `message_ts` or permalink, GitLab MR URL/iid, deployed browser URL, verified webhook delivery IDs.
+- Normalize external callback URLs inside the drill so a tunnel origin and full webhook path do not produce different failure classes.
+- Keep tokens, secrets, and auth headers out of both evidence and error summaries.
+- Let validators reject stale or malformed artifacts, but make the producer fail early with a human-actionable setup error.
+
+ShipShape example (2026-06): PlugForge live Slack/GitLab drills now assert Slack message timestamps/permalinks and normalize GitLab webhook URLs before writing live evidence, while the ledger validator still enforces the per-atom proof schema.

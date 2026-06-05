@@ -39,6 +39,67 @@ test('accepts 20-run live TTFE flake evidence for metric atoms', () => {
   });
 });
 
+test('accepts validator-shaped live Slack evidence for Slack atoms', () => {
+  for (const id of ['W6-INT-003', 'W6-INT-004', 'W6-INT-005', 'W6-INT-006']) {
+    withTempLedger(id, slackLiveEvidence(), result => {
+      assert.equal(result.status, 0, `${id}\n${result.stdout}\n${result.stderr}`);
+    });
+  }
+});
+
+test('accepts validator-shaped live GitLab evidence for GitLab atoms', () => {
+  for (const id of ['W6-INT-010', 'W6-INT-011']) {
+    withTempLedger(id, gitlabLiveEvidence(), result => {
+      assert.equal(result.status, 0, `${id}\n${result.stdout}\n${result.stderr}`);
+    });
+  }
+});
+
+test('rejects skinny fabricated Slack live evidence', () => {
+  withTempLedger('W6-INT-004', {
+    flow: 'slack',
+    proof_class: 'live',
+    status: 'passed',
+    oauth: { provider: 'slack', completed: true, live: true },
+    messages: [{ event: 'document.created', channel: 'C123', message_ts: '1780000000.000001' }],
+  }, result => {
+    assert.notEqual(result.status, 0);
+    assert.match(`${result.stdout}\n${result.stderr}`, /signed document\.created delivery/);
+    assert.match(`${result.stdout}\n${result.stderr}`, /live marker/);
+  });
+});
+
+test('rejects fabricated GitLab live evidence on example domains', () => {
+  withTempLedger('W6-INT-010', {
+    flow: 'gitlab',
+    proof_class: 'live',
+    status: 'passed',
+    api_url: 'https://gitlab.example.com/api/v4',
+    project_url: 'https://gitlab.example.com/ship/project',
+    webhook: {
+      live: true,
+      projectUrl: 'https://gitlab.example.com/ship/project',
+      hook_id: 42,
+      target_url: 'https://gitlab.example.com/gitlab/webhook',
+    },
+    merge_request: {
+      iid: 7,
+      url: 'https://gitlab.example.com/ship/project/-/merge_requests/7',
+    },
+    observed_webhook: { linked: 1, merge_request_iid: 7 },
+    external_link: {
+      provider: 'gitlab',
+      external_id: 'ship/project!7',
+      kind: 'merge_request',
+      url: 'https://gitlab.example.com/ship/project/-/merge_requests/7',
+      title: 'fake',
+    },
+  }, result => {
+    assert.notEqual(result.status, 0);
+    assert.match(`${result.stdout}\n${result.stderr}`, /real HTTPS project URL/);
+  });
+});
+
 test('rejects proven live-required atoms without a registered evidence validator', () => {
   withTempLedger('W6-OAUTH-999', ttfeTimingEvidence(), result => {
     assert.notEqual(result.status, 0);
@@ -150,6 +211,89 @@ function documentCreatedTailEvent() {
     event: 'document.created',
     payload: {
       type: 'document.created',
+    },
+  };
+}
+
+function slackLiveEvidence() {
+  return {
+    flow: 'slack',
+    proof_class: 'live',
+    status: 'passed',
+    api_url: 'https://ship-shape-api.onrender.com',
+    integration_target_url: 'https://slack-proof.example.org/ship/webhooks',
+    oauth: {
+      provider: 'slack',
+      completed: true,
+      live: true,
+      team_id: 'T123',
+      bot_user_id: 'B123',
+    },
+    signed_webhooks: [
+      {
+        event: 'document.created',
+        signatureVerified: true,
+        subscription_id: '123e4567-e89b-42d3-a456-426614174000',
+        delivery_id: '123e4567-e89b-42d3-a456-426614174000',
+        idempotency_key: 'document.created:123',
+        response_status: 200,
+      },
+      {
+        event: 'issue.assigned',
+        signatureVerified: true,
+        subscription_id: '123e4567-e89b-42d3-a456-426614174001',
+        delivery_id: '123e4567-e89b-42d3-a456-426614174001',
+        idempotency_key: 'issue.assigned:123',
+        response_status: 200,
+      },
+    ],
+    messages: [
+      {
+        event: 'document.created',
+        live: true,
+        channel: 'C123',
+        message_ts: '1780000000.000001',
+      },
+      {
+        event: 'issue.assigned',
+        live: true,
+        channel: 'C123',
+        message_ts: '1780000000.000002',
+      },
+    ],
+  };
+}
+
+function gitlabLiveEvidence() {
+  return {
+    flow: 'gitlab',
+    proof_class: 'live',
+    status: 'passed',
+    api_url: 'https://gitlab.com/api/v4',
+    project_url: 'https://gitlab.com/ship/project',
+    webhook: {
+      live: true,
+      projectUrl: 'https://gitlab.com/ship/project',
+      hook_id: 42,
+      target_url: 'https://gitlab-proof.example.org/gitlab/webhook',
+    },
+    observed_webhook: {
+      object_kind: 'merge_request',
+      linked: 1,
+      merge_request_iid: 7,
+      project_url: 'https://gitlab.com/ship/project',
+    },
+    merge_request: {
+      id: 100,
+      iid: 7,
+      url: 'https://gitlab.com/ship/project/-/merge_requests/7',
+    },
+    external_link: {
+      provider: 'gitlab',
+      external_id: 'ship/project!7',
+      kind: 'merge_request',
+      url: 'https://gitlab.com/ship/project/-/merge_requests/7',
+      title: 'PlugForge live proof',
     },
   };
 }

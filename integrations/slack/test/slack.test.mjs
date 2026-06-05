@@ -8,6 +8,7 @@ const webhookSecret = 'whsec_slack_test';
 
 test('Slack OAuth install stores token and signed Ship webhooks post once per Idempotency-Key', async () => {
   const slackCalls = [];
+  const messages = [];
   const installStore = new MemoryInstallStore();
   const server = createSlackIntegrationServer({
     env: {
@@ -18,6 +19,7 @@ test('Slack OAuth install stores token and signed Ship webhooks post once per Id
       SHIP_WEBHOOK_SECRET: webhookSecret,
     },
     installStore,
+    messageSink: (message) => messages.push(message),
     fetch: async (url, init) => {
       slackCalls.push({ url: url.toString(), init });
       if (url.toString().endsWith('/oauth.v2.access')) {
@@ -63,6 +65,13 @@ test('Slack OAuth install stores token and signed Ship webhooks post once per Id
     assert.equal(postCalls.length, 1);
     assert.equal(postCalls[0].init.headers.authorization, 'Bearer xoxb-installed');
     assert.match(JSON.parse(postCalls[0].init.body).text, /Document created: Demo Doc/);
+    assert.deepEqual(messages, [{
+      event: 'document.created',
+      channel: 'C123',
+      message_ts: '1.234',
+      permalink: null,
+      text: 'Document created: Demo Doc (https://ship.test/documents/doc-1)',
+    }]);
   } finally {
     await close(server);
   }
