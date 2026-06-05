@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PlugForge proof ledger checker validates atom classification, proof commands, and named gaps.
+// PlugForge proof ledger checker validates atom classification, proof evidence, and named gaps.
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -60,6 +60,41 @@ const requiredFields = [
   'covered_by',
   'gap',
 ];
+
+const liveEvidenceValidators = new Map([
+  ...[
+    'W6-METRIC-002',
+    'W6-METRIC-003',
+    'W6-CLI-002',
+    'W6-CLI-003',
+    'W6-CLI-006',
+    'W6-CLI-007',
+    'W6-CLI-010',
+    'W6-CLI-011',
+    'W6-CLI-012',
+    'W6-CLI-013',
+    'W6-CLI-014',
+    'W6-INT-002',
+  ].map(id => [id, validateTtfeTimingEvidence]),
+  ...[
+    'W6-METRIC-005',
+    'W6-METRIC-006',
+  ].map(id => [id, validateTtfeFlakeEvidence]),
+  ...[
+    'W6-INT-003',
+    'W6-INT-004',
+    'W6-INT-005',
+    'W6-INT-006',
+  ].map(id => [id, validateSlackLiveEvidence]),
+  ...[
+    'W6-INT-008',
+    'W6-INT-009',
+  ].map(id => [id, validateBrowserSdkLiveEvidence]),
+  ...[
+    'W6-INT-010',
+    'W6-INT-011',
+  ].map(id => [id, validateGitLabLiveEvidence]),
+]);
 
 if (!existsSync(ledgerPath)) {
   console.error(`PlugForge proof ledger not found: ${path.relative(rootDir, ledgerPath)}`);
@@ -125,7 +160,10 @@ for (const entry of entries) {
     if (isNone(entry.proof_files)) problems.push(`${label}: proven item must name proof_files`);
     if (!isNone(entry.gap)) problems.push(`${label}: proven item should use gap: "none"`);
     if (entry.proof_tier === 'live_required') {
-      problems.push(`${label}: live_required atoms cannot be proven until real external or deployed live proof exists`);
+      const liveEvidence = validateLiveProofEvidence(entry);
+      if (!liveEvidence.ok) {
+        problems.push(`${label}: ${liveEvidence.message}`);
+      }
     }
     const mockEvidenceMarkers = [
       'my-docs/evidence/plugforge-integrations/slack.json',
@@ -145,10 +183,6 @@ for (const entry of entries) {
         problems.push(`${label}: proven integration proof must not use mocked plugforge:integrations runner`);
       }
     }
-  }
-
-  if (entry.proof_tier === 'live_required' && entry.status === 'proven') {
-    problems.push(`${label}: live_required cannot be proven with current mock/shortcut evidence`);
   }
 
   if ((entry.status === 'partial' || entry.status === 'missing' || entry.status === 'manual_pending') && isNone(entry.gap)) {
@@ -342,4 +376,231 @@ function splitFilterValues(value) {
 
 function isDocumentationLike(entry) {
   return entry.requirement_class === 'documentation' || entry.requirement_class === 'submission' || entry.requirement_class === 'manual';
+}
+
+function validateLiveProofEvidence(entry) {
+  const validator = liveEvidenceValidators.get(entry.id);
+  if (!validator) {
+    return {
+      ok: false,
+      message: 'live_required proven item has no atom-specific live evidence validator',
+    };
+  }
+  const candidates = [
+    ...splitPaths(isNone(entry.proof_files) ? '' : entry.proof_files),
+    ...splitPaths(isNone(entry.manual_evidence) ? '' : entry.manual_evidence),
+  ].filter(item => item.endsWith('.json'));
+
+  const failures = [];
+  for (const item of candidates) {
+    const absolutePath = path.resolve(rootDir, item);
+    if (!existsSync(absolutePath)) continue;
+    try {
+      const json = JSON.parse(readFileSync(absolutePath, 'utf8'));
+      const validationProblems = [
+        ...validateBaseLiveEvidence(json),
+        ...validator(json, entry),
+        ...validateEvidenceIsSanitized(json),
+      ];
+      if (validationProblems.length === 0) return { ok: true, path: item };
+      failures.push(`${item}: ${validationProblems.join('; ')}`);
+    } catch (error) {
+      failures.push(`${item}: invalid JSON (${error instanceof Error ? error.message : String(error)})`);
+    }
+  }
+  if (failures.length === 0) {
+    return { ok: false, message: 'live_required proven item must cite atom-specific live JSON evidence' };
+  }
+  return { ok: false, message: `live_required proof evidence failed validation: ${failures.join(' | ')}` };
+}
+
+function validateBaseLiveEvidence(json) {
+  const problems = [];
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return ['evidence must be a JSON object'];
+  const proofClass = json.proofClass ?? json.proof_class;
+  if (proofClass !== 'live') problems.push('proofClass/proof_class must be "live"');
+  if (json.ok === false) problems.push('ok must not be false');
+  if (json.status === 'failed') problems.push('status must not be failed');
+  if (!(json.ok === true || json.status === 'measured' || json.status === 'passed')) {
+    problems.push('evidence must be passing (ok true, measured, or passed)');
+  }
+  return problems;
+}
+
+function validateTtfeTimingEvidence(json) {
+  const problems = [];
+  const requiredStages = ['install', 'login', 'subscription', 'create', 'receipt', 'verification', 'total'];
+  const tailEvent = json.evidence?.tailEvent ?? json.tailEvent ?? json.drill?.tailEvent;
+  const timings = Array.isArray(json.drill?.timings) ? json.drill.timings : Array.isArray(json.timings) ? json.timings : [];
+  const stageNames = timings.map(timing => timing.stage ?? timing.name);
+  const totalMs = typeof json.result?.totalMs === 'number'
+    ? json.result.totalMs
+    : timings.find(timing => timing.stage === 'total' || timing.name === 'total')?.ms;
+  const maxTotalMs = typeof json.targets?.maxTotalMs === 'number' ? json.targets.maxTotalMs : 60_000;
+
+  if (json.metric !== 'ttfe-timing') problems.push('metric must be ttfe-timing');
+  if (json.approvalMethod !== 'oauth_device_ui') problems.push('approvalMethod must be oauth_device_ui');
+  if (json.result?.liveApprovalOk !== true) problems.push('result.liveApprovalOk must be true');
+  if (json.evidence?.approval?.method !== 'oauth_device_ui' && json.drill?.approval?.method !== 'oauth_device_ui') {
+    problems.push('approval evidence must use oauth_device_ui');
+  }
+  for (const stage of requiredStages) {
+    if (!stageNames.includes(stage)) problems.push(`missing TTFE stage ${stage}`);
+  }
+  if (typeof totalMs !== 'number') problems.push('total TTFE timing must be numeric');
+  else if (totalMs >= maxTotalMs) problems.push(`total TTFE timing must be < ${maxTotalMs}ms`);
+  if (json.result?.tailOk !== true) problems.push('result.tailOk must be true');
+  problems.push(...validateDocumentCreatedTailEvent(tailEvent));
+  return problems;
+}
+
+function validateTtfeFlakeEvidence(json) {
+  const problems = [];
+  const runs = Array.isArray(json.runs) ? json.runs : [];
+  const requestedRuns = json.requestedRuns;
+  const p95 = json.totalTimingMs?.p95;
+  const maxP95Ms = typeof json.targets?.maxP95Ms === 'number' ? json.targets.maxP95Ms : 60_000;
+
+  if (json.metric !== 'ttfe-flake-loop') problems.push('metric must be ttfe-flake-loop');
+  if (typeof requestedRuns !== 'number' || requestedRuns < 20) problems.push('requestedRuns must be at least 20');
+  if (json.passedRuns !== requestedRuns) problems.push('passedRuns must equal requestedRuns');
+  if (json.failedRuns !== 0) problems.push('failedRuns must be 0');
+  if (typeof p95 !== 'number') problems.push('totalTimingMs.p95 must be numeric');
+  else if (p95 >= maxP95Ms) problems.push(`totalTimingMs.p95 must be < ${maxP95Ms}ms`);
+  if (runs.length !== requestedRuns) problems.push('runs length must equal requestedRuns');
+  for (const run of runs) {
+    if (run.ok !== true) problems.push(`run ${run.run ?? '?'} must be ok`);
+    if (run.proofClass !== 'live') problems.push(`run ${run.run ?? '?'} proofClass must be live`);
+    problems.push(...validateDocumentCreatedTailEvent(run.evidence?.tailEvent).map(problem => `run ${run.run ?? '?'} ${problem}`));
+  }
+  return problems;
+}
+
+function validateSlackLiveEvidence(json, entry) {
+  const problems = [];
+  if (json.flow !== 'slack') problems.push('Slack atoms require flow "slack"');
+  if (json.mocked === true || json.mock === true || json.proofClass === 'dev_shortcut' || json.proof_class === 'dev_shortcut') {
+    problems.push('Slack live evidence must not be mocked or a dev shortcut');
+  }
+  if (entry.id === 'W6-INT-006') {
+    const oauth = json.oauth ?? json.slack_oauth ?? {};
+    if (!(oauth.provider === 'slack' && oauth.completed === true && oauth.live === true)) {
+      problems.push('W6-INT-006 requires live Slack OAuth evidence with provider slack, completed true, and live true');
+    }
+  }
+  if (entry.id === 'W6-INT-003') {
+    const signedWebhook = findArrayItem(json.signed_webhooks ?? json.signedWebhooks ?? json.webhooks, item =>
+      item?.event === 'document.created' && item?.signatureVerified === true
+    );
+    if (!signedWebhook) problems.push('W6-INT-003 requires a live signed document.created webhook with signatureVerified true');
+  }
+  if (entry.id === 'W6-INT-004') {
+    const message = findSlackMessage(json, 'document.created');
+    if (!message) problems.push('W6-INT-004 requires a real Slack document.created message with message_ts or permalink');
+  }
+  if (entry.id === 'W6-INT-005') {
+    const message = findSlackMessage(json, 'issue.assigned');
+    if (!message) problems.push('W6-INT-005 requires a real Slack issue.assigned message with message_ts or permalink');
+  }
+  return problems;
+}
+
+function validateBrowserSdkLiveEvidence(json, entry) {
+  const problems = [];
+  const sdkDemoUrl = json.sdkDemoUrl ?? json.sdk_demo_url ?? json.deployedUrl ?? json.deployed_url ?? '';
+  if (json.flow !== 'browser') problems.push('browser SDK atoms require flow "browser"');
+  if (!(sdkDemoUrl.startsWith('https://') && sdkDemoUrl.includes('/sdk-demo'))) {
+    problems.push('browser SDK live evidence must include an https deployed /sdk-demo URL');
+  }
+  if (!(json.environment === 'deployed' || json.deployed === true)) {
+    problems.push('browser SDK live evidence must mark environment deployed');
+  }
+  const pkce = json.pkce ?? json.authCodePkce ?? json.authorizationCodePkce ?? {};
+  if (!(pkce.ok === true || pkce.completed === true)) {
+    problems.push('browser SDK live evidence must prove Authorization Code + PKCE completion');
+  }
+  if (entry.id === 'W6-INT-009') {
+    const documentList = json.documentList ?? json.document_list ?? {};
+    if (!(documentList.ok === true || documentList.listed === true || Array.isArray(json.documents))) {
+      problems.push('W6-INT-009 requires authenticated document-list evidence');
+    }
+  }
+  return problems;
+}
+
+function validateGitLabLiveEvidence(json, entry) {
+  const problems = [];
+  if (json.flow !== 'gitlab') problems.push('GitLab atoms require flow "gitlab"');
+  if (json.mocked === true || json.mock === true || json.proofClass === 'dev_shortcut' || json.proof_class === 'dev_shortcut') {
+    problems.push('GitLab live evidence must not be mocked or a dev shortcut');
+  }
+  if (entry.id === 'W6-INT-010') {
+    const link = json.external_link ?? json.externalLink ?? {};
+    const mergeRequest = json.merge_request ?? json.mergeRequest ?? {};
+    if (!(link.provider === 'gitlab' && link.kind === 'merge_request' && isHttpsUrl(link.url))) {
+      problems.push('W6-INT-010 requires a live GitLab merge-request external link URL');
+    }
+    if (!(mergeRequest.iid || mergeRequest.id || json.webhook_response?.merge_request_iid)) {
+      problems.push('W6-INT-010 requires a GitLab merge-request id or iid');
+    }
+  }
+  if (entry.id === 'W6-INT-011') {
+    const webhook = json.webhook ?? json.gitlabWebhook ?? {};
+    if (!(webhook.live === true && isHttpsUrl(webhook.projectUrl ?? webhook.project_url ?? json.project_url))) {
+      problems.push('W6-INT-011 requires a live GitLab project webhook URL');
+    }
+  }
+  return problems;
+}
+
+function validateDocumentCreatedTailEvent(event) {
+  const problems = [];
+  if (!event || typeof event !== 'object') return ['tailEvent must be present'];
+  if (event.verified !== true) problems.push('tailEvent.verified must be true');
+  if (event.event !== 'document.created') problems.push('tailEvent.event must be document.created');
+  if (event.payload?.type !== 'document.created') problems.push('tailEvent.payload.type must be document.created');
+  return problems;
+}
+
+function validateEvidenceIsSanitized(json) {
+  const problems = [];
+  const sensitiveKeys = new Set(['accesstoken', 'refresh_token', 'refreshtoken', 'client_secret', 'clientsecret', 'password', 'authorization', 'session_id']);
+  visitJson(json, (key, value) => {
+    const normalizedKey = key.replace(/[^A-Za-z0-9_]/g, '').toLowerCase();
+    if (sensitiveKeys.has(normalizedKey)) {
+      problems.push(`evidence must not include sensitive key ${key}`);
+    }
+    if (typeof value === 'string' && /^Bearer\s+/i.test(value)) {
+      problems.push(`evidence must not include bearer token value at ${key}`);
+    }
+  });
+  return problems;
+}
+
+function visitJson(value, fn, key = '') {
+  if (!value || typeof value !== 'object') return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => visitJson(item, fn, `${key}[${index}]`));
+    return;
+  }
+  for (const [childKey, childValue] of Object.entries(value)) {
+    fn(childKey, childValue);
+    visitJson(childValue, fn, childKey);
+  }
+}
+
+function findArrayItem(value, predicate) {
+  return Array.isArray(value) ? value.find(predicate) : null;
+}
+
+function findSlackMessage(json, event) {
+  return findArrayItem(json.messages ?? json.posts, item =>
+    item?.event === event &&
+    hasValue(item.channel) &&
+    (hasValue(item.message_ts) || hasValue(item.messageTs) || hasValue(item.permalink))
+  );
+}
+
+function isHttpsUrl(value) {
+  return typeof value === 'string' && value.startsWith('https://');
 }

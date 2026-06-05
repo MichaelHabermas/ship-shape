@@ -176,7 +176,7 @@ router.post('/device/code', async (req: Request, res: Response): Promise<void> =
       clientId: parsed.data.client_id,
       scope: parsed.data.scope,
     });
-    const verificationUri = `${requestOrigin(req)}/oauth/device`;
+    const verificationUri = deviceVerificationPageUrl(req);
     const body: OAuthDeviceAuthorizationResponse = {
       ...authorization,
       verification_uri: verificationUri,
@@ -337,6 +337,12 @@ function consentPageUrl(req: Request, requestId: string): string {
   if (!frontendOrigin) return path;
 
   return new URL(path, frontendOrigin).toString();
+}
+
+function deviceVerificationPageUrl(req: Request): string {
+  const frontendOrigin = configuredFrontendOrigin();
+  const origin = frontendOrigin ?? requestOrigin(req);
+  return new URL('/oauth/device', origin).toString();
 }
 
 function configuredFrontendOrigin(): string | null {

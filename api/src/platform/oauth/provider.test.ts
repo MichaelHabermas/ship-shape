@@ -6,6 +6,7 @@ import { z } from 'zod';
 import {
   OAuthConsentApprovalResponseSchema,
   OAuthConsentRequestSchema,
+  OAuthDeviceAuthorizationResponseSchema,
   OAuthErrorResponseSchema,
   OAuthTokenResponseSchema,
   PublicMeResponseSchema,
@@ -40,6 +41,7 @@ const ConsentApprovalSchema = z.object({
   data: OAuthConsentApprovalResponseSchema,
 });
 
+const DeviceAuthorizationResponseSchema = OAuthDeviceAuthorizationResponseSchema;
 const TokenResponseSchema = OAuthTokenResponseSchema;
 const OAuthErrorSchema = OAuthErrorResponseSchema;
 
@@ -204,6 +206,54 @@ describe('OAuth Authorization Code + PKCE provider', () => {
     const location = response.headers.location;
     expect(location).toContain('/login?returnTo=');
     expect(decodeURIComponent(location)).toContain('/oauth/authorize');
+  });
+
+  it('returns configured web origin for Device Grant verification URLs', async () => {
+    await withWebOriginEnv({
+      FRONTEND_URL: 'https://ship-shape-web.onrender.com',
+      WEB_URL: '',
+      CORS_ORIGIN: 'https://ship-shape-api.onrender.com',
+    }, async () => {
+      const response = await request(app)
+        .post('/oauth/device/code')
+        .set('x-forwarded-proto', 'https')
+        .set('x-forwarded-host', 'ship-shape-api.onrender.com')
+        .type('form')
+        .send({
+          client_id: clientId,
+          scope: 'documents:read',
+        });
+
+      const authorization = expectJsonBody(response, 200, DeviceAuthorizationResponseSchema);
+      expect(authorization.verification_uri).toBe('https://ship-shape-web.onrender.com/oauth/device');
+      expect(authorization.verification_uri_complete).toBe(
+        `https://ship-shape-web.onrender.com/oauth/device?user_code=${encodeURIComponent(authorization.user_code)}`
+      );
+    });
+  });
+
+  it('falls back to request origin for Device Grant verification URLs without a configured web origin', async () => {
+    await withWebOriginEnv({
+      FRONTEND_URL: '',
+      WEB_URL: '',
+      CORS_ORIGIN: '*',
+    }, async () => {
+      const response = await request(app)
+        .post('/oauth/device/code')
+        .set('x-forwarded-proto', 'https')
+        .set('x-forwarded-host', 'api.local.test')
+        .type('form')
+        .send({
+          client_id: clientId,
+          scope: 'documents:read',
+        });
+
+      const authorization = expectJsonBody(response, 200, DeviceAuthorizationResponseSchema);
+      expect(authorization.verification_uri).toBe('https://api.local.test/oauth/device');
+      expect(authorization.verification_uri_complete).toBe(
+        `https://api.local.test/oauth/device?user_code=${encodeURIComponent(authorization.user_code)}`
+      );
+    });
   });
 
   it('rejects invalid authorization request inputs', async () => {
@@ -592,6 +642,29 @@ describe('OAuth Authorization Code + PKCE provider', () => {
     return { token, cookie };
   }
 });
+
+async function withWebOriginEnv<T>(
+  values: Pick<NodeJS.ProcessEnv, 'FRONTEND_URL' | 'WEB_URL' | 'CORS_ORIGIN'>,
+  fn: () => Promise<T>
+): Promise<T> {
+  const previous = {
+    FRONTEND_URL: process.env.FRONTEND_URL,
+    WEB_URL: process.env.WEB_URL,
+    CORS_ORIGIN: process.env.CORS_ORIGIN,
+  };
+  for (const [key, value] of Object.entries(values)) {
+    if (value === '') delete process.env[key];
+    else process.env[key] = value;
+  }
+  try {
+    return await fn();
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
 
 function createPkcePair(): { verifier: string; challenge: string } {
   const verifier = crypto.randomBytes(64).toString('base64url');

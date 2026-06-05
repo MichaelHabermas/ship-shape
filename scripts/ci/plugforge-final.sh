@@ -9,6 +9,7 @@ METRICS_OUTPUT_DIR="${PLUGFORGE_METRICS_OUTPUT_DIR:-my-docs/evidence/plugforge-m
 
 pnpm plugforge:verify
 rm -rf "${METRICS_OUTPUT_DIR}"
+pnpm exec playwright install chromium --with-deps
 pnpm plugforge:metrics -- --output-dir "${METRICS_OUTPUT_DIR}"
 
 pnpm --filter @ship/shared build

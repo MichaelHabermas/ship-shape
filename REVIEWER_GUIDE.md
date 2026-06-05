@@ -1,12 +1,10 @@
 # Reviewer Guide — PlugForge Final Submission (Week 6)
 
-The primary thing to give a human reviewer is the beautiful **walkthrough packet** served at:
+This file is the **entry index** for human reviewers: preflight, URLs, and the full 10-gate matrix. The primary walkthrough is on the deployed site:
 
 **https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html**
 
-It directly walks a person through the happy path, the Developer Portal dashboard, the SDK demo, webhook proof (including the Slack reference), and exactly how to prove each gate on the live deployed site.
-
-The old dense checklist is still below for reference, but the packet is what a human should actually use.
+Open that packet first (~8–12 min on the live site). Use the sections below for curl preflight, gate-by-gate checks, grader OAuth delivery (spec gate 10), and CI closure.
 
 Verify the **10 hard gates** from [`Plugforge-specs.txt`](./my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt) on the **deployed** site. No local setup.
 
@@ -83,12 +81,12 @@ Each row: do the **live check**, then confirm **pass if**.
 | 2 | Authorization Code + PKCE end-to-end | Step 3 (SDK demo) | Full connect → consent → token → SDK calls succeed. Automated proof: [`e2e/oauth-auth-code.spec.ts`](./e2e/oauth-auth-code.spec.ts) in CI on `main` |
 | 3 | Bearer middleware on every `/api/v1/*` | `curl -s https://ship-shape-api.onrender.com/api/v1/documents` then `curl -s -H "Authorization: Bearer bad" https://ship-shape-api.onrender.com/api/v1/documents` | Both return **401** JSON with `code` and `message` (not HTML) |
 | 4 | Documents: GET list, GET :id, POST + scopes | [API docs viewer](https://ship-shape-web.onrender.com/platform-docs.html) → documents | GET list/id require `documents:read`; POST requires `documents:write` |
-| 5 | Consistent ApiError on public failures | Use the 401 bodies from gate 3 | Body includes `code`, `message`, and `request_id`. Fitness test in CI: `api/src/platform/api/v1/route-metadata.test.ts` |
+| 5 | Consistent ApiError on public failures | Use the 401 bodies from gate 3 | Body includes `code`, `message`, and `request_id`. Fitness test in CI: `api/src/platform/api/v1/public-api-fitness.test.ts` |
 | 6 | ScopeRegistry; 403 names missing scope | Create a **second** OAuth app with **only** `documents:read`. On SDK demo, connect with that client_id, then click **Create** | Error/status names missing scope (e.g. `documents:write`), not generic forbidden. CI: `api/src/platform/api/v1/middleware.test.ts` |
 | 7 | OpenAPI 3.1 generated at `/api/v1/openapi.json` | [Live OpenAPI on API host](https://ship-shape-api.onrender.com/api/v1/openapi.json) (not the static web copy) | JSON loads; `openapi` is **3.1.x**; includes `/api/v1/documents` paths |
 | 8 | SDK: `new ShipClient({ token }).me()` | Step 4 above (lists load after connect) | Authenticated SDK calls succeed; `.me()` covered by CI (`e2e/oauth-auth-code.spec.ts`) |
-| 9 | Regression suite + perf within +10% | Not runnable from the deployed site alone | CI and local: `pnpm plugforge:submission` ([workflow](https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml)). Perf: no automated +10% gate yet. |
-| 10 | Deployed + published OpenAPI + grader OAuth | [API /health](https://ship-shape-api.onrender.com/health) shows `plugforge:true`; create read-only app in Developer tab | Public web + API + live OpenAPI; grader can self-register a read-only OAuth app |
+| 9 | Regression suite + perf within +10% | Not runnable from the deployed site alone | CI and local: `pnpm plugforge:submission` ([workflow](https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml)). Includes Playwright regression, the proof pack, and automated +10% checks via `scripts/plugforge-metrics/baseline-comparator.mjs` (P95 latency, per-route query counts, SDK bundle size vs Part 1 baseline). |
+| 10 | Deployed + published OpenAPI + pre-registered grader OAuth | [API /health](https://ship-shape-api.onrender.com/health) shows `plugforge:true`; grader app metadata in README / [`FINAL_SUBMISSION_CHECKLIST.md`](./my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md) / private submission channel | Public web + API + live OpenAPI; **pre-registered** read-only grader OAuth app per [`Plugforge-specs.txt`](./my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt) (lines 65–66, 606–608): `client_id`, redirect URI, and scopes in the submission packet; `client_secret` delivered privately (`W6-SUBMIT-006`). Demo login + Developer tab still prove gates 1–8 interactively. |
 
 ---
 

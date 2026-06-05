@@ -1,11 +1,12 @@
 {
   "flow": "browser",
-  "run_id": "plugforge-1780614270490-9fc317f7",
-  "generated_at": "2026-06-04T23:05:24.196Z",
+  "proof_class": "contract",
+  "run_id": "browser-1780627271165",
+  "generated_at": "2026-06-05T02:41:12.122Z",
   "status": "passed",
-  "client_id": "ship_app_124d74bb15c7de9894f0c9943d02c1bd",
-  "document_title": "PlugForge Browser SDK 1780614323883",
-  "redirect_uri": "http://localhost:10050/sdk-demo",
+  "client_id": "ship_app_df99dc78cffd3d4e5933681d623af734",
+  "document_title": "PlugForge Browser SDK 1780627271745",
+  "redirect_uri": "http://localhost:11050/sdk-demo",
   "scopes": [
     "documents:read",
     "documents:write",

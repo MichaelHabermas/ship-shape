@@ -23,12 +23,15 @@ for (let index = 1; index <= runs; index++) {
     forwardOutput: Boolean(args.verbose),
   });
   const report = parseTrailingJson(result.stdout);
+  const proofClass = typeof report?.proofClass === 'string' ? report.proofClass : 'unknown';
   results.push({
     run: index,
-    ok: result.exitCode === 0 && report?.ok === true,
+    ok: result.exitCode === 0 && report?.ok === true && proofClass === 'live',
+    proofClass,
     exitCode: result.exitCode,
     durationMs: report?.durationMs ?? result.durationMs,
     timings: report?.drill?.timings ?? [],
+    evidence: report?.evidence ?? null,
     stderrTail: result.stderr.slice(-2000),
     stdoutTail: report ? null : result.stdout.slice(-2000),
   });
@@ -40,8 +43,10 @@ const totalTimings = successfulRuns
   .filter(value => typeof value === 'number');
 const totalP95 = percentile(totalTimings, 95);
 const ok = successfulRuns.length === runs && typeof totalP95 === 'number' && totalP95 < maxP95Ms;
+const proofClass = ok && results.every(run => run.proofClass === 'live') ? 'live' : 'mixed';
 const report = {
   metric: 'ttfe-flake-loop',
+  proofClass,
   status: ok ? 'measured' : 'failed',
   ok,
   generatedAt: nowIso(),
@@ -49,6 +54,7 @@ const report = {
   targets: {
     maxP95Ms,
     maxFailedRuns: 0,
+    requiredProofClass: 'live',
   },
   requestedRuns: runs,
   passedRuns: successfulRuns.length,

@@ -252,7 +252,7 @@ Start with [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md). The final Week 5 delivera
 
 ## Week 6 PlugForge Evidence
 
-**Start here for reviewers:** [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md) — login, links, and a 10-gate checklist for the deployed site (~15 min, no local setup). Deployed HTML copy: [plugforge-reviewer-packet.html](https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html).
+**Start here for reviewers:** [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md) — entry index (preflight, URLs, 10-gate matrix). Primary walkthrough on the deployed site: [plugforge-reviewer-packet.html](https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html) (~8–12 min, no local setup).
 
 **The only closure target:** `pnpm plugforge:submission` — one command, runs everything (proof pack, OAuth E2E, gate honesty, evidence, deployed URLs, ledger enforce). CI: [`.github/workflows/plugforge-submission.yml`](./.github/workflows/plugforge-submission.yml).
 
@@ -272,7 +272,7 @@ Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-do
 | Slack reference integration | [`integrations/slack`](./integrations/slack) |
 | GitLab reference integration | [`integrations/gitlab`](./integrations/gitlab) |
 
-Demo login remains `dev@ship.local` / `admin123`. Create OAuth apps (and capture the one-time secret) via the Developer tab. For grader read-only review, create an app with `documents:read`, `issues:read`, and `sprints:read`; the public repo may list `client_id`, redirect URI, and scopes, but raw `client_secret` values are shown once and should be delivered through the private submission channel or regenerated in the portal. Run the drill live — it produces the verified signed webhook that is the actual acceptance bar.
+Demo login remains `dev@ship.local` / `admin123` for live gate proofs in the Developer tab. Per [`Plugforge-specs.txt`](./my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt), graders receive a **pre-registered** read-only OAuth app (`documents:read`, `issues:read`, `sprints:read`): public repo and README list `client_id`, redirect URI, and scopes; `client_secret` is delivered only through the private submission channel (`W6-SUBMIT-006`). Run the drill live — it produces the verified signed webhook that is the actual acceptance bar.
 
 `pnpm plugforge:submission` runs the full proof pack, OAuth PKCE E2E, gate-honesty, evidence file validation, deployed URL checks, and `plugforge:ledger:enforce`. Demo video, presearch attachment upload, and social post are **`non_scope`** in the ledger and never block the gate. Use `pnpm plugforge:submission -- --allow-manual-pending` only while the grader OAuth secret delivery note (`W6-SUBMIT-006`) is still pending.
 

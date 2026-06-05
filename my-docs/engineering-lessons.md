@@ -360,3 +360,16 @@ The transferable rules:
 - Treat package checks as prerequisites, not substitutes, for reference integration acceptance.
 
 ShipShape example (2026-06): `pnpm plugforge:integrations` caught `Buffer is not defined` in the browser PKCE path and a callback-state gap in `/sdk-demo`; the final proof now runs Slack, GitLab, Browser SDK, boundary checks, and the six-flow matrix with JSON evidence under `my-docs/evidence/plugforge-integrations/`.
+
+## 29. Live Evidence Needs A Per-Claim Schema
+
+A `proofClass: live` flag proves only that a run claims to be live. It does not prove the run exercised the behavior a specific requirement names. Without per-claim evidence schemas, one honest live artifact can accidentally close unrelated ledger atoms.
+
+The transferable rules:
+
+- Validate live evidence against the requirement, not only against a generic pass/fail flag.
+- Make each atom name the proof shape it needs: browser URL and PKCE state, Slack message permalink, GitLab merge-request link, verified webhook tail, or metric percentile.
+- Fail closed when a new live-required atom has no validator.
+- Keep mock and contract evidence useful, but structurally unable to satisfy behavior-live gates.
+
+ShipShape example (2026-06): TTFE/CLI proof now requires live `/oauth/device` UI approval plus a verified `document.created` tail, while Slack, GitLab, and deployed browser SDK atoms have separate validator slots that cannot be satisfied by generic TTFE JSON.

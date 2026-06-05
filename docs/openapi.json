@@ -7126,6 +7126,19 @@
                             "type": "string",
                             "format": "uuid"
                           },
+                          "event_type": {
+                            "type": "string",
+                            "enum": [
+                              "document.created",
+                              "document.updated",
+                              "document.deleted",
+                              "issue.created",
+                              "issue.assigned",
+                              "issue.status_changed",
+                              "sprint.started",
+                              "sprint.completed"
+                            ]
+                          },
                           "attempt_number": {
                             "type": "integer"
                           },
@@ -7182,6 +7195,7 @@
                           "id",
                           "subscription_id",
                           "event_id",
+                          "event_type",
                           "attempt_number",
                           "status",
                           "idempotency_key",
@@ -7489,6 +7503,19 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "event_type": {
+                      "type": "string",
+                      "enum": [
+                        "document.created",
+                        "document.updated",
+                        "document.deleted",
+                        "issue.created",
+                        "issue.assigned",
+                        "issue.status_changed",
+                        "sprint.started",
+                        "sprint.completed"
+                      ]
+                    },
                     "attempt_number": {
                       "type": "integer"
                     },
@@ -7545,6 +7572,7 @@
                     "id",
                     "subscription_id",
                     "event_id",
+                    "event_type",
                     "attempt_number",
                     "status",
                     "idempotency_key",
