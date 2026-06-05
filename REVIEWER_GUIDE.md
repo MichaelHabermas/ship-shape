@@ -6,8 +6,6 @@ Verify the **10 hard gates** from [`Plugforge-specs.txt`](./my-docs/project-week
 
 **Styled copy (same content):** [plugforge-reviewer-packet.html](https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html)
 
-**FleetGraph surfaces (all on the deployed site):** live interactive at `/fleetgraph/reviewer` (after login); static proof snapshot at `/fleetgraph-observability/proof/latest.html`; deeper observability dashboard at `/fleetgraph-observability/`.
-
 ---
 
 ## Preflight (do this before anything else)

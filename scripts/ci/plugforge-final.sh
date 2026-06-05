@@ -28,7 +28,3 @@ pnpm --filter @ship/sdk test
 pnpm plugforge:developer-ops-e2e
 bash ./scripts/ci/check-public-openapi-drift.sh
 pnpm docs:check:strict
-
-# Ensure richer FleetGraph observability dashboard is (re)generated into the deployed web static assets
-# so final reviewers can access it from the deployed site without cloning.
-node ./scripts/render-fleetgraph-observability-dashboard.mjs || true

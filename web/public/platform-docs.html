@@ -30,14 +30,27 @@
     <div id="redoc" style="padding-top:40px;"></div>
 
     <script>
+      const LOCAL_SPEC = 'http://localhost:3000/api/v1/openapi.json';
+      const DEPLOYED_SPEC = 'https://ship-shape-api.onrender.com/api/v1/openapi.json';
+
+      function defaultSpecUrl() {
+        const host = location.hostname;
+        if (host === 'localhost' || host === '127.0.0.1') return LOCAL_SPEC;
+        if (host.endsWith('.onrender.com')) return DEPLOYED_SPEC;
+        return DEPLOYED_SPEC;
+      }
+
       function getSafeInitialUrl(raw) {
         let u = (raw || '').trim();
-        if (!u) u = 'http://localhost:3000/api/v1/openapi.json';
+        if (!u) u = defaultSpecUrl();
         // On first load (especially when this HTML is opened via Live Server on 5501,
         // file://, another static server, etc.), a bare relative path would resolve against
         // the *static preview* origin and 404. Force the conventional local API URL instead.
         if (u.startsWith('/api') && !u.startsWith('http')) {
-          return 'http://localhost:3000' + u;
+          const base = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+            ? 'http://localhost:3000'
+            : '';
+          return base ? base + u : u;
         }
         return u;
       }
@@ -69,7 +82,7 @@
       }
 
       function loadFromInput() {
-        const u = input.value.trim() || 'http://localhost:3000/api/v1/openapi.json';
+        const u = input.value.trim() || defaultSpecUrl();
         loadUrl(u);
       }
 
@@ -77,10 +90,10 @@
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadFromInput(); });
 
       if (btnLocal) btnLocal.addEventListener('click', () => {
-        loadUrl('http://localhost:3000/api/v1/openapi.json');
+        loadUrl(LOCAL_SPEC);
       });
       if (btnDeployed) btnDeployed.addEventListener('click', () => {
-        loadUrl('https://ship-shape-api.onrender.com/api/v1/openapi.json');
+        loadUrl(DEPLOYED_SPEC);
       });
       if (btnProxy) btnProxy.addEventListener('click', () => {
         loadUrl('/api/v1/openapi.json');

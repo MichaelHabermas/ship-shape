@@ -77,9 +77,6 @@ const requiredFiles = [
   'my-docs/project-weeks-sot/week-6/proof-ledger.yaml',
   'my-docs/project-weeks-sot/week-6/plugforge-reviewer-packet.html',
   'web/public/plugforge-reviewer-packet.html',
-  'web/public/fleetgraph-observability/proof/latest.html',
-  'web/public/fleetgraph-observability/proof/latest.json',
-  'web/public/fleetgraph-observability/index.html',
   'my-docs/evidence/plugforge-metrics/summary.json',
   'my-docs/evidence/plugforge-metrics/ttfe-timing.json',
 ];
@@ -87,8 +84,6 @@ const requiredFiles = [
 const requiredUrls = [
   { label: 'web app', url: 'https://ship-shape-web.onrender.com/' },
   { label: 'reviewer packet', url: 'https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html' },
-  { label: 'fleetgraph proof snapshot', url: 'https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html' },
-  { label: 'fleetgraph observability dashboard', url: 'https://ship-shape-web.onrender.com/fleetgraph-observability/' },
   { label: 'browser SDK demo', url: 'https://ship-shape-web.onrender.com/sdk-demo' },
   { label: 'developer portal route', url: 'https://ship-shape-web.onrender.com/settings?tab=developer' },
   { label: 'API health', url: 'https://ship-shape-api.onrender.com/health', kind: 'health' },

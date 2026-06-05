@@ -145,14 +145,6 @@
         </ul>
       </div>
 
-      <div class="panel" style="border-color:#24542a;background:#e7f2e5;">
-        <strong style="font-size:14px;">FleetGraph live proof surface (agent attention)</strong>
-        <p class="muted" style="margin:8px 0 4px;">After login, go to <a href="https://ship-shape-web.onrender.com/fleetgraph/reviewer"><strong>/fleetgraph/reviewer</strong></a> (Reviewer Control Room).</p>
-        <p class="muted" style="margin:0;">Run the week-blocker scenario, trigger worker tick, inspect the full causal chain (source → attention → tick → graph → trace → finding → notification → chat/human gate), view blast radius, and chat with page/finding context. Then "Generate packet" to update the static snapshot below.</p>
-        <p style="margin:8px 0 0;"><a href="https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html" target="_blank" rel="noopener"><strong>Static proof snapshot</strong></a> (same site) — the high-signal dashboard for this submission.</p>
-        <p style="margin:4px 0 0;"><a href="https://ship-shape-web.onrender.com/fleetgraph-observability/" target="_blank" rel="noopener"><strong>Deeper observability dashboard</strong></a> (trends, provider bake-off, scores, edge cases) — also served from this deployed site.</p>
-      </div>
-
       <h2>Do this first</h2>
       <p class="muted">Covers gates <strong>1</strong>, <strong>2</strong>, and <strong>8</strong>.</p>
       <ol class="steps">
@@ -255,7 +247,7 @@ curl -s -H "Authorization: Bearer bad" \
       <details>
         <summary>Automated closure (CI gate)</summary>
         <div class="panel muted" style="margin-top:10px;">
-          <p>The full submission gate (proof pack, OAuth E2E, ledger enforcement, deployed URL + health checks, metrics) is enforced by the public CI workflow. Gate 9 in the table above links the workflow run for transparency. All reviewer-facing artifacts (this packet, the static proof snapshot, SDK demo, platform docs) are served directly from the deployed web app — no clone or local commands required.</p>
+          <p>The full submission gate (OAuth E2E, ledger enforcement, deployed URL + health checks, metrics, TTFE drill) is enforced by the public CI workflow. Gate 9 in the table above links the workflow run for transparency. All reviewer-facing artifacts (this packet, the SDK demo, platform docs, developer portal) are served directly from the deployed web app — no clone or local commands required.</p>
         </div>
       </details>
 
