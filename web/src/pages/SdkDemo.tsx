@@ -120,7 +120,7 @@ export function SdkDemoPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground">
+    <main className="h-full overflow-y-auto bg-background px-4 py-8 text-foreground">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/5 px-3 py-1 text-xs font-medium text-accent">
@@ -178,6 +178,7 @@ export function SdkDemoPage() {
               <div className="flex gap-2">
                 <input
                   id="sdk-client-id"
+                  aria-label="SDK demo client ID"
                   value={clientId}
                   onChange={(event) => setClientId(event.target.value)}
                   className="flex-1 rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
@@ -207,6 +208,7 @@ export function SdkDemoPage() {
               <div className="flex gap-2">
                 <input
                   id="sdk-document-title"
+                  aria-label="SDK demo document title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
