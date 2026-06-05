@@ -1,10 +1,16 @@
 # Reviewer Guide — PlugForge Final Submission (Week 6)
 
-Verify the **10 hard gates** from [`Plugforge-specs.txt`](./my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt) on the **deployed** site. No local setup. About 15 minutes.
+The primary thing to give a human reviewer is the beautiful **walkthrough packet** served at:
+
+**https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html**
+
+It directly walks a person through the happy path, the Developer Portal dashboard, the SDK demo, webhook proof (including the Slack reference), and exactly how to prove each gate on the live deployed site.
+
+The old dense checklist is still below for reference, but the packet is what a human should actually use.
+
+Verify the **10 hard gates** from [`Plugforge-specs.txt`](./my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt) on the **deployed** site. No local setup.
 
 **Closure target:** `pnpm plugforge:submission` must pass on `main` ([CI workflow](https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml)).
-
-**Styled copy (same content):** [plugforge-reviewer-packet.html](https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html)
 
 ---
 

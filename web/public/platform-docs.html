@@ -16,16 +16,16 @@
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
   </head>
   <body>
-    <div class="header">
-      <strong>Plugforge Public API</strong>
-      <span style="opacity:.6">— generated from code, never hand-written</span>
-      <input id="spec-url" value="" placeholder="Full URL to openapi.json, e.g. http://localhost:3000/api/v1/openapi.json" />
-      <button id="load">Load</button>
+    <div class="header" style="background:#1f2a1f; color:#e8f0e8; border-bottom:1px solid #3a5a3a;">
+      <strong style="color:#c5d9c5;">PlugForge Public API</strong>
+      <span style="opacity:.7; font-size:12px;">— generated from code, never handwritten</span>
+      <input id="spec-url" value="" placeholder="Full URL to openapi.json (e.g. the deployed one)" style="background:#2a3a2a; border-color:#4a6a4a; color:#e8f0e8;" />
+      <button id="load" style="background:#3a5a3a; border-color:#5a7a5a; color:#e8f0e8;">Load</button>
+      <button id="btn-deployed" title="Render deployed API" style="background:#24542a; color:white;">Deployed</button>
       <button id="btn-local" title="Standard local dev (API on 3000)">Local</button>
-      <button id="btn-deployed" title="Render deployed API">Deployed</button>
-      <button id="btn-proxy" title="Relative /api path (works when page is served by Vite web server that proxies /api)">Via proxy</button>
-      <a href="https://ship-shape-api.onrender.com/api/v1/openapi.json" target="_blank">direct</a>
-      <span style="margin-left:auto; opacity:.5; font-size:11px;">Plugforge Week 6 • /api/v1 only • API server must be running separately</span>
+      <button id="btn-proxy" title="Relative /api (when behind the web dev server)">Via proxy</button>
+      <a href="https://ship-shape-api.onrender.com/api/v1/openapi.json" target="_blank" style="color:#a8c9a8;">direct</a>
+      <span style="margin-left:auto; opacity:.6; font-size:11px;">Week 6 • all reviewer surfaces are on this deployed site</span>
     </div>
     <div id="redoc" style="padding-top:40px;"></div>
 
