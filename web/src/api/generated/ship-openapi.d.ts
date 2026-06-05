@@ -15050,6 +15050,8 @@ export interface components {
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             event_id: string;
+            /** @enum {string} */
+            event_type: "document.created" | "document.updated" | "document.deleted" | "issue.created" | "issue.assigned" | "issue.status_changed" | "sprint.started" | "sprint.completed";
             attempt_number: number;
             status: components["schemas"]["PlatformWebhookDeliveryStatus"];
             idempotency_key: string;

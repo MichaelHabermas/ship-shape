@@ -157,7 +157,7 @@ export class ShipClient {
   }
 
   async request<T>(
-    method: 'GET' | 'POST' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     path: string,
     options: {
       query?: Record<string, string | number | boolean | null | undefined>;

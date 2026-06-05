@@ -75,6 +75,10 @@ type SdkOpenApiParity = [
   Assert<Equal<AsyncReturn<ShipClient['webhooks']['list']>, CursorPage<PublicWebhookSubscription>>>,
   Assert<Equal<MethodArgs<ShipClient['webhooks']['create']>, [input: { event: WebhookEventType; targetUrl?: string; target_url?: string }]>>,
   Assert<Equal<AsyncReturn<ShipClient['webhooks']['create']>, PublicWebhookSubscriptionCreated>>,
+  Assert<Equal<MethodArgs<ShipClient['webhooks']['delete']>, [id: string]>>,
+  Assert<Equal<AsyncReturn<ShipClient['webhooks']['delete']>, PublicWebhookSubscription>>,
+  Assert<Equal<MethodArgs<ShipClient['webhooks']['deactivate']>, [id: string]>>,
+  Assert<Equal<AsyncReturn<ShipClient['webhooks']['deactivate']>, PublicWebhookSubscription>>,
   Assert<Equal<MethodArgs<ShipClient['webhooks']['listDeliveries']>, [params?: PublicWebhookListParams]>>,
   Assert<Equal<AsyncReturn<ShipClient['webhooks']['listDeliveries']>, CursorPage<PublicWebhookDelivery>>>,
   Assert<Equal<MethodArgs<ShipClient['webhooks']['replay']>, [deliveryId: string]>>,
@@ -110,6 +114,8 @@ describe('ShipClient public work SDK', () => {
     expect(client.webhooks).toMatchObject({
       list: expect.any(Function),
       create: expect.any(Function),
+      delete: expect.any(Function),
+      deactivate: expect.any(Function),
       listDeliveries: expect.any(Function),
       replay: expect.any(Function),
     });
@@ -172,6 +178,36 @@ describe('ShipClient public work SDK', () => {
       ['GET', 'https://ship.test/api/v1/sprints/sprint-1'],
       ['GET', 'https://ship.test/api/v1/sprints/sprint-1/issues?limit=10&assignee_id=unassigned'],
     ]);
+  });
+
+  it('calls webhook endpoints with subscription cleanup', async () => {
+    const calls: FetchCall[] = [];
+    const client = new ShipClient({
+      baseUrl: 'https://ship.test',
+      token: 'token',
+      fetch: asyncJsonFetch(calls),
+    });
+
+    await client.webhooks.create({
+      event: 'document.created',
+      targetUrl: 'https://integrator.example.test/ship/webhooks',
+    });
+    await client.webhooks.delete('webhook-1');
+    await client.webhooks.deactivate('webhook-2');
+    await client.webhooks.listDeliveries({ limit: 5 });
+    await client.webhooks.replay('delivery-1');
+
+    expect(callSummary(calls)).toEqual([
+      ['POST', 'https://ship.test/api/v1/webhooks'],
+      ['DELETE', 'https://ship.test/api/v1/webhooks/webhook-1'],
+      ['DELETE', 'https://ship.test/api/v1/webhooks/webhook-2'],
+      ['GET', 'https://ship.test/api/v1/webhooks/deliveries?limit=5'],
+      ['POST', 'https://ship.test/api/v1/webhooks/deliveries/delivery-1/replay'],
+    ]);
+    expect(jsonBody(calls[0])).toEqual({
+      event: 'document.created',
+      target_url: 'https://integrator.example.test/ship/webhooks',
+    });
   });
 
   it('iterates documents, issues, and sprints through cursor pages', async () => {

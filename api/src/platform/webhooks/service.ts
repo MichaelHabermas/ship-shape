@@ -24,6 +24,7 @@ export {
   isWebhookSubscriptionScopeError,
   type WebhookReadContextSource,
   createWebhookSubscription,
+  deactivateWebhookSubscription,
   listWebhookSubscriptions,
 } from './webhook-subscriptions.js';
 

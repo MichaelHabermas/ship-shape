@@ -347,6 +347,7 @@ describe('public API v1 fitness', () => {
       { operationId: 'sprints.issues.list', path: `/api/v1/sprints/${MISSING_UUID}/issues`, status: 404, code: 'not_found' },
       { operationId: 'webhooks.list', path: '/api/v1/webhooks?cursor=not-a-cursor', status: 400, code: 'validation_failed' },
       { operationId: 'webhooks.create', path: '/api/v1/webhooks', status: 400, code: 'validation_failed', body: { event: 'document.created', target_url: 'not-a-url' } },
+      { operationId: 'webhooks.delete', path: `/api/v1/webhooks/${MISSING_UUID}`, status: 404, code: 'not_found' },
       { operationId: 'webhooks.deliveries.list', path: '/api/v1/webhooks/deliveries?cursor=not-a-cursor', status: 400, code: 'validation_failed' },
       { operationId: 'webhooks.deliveries.replay', path: `/api/v1/webhooks/deliveries/${MISSING_UUID}/replay`, status: 404, code: 'not_found' },
     ];
@@ -360,6 +361,8 @@ describe('public API v1 fitness', () => {
         return request(app).post(path);
       case 'PATCH':
         return request(app).patch(path);
+      case 'DELETE':
+        return request(app).delete(path);
     }
   }
 

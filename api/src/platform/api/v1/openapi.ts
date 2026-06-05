@@ -64,7 +64,7 @@ function registerRoute(registry: OpenAPIRegistry, route: PublicRouteMetadata): v
     .replace(PUBLIC_API_V1_BASE_PATH, '')
     .replace(/:([A-Za-z0-9_]+)/g, '{$1}');
   registry.registerPath({
-    method: route.method.toLowerCase() as 'get' | 'post' | 'patch',
+    method: route.method.toLowerCase() as 'get' | 'post' | 'patch' | 'delete',
     path,
     tags: ['Public API'],
     summary: route.operationId,

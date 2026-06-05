@@ -261,6 +261,7 @@ Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-do
 | Surface | Local path |
 |---------|------------|
 | Public OpenAPI route | http://localhost:3000/api/v1/openapi.json |
+| Public webhook cleanup route | `DELETE /api/v1/webhooks/:id` |
 | Nice API reference UI (Redoc) | http://localhost:5173/platform-docs.html (or open the raw file; use "Local" button or paste full URL like http://localhost:3000/api/v1/openapi.json + Load if using Live Server / static preview) |
 | Generated public OpenAPI artifact | [`docs/openapi.json`](./docs/openapi.json) |
 | Browser SDK demo (PKCE) | http://localhost:5173/sdk-demo |
@@ -280,7 +281,7 @@ Demo login remains `dev@ship.local` / `admin123` for live gate proofs in the Dev
 
 The public GitLab link seam is `POST /api/v1/issues/:id/external-links` plus `client.issues.upsertExternalLink()`, stored as issue document metadata in `properties.external_links`.
 
-Slack/GitLab unit checks are contract proof only. The live drills require real provider credentials and write validator-shaped evidence to `my-docs/evidence/plugforge-integrations/`; the ledger should move only after those JSON artifacts pass `plugforge:ledger:enforce`. The Slack drill refuses non-local Ship APIs unless persistent webhook subscriptions are explicitly acknowledged; the GitLab drill rejects local/test API hosts and requires an explicit override for unusual self-managed GitLab domains.
+Slack/GitLab unit checks are contract proof only. The live drills require real provider credentials and write validator-shaped evidence to `my-docs/evidence/plugforge-integrations/`; the ledger should move only after those JSON artifacts pass `plugforge:ledger:enforce`. The Slack drill deactivates its Ship webhook subscriptions through `DELETE /api/v1/webhooks/:id` unless `PLUGFORGE_KEEP_SHIP_WEBHOOKS=1` is set; the GitLab drill rejects local/test API hosts and requires an explicit override for unusual self-managed GitLab domains.
 
 ---
 

@@ -7,6 +7,7 @@ import {
 import type { z } from 'zod';
 import {
   createWebhookSubscription,
+  deactivateWebhookSubscription,
   isWebhookSubscriptionScopeError,
   isWebhookTargetUrlError,
   listWebhookDeliveries,
@@ -30,9 +31,10 @@ import {
   publicWebhookDeliveriesListRouteMetadata,
   publicWebhookDeliveryReplayRouteMetadata,
   publicWebhooksCreateRouteMetadata,
+  publicWebhooksDeleteRouteMetadata,
   publicWebhooksListRouteMetadata,
 } from './route-metadata.js';
-import { PublicWebhookDeliveryParamsSchema } from './route-openapi-contracts.js';
+import { PublicWebhookDeliveryParamsSchema, PublicWebhookParamsSchema } from './route-openapi-contracts.js';
 import { parsePublicRouteBody, parsePublicRouteParams, parsePublicRouteQuery } from './route-request.js';
 
 export const publicWebhooksRouter = Router();
@@ -110,6 +112,43 @@ publicWebhooksRouter.post(
         message: error.message,
         request_id: requestIdFromContext(req),
       });
+    }
+  })
+);
+
+publicWebhooksRouter.delete(
+  publicWebhooksDeleteRouteMetadata.handlerMountPath,
+  requirePublicApiBearer(publicWebhooksDeleteRouteMetadata.requiredScopes),
+  publicApiAsyncHandler(async (req: Request, res: Response): Promise<void> => {
+    markPublicApiRoute(req, publicWebhooksDeleteRouteMetadata.path);
+    const parsed = parsePublicRouteParams(
+      publicWebhooksDeleteRouteMetadata.operationId,
+      req.params,
+      PublicWebhookParamsSchema
+    );
+    if (!parsed.success || !req.publicApi) {
+      sendValidationOrContextError(req, res, parsed.success ? null : parsed.error);
+      return;
+    }
+
+    try {
+      const subscription = await deactivateWebhookSubscription({
+        subscriptionId: parsed.data.id,
+        appId: req.publicApi.appId,
+        workspaceId: req.publicApi.workspaceId,
+      });
+      res.json(subscription);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'WEBHOOK_SUBSCRIPTION_NOT_FOUND') {
+        req.publicApiErrorCode = 'not_found';
+        sendPublicApiError(res, 404, {
+          code: 'not_found',
+          message: 'Webhook subscription not found',
+          request_id: req.publicApi.requestId,
+        });
+        return;
+      }
+      throw error;
     }
   })
 );

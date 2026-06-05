@@ -22,6 +22,9 @@ const args = parseArgs();
 const id = runId('slack-live');
 const timeoutMs = Number(args.get('timeout-ms') ?? process.env.PLUGFORGE_LIVE_TIMEOUT_MS ?? 180_000);
 let server = null;
+let shipClient = null;
+let cleanupAttempted = false;
+const createdSubscriptionIds = [];
 
 try {
   const env = requireEnv([
@@ -84,29 +87,26 @@ try {
     1000
   );
 
-  const client = new ShipClient({ baseUrl: env.SHIP_API_URL, token: env.SHIP_ACCESS_TOKEN });
-  const me = await client.me();
+  shipClient = new ShipClient({ baseUrl: env.SHIP_API_URL, token: env.SHIP_ACCESS_TOKEN });
+  const me = await shipClient.me();
   const assigneeId = args.get('assignee-id') ?? process.env.SHIP_ISSUE_ASSIGNEE_ID ?? me.user.id;
   const webhookTarget = absoluteUrl(targetBase, '/ship/webhooks');
-  const allowPersistentWebhooks = args.get('allow-persistent-webhooks') === 'true' ||
-    process.env.PLUGFORGE_ALLOW_PERSISTENT_WEBHOOKS === '1';
-  if (!isLocalUrl(env.SHIP_API_URL) && !allowPersistentWebhooks) {
-    throw new Error('Refusing to create persistent Ship webhooks against a non-local API without --allow-persistent-webhooks or PLUGFORGE_ALLOW_PERSISTENT_WEBHOOKS=1');
-  }
 
   const startedAt = new Date().toISOString();
-  const documentSubscription = await client.webhooks.create({
+  const documentSubscription = await shipClient.webhooks.create({
     event: 'document.created',
     targetUrl: webhookTarget,
   });
-  const issueSubscription = await client.webhooks.create({
+  createdSubscriptionIds.push(documentSubscription.id);
+  const issueSubscription = await shipClient.webhooks.create({
     event: 'issue.assigned',
     targetUrl: webhookTarget,
   });
+  createdSubscriptionIds.push(issueSubscription.id);
   webhookSecrets.push(documentSubscription.signing_secret, issueSubscription.signing_secret);
 
   const documentTitle = `PlugForge live Slack ${id}`;
-  const document = await client.documents.create({ title: documentTitle });
+  const document = await shipClient.documents.create({ title: documentTitle });
   const documentMessage = await waitFor(
     () => messages.find((message) => message.event === 'document.created' && message.text_preview.includes(documentTitle)),
     'real Slack document.created message',
@@ -114,15 +114,15 @@ try {
     1000
   );
   assert(Boolean(documentMessage.message_ts || documentMessage.permalink), 'Slack document.created message did not include message_ts or permalink');
-  const documentDelivery = await waitForDelivery(client, {
+  const documentDelivery = await waitForDelivery(shipClient, {
     eventType: 'document.created',
     subscriptionId: documentSubscription.id,
     createdAfter: startedAt,
   }, timeoutMs);
 
   const issueTitle = `PlugForge live Slack issue ${id}`;
-  const issue = await client.issues.create({ title: issueTitle });
-  const assignedIssue = await client.issues.update(issue.id, { assignee_id: assigneeId });
+  const issue = await shipClient.issues.create({ title: issueTitle });
+  const assignedIssue = await shipClient.issues.update(issue.id, { assignee_id: assigneeId });
   const issueMessage = await waitFor(
     () => messages.find((message) => message.event === 'issue.assigned' && message.text_preview.includes(issueTitle)),
     'real Slack issue.assigned message',
@@ -130,11 +130,13 @@ try {
     1000
   );
   assert(Boolean(issueMessage.message_ts || issueMessage.permalink), 'Slack issue.assigned message did not include message_ts or permalink');
-  const issueDelivery = await waitForDelivery(client, {
+  const issueDelivery = await waitForDelivery(shipClient, {
     eventType: 'issue.assigned',
     subscriptionId: issueSubscription.id,
     createdAfter: startedAt,
   }, timeoutMs);
+  const cleanup = await cleanupShipWebhookSubscriptions(shipClient, createdSubscriptionIds);
+  cleanupAttempted = true;
 
   const evidence = {
     flow: 'slack',
@@ -144,7 +146,7 @@ try {
     generated_at: new Date().toISOString(),
     api_url: env.SHIP_API_URL,
     integration_target_url: webhookTarget,
-    persistent_webhooks_acknowledged: !isLocalUrl(env.SHIP_API_URL) ? allowPersistentWebhooks : false,
+    cleanup,
     oauth: {
       provider: 'slack',
       completed: true,
@@ -192,6 +194,11 @@ try {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
 } finally {
+  if (!cleanupAttempted && shipClient) {
+    await cleanupShipWebhookSubscriptions(shipClient, createdSubscriptionIds).catch((error) => {
+      console.error(`Webhook cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
+  }
   if (server) await closeServer(server).catch(() => {});
 }
 
@@ -205,4 +212,19 @@ async function waitForDelivery(client, input, timeoutMs) {
       delivery.created_at >= input.createdAfter
     )) ?? null;
   }, `${input.eventType} webhook delivery`, timeoutMs, 1000);
+}
+
+async function cleanupShipWebhookSubscriptions(client, subscriptionIds) {
+  if (subscriptionIds.length === 0) {
+    return { ship_webhooks_deactivated: [], kept: false };
+  }
+  if (process.env.PLUGFORGE_KEEP_SHIP_WEBHOOKS === '1') {
+    return { ship_webhooks_deactivated: [], kept: true, subscription_ids: subscriptionIds };
+  }
+  const deactivated = [];
+  for (const subscriptionId of subscriptionIds) {
+    const subscription = await client.webhooks.deactivate(subscriptionId);
+    deactivated.push({ id: subscription.id, active: subscription.active });
+  }
+  return { ship_webhooks_deactivated: deactivated, kept: false };
 }

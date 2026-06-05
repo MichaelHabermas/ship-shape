@@ -24,7 +24,8 @@ export async function replayWebhookDelivery(input: {
        JOIN webhook_events e ON e.id = d.event_id
       WHERE d.id = $1
         AND d.workspace_id = $2
-        AND s.app_id = $3`,
+        AND s.app_id = $3
+        AND s.active = TRUE`,
     [input.deliveryId, input.workspaceId, input.appId]
   );
   const original = originalResult.rows[0];

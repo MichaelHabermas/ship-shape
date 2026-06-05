@@ -5,6 +5,7 @@ import request from 'supertest';
 import {
   PublicApiErrorSchema,
   PublicWebhookDeliveriesListResponseSchema,
+  PublicWebhookSubscriptionSchema,
   PublicWebhookSubscriptionCreatedSchema,
   PublicWebhookSubscriptionsListResponseSchema,
 } from '@ship/shared';
@@ -181,6 +182,78 @@ describe('/api/v1/webhooks', () => {
       replayDelivery.rawBody,
       subscription.signing_secret
     )).toBe(true);
+
+    const deleteResponse = await request(app)
+      .delete(`/api/v1/webhooks/${subscription.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expectJsonBody(deleteResponse, 200, PublicWebhookSubscriptionSchema);
+    const inactiveReplayResponse = await request(app)
+      .post(`/api/v1/webhooks/deliveries/${delivery.id}/replay`)
+      .set('Authorization', `Bearer ${token}`);
+    const inactiveReplay = expectJsonBody(inactiveReplayResponse, 404, PublicApiErrorSchema);
+    expect(inactiveReplay.code).toBe('not_found');
+  });
+
+  it('deactivates subscriptions through DELETE and skips future fanout', async () => {
+    const subscriptionResponse = await request(app)
+      .post('/api/v1/webhooks')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ event: 'document.created', target_url: targetUrl });
+    const subscription = expectJsonBody(subscriptionResponse, 201, PublicWebhookSubscriptionCreatedSchema);
+
+    const deleteResponse = await request(app)
+      .delete(`/api/v1/webhooks/${subscription.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    const deleted = expectJsonBody(deleteResponse, 200, PublicWebhookSubscriptionSchema);
+    expect(deleted).toMatchObject({
+      id: subscription.id,
+      event: 'document.created',
+      target_url: targetUrl,
+      active: false,
+    });
+    const secondDeleteResponse = await request(app)
+      .delete(`/api/v1/webhooks/${subscription.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    const secondDelete = expectJsonBody(secondDeleteResponse, 200, PublicWebhookSubscriptionSchema);
+    expect(secondDelete.active).toBe(false);
+
+    const listResponse = await request(app)
+      .get('/api/v1/webhooks')
+      .set('Authorization', `Bearer ${token}`);
+    const page = expectJsonBody(listResponse, 200, PublicWebhookSubscriptionsListResponseSchema);
+    expect(page.data.find(row => row.id === subscription.id)?.active).toBe(false);
+
+    const documentId = await insertWebhookDocument();
+    const idempotencyKey = `document.created:deactivated-${documentId}`;
+    await enqueueWebhookEvent({
+      type: 'document.created',
+      workspace_id: workspaceId,
+      idempotency_key: idempotencyKey,
+      resource: {
+        kind: 'document',
+        id: documentId,
+        document_type: 'wiki',
+      },
+      payload: {
+        document: {
+          id: documentId,
+          title: 'deactivated webhook proof',
+          document_type: 'wiki',
+          api_url: `/api/v1/documents/${documentId}`,
+          ui_url: `/documents/${documentId}`,
+        },
+        actor: { id: userId },
+      },
+    });
+
+    const deliveryCount = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM webhook_deliveries
+       WHERE subscription_id = $1
+         AND idempotency_key = $2`,
+      [subscription.id, idempotencyKey]
+    );
+    expect(Number(deliveryCount.rows[0]?.count)).toBe(0);
   });
 
   it('does not create duplicate delivery attempts for duplicate event publication', async () => {

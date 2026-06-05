@@ -27,6 +27,7 @@ import {
   PublicWebhookDeliveriesListResponseSchema,
   PublicWebhookDeliverySchema,
   PublicWebhookListQuerySchema,
+  PublicWebhookSubscriptionSchema,
   PublicWebhookSubscriptionCreatedSchema,
   PublicWebhookSubscriptionsListResponseSchema,
 } from '@ship/shared';
@@ -44,6 +45,10 @@ export type PublicRouteOpenApiContract = {
 export type RegistryOperationId = (typeof publicApiV1RouteRegistry)[number]['operationId'];
 
 export const PublicWebhookDeliveryParamsSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export const PublicWebhookParamsSchema = z.object({
   id: z.string().uuid(),
 });
 
@@ -159,6 +164,15 @@ const contracts = {
       '201': {
         description: 'Webhook subscription created',
         schema: PublicWebhookSubscriptionCreatedSchema,
+      },
+    },
+  },
+  'webhooks.delete': {
+    request: { params: PublicWebhookParamsSchema },
+    responses: {
+      '200': {
+        description: 'Webhook subscription deactivated',
+        schema: PublicWebhookSubscriptionSchema,
       },
     },
   },

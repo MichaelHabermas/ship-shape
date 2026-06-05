@@ -12,6 +12,7 @@ import type {
 import {
   configureWebhookServiceDependencies,
   createWebhookSubscription,
+  deactivateWebhookSubscription,
   dispatchWebhookDeliveries,
   enqueueWebhookEvent,
   processDueWebhookDeliveries,
@@ -250,6 +251,45 @@ describe('webhook delivery reliability', () => {
     }
   );
 
+  it('deactivation cancels pending retries and blocks replay', async () => {
+    const subscription = await createSubscription();
+    const idempotencyKey = `document.created:deactivate-pending-${testRunId}`;
+    const documentId = await insertWebhookDocument();
+    deliverer.queue({ responseStatus: 500, responseExcerpt: 'retry me', error: null });
+
+    await publishAndDispatch(idempotencyKey, documentId);
+
+    let rows = await findDeliveries(idempotencyKey);
+    expect(rows).toHaveLength(2);
+    const original = rows[0];
+    const pendingRetry = rows[1];
+    if (!original || !pendingRetry?.next_attempt_at) throw new Error('Expected original and pending retry');
+
+    await deactivateWebhookSubscription({
+      subscriptionId: subscription.id,
+      appId,
+      workspaceId,
+    });
+
+    rows = await findDeliveries(idempotencyKey);
+    expect(rows[0]?.status).toBe('retrying');
+    expect(rows[1]).toMatchObject({
+      attempt_number: 2,
+      status: 'dlq',
+      next_attempt_at: null,
+      last_error: 'Webhook subscription deactivated',
+    });
+
+    clock.set(pendingRetry.next_attempt_at.getTime());
+    expect(await processDueWebhookDeliveries()).toBe(0);
+    expect(deliverer.requests).toHaveLength(1);
+    await expect(replayWebhookDelivery({
+      deliveryId: original.id,
+      appId,
+      workspaceId,
+    })).rejects.toThrow('WEBHOOK_DELIVERY_NOT_FOUND');
+  });
+
   it('W6 retries 500,500,500,200 after 1s, 4s, and 16s and logs final success', async () => {
     await createSubscription();
     const idempotencyKey = `document.created:w6-exact-retry-${testRunId}`;
@@ -481,8 +521,8 @@ describe('webhook delivery reliability', () => {
     expect(deliverer.requests[0]?.headers['Idempotency-Key']).toBe(idempotencyKey);
   });
 
-  async function createSubscription(readSubjectUserId = userId): Promise<void> {
-    await createWebhookSubscription({
+  async function createSubscription(readSubjectUserId = userId) {
+    return await createWebhookSubscription({
       appId,
       workspaceId,
       event: 'document.created',

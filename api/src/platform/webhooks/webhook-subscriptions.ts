@@ -151,6 +151,50 @@ export async function listWebhookSubscriptions(input: {
   return result.rows.map(publicSubscriptionFromRow);
 }
 
+export async function deactivateWebhookSubscription(input: {
+  subscriptionId: string;
+  appId: string;
+  workspaceId: string;
+}): Promise<PublicWebhookSubscription> {
+  const result = await webhookDb().query<WebhookSubscriptionRow>(
+    `WITH updated_subscription AS (
+       UPDATE webhook_subscriptions s
+          SET active = FALSE,
+              updated_at = NOW()
+         FROM oauth_apps a
+        WHERE s.id = $1
+          AND s.app_id = $2
+          AND s.workspace_id = $3
+          AND a.id = s.app_id
+          AND a.workspace_id = s.workspace_id
+        RETURNING s.id, s.app_id, a.client_id, a.is_active AS app_is_active,
+                  s.workspace_id, s.event_type, s.target_url,
+                  s.read_subject_user_id, s.read_subject_scopes,
+                  s.read_context_source, s.read_context_version,
+                  s.signing_secret_ciphertext, s.signing_secret_iv, s.signing_secret_tag,
+                  s.active, s.created_at, s.updated_at
+     ),
+     cancelled_deliveries AS (
+       UPDATE webhook_deliveries d
+          SET status = 'dlq',
+              next_attempt_at = NULL,
+              failed_at = NOW(),
+              last_error = 'Webhook subscription deactivated',
+              updated_at = NOW()
+        WHERE d.subscription_id = $1
+          AND d.workspace_id = $3
+          AND d.status IN ('pending', 'sending')
+          AND EXISTS (SELECT 1 FROM updated_subscription)
+        RETURNING d.id
+     )
+     SELECT * FROM updated_subscription`,
+    [input.subscriptionId, input.appId, input.workspaceId]
+  );
+  const row = result.rows[0];
+  if (!row) throw new Error('WEBHOOK_SUBSCRIPTION_NOT_FOUND');
+  return publicSubscriptionFromRow(row);
+}
+
 export function publicSubscriptionFromRow(row: WebhookSubscriptionRow): PublicWebhookSubscription {
   return {
     id: row.id,

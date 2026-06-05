@@ -91,6 +91,7 @@ describe('public API v1 route registry', () => {
       'sprints.issues.list': PUBLIC_API_RELATIVE_PATHS.sprintIssues,
       'webhooks.list': PUBLIC_API_RELATIVE_PATHS.webhooks,
       'webhooks.create': PUBLIC_API_RELATIVE_PATHS.webhooks,
+      'webhooks.delete': PUBLIC_API_RELATIVE_PATHS.webhook,
       'webhooks.deliveries.list': PUBLIC_API_RELATIVE_PATHS.webhookDeliveries,
       'webhooks.deliveries.replay': PUBLIC_API_RELATIVE_PATHS.webhookDeliveryReplay,
     };
@@ -140,6 +141,8 @@ describe('public API v1 route registry', () => {
         return request(app).post(route.path);
       case 'PATCH':
         return request(app).patch(route.path);
+      case 'DELETE':
+        return request(app).delete(route.path);
     }
   }
 
@@ -216,6 +219,9 @@ describe('public API v1 route registry', () => {
           targetUrl: 'https://integrator.example.test/webhooks/ship',
         });
         return '/api/v1/webhooks';
+      case 'webhooks.delete':
+        await client.webhooks.delete(id);
+        return '/api/v1/webhooks/route-parity-id';
       case 'webhooks.deliveries.list':
         await client.webhooks.listDeliveries({ limit: 1 });
         return '/api/v1/webhooks/deliveries';

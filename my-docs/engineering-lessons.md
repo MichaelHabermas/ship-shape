@@ -386,3 +386,17 @@ The transferable rules:
 - Let validators reject stale or malformed artifacts, but make the producer fail early with a human-actionable setup error.
 
 ShipShape example (2026-06): PlugForge live Slack/GitLab drills now assert Slack message timestamps/permalinks and normalize GitLab webhook URLs before writing live evidence, while the ledger validator still enforces the per-atom proof schema.
+
+## 31. Live Proof Must Clean Up Its Own Subscriptions
+
+A live integration drill that creates durable callbacks is not finished when it receives the first event. If cleanup is manual or hidden behind a database shortcut, the next run inherits state and deployed proof leaves residue.
+
+The transferable rules:
+
+- Give public clients a first-class deactivate path for durable subscriptions.
+- Make cleanup idempotent and observable: return the inactive subscription, not only an empty status.
+- Use soft deactivation instead of hard deletion when delivery history and auditability matter.
+- Treat deactivation as "no future callbacks": cancel queued attempts and block manual replay, not only new fanout.
+- Let drills keep subscriptions only behind an explicit debug flag.
+
+ShipShape example (2026-06): `DELETE /api/v1/webhooks/:id` now soft-deactivates public webhook subscriptions, cancels pending attempts, blocks inactive replay, the SDK exposes `webhooks.delete()`/`webhooks.deactivate()`, and the Slack live drill deactivates its Ship subscriptions by default after writing proof.

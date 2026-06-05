@@ -162,6 +162,14 @@ export class WebhooksClient {
     });
   }
 
+  delete(id: string): Promise<WebhookSubscription> {
+    return this.client.request<WebhookSubscription>('DELETE', pathWithId(P.webhook, id));
+  }
+
+  deactivate(id: string): Promise<WebhookSubscription> {
+    return this.delete(id);
+  }
+
   replay(deliveryId: string): Promise<WebhookDelivery> {
     return this.client.request<WebhookDelivery>(
       'POST',

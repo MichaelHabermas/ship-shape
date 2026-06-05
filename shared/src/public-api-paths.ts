@@ -14,6 +14,7 @@ export const PUBLIC_API_RELATIVE_PATHS = {
   sprint: '/sprints/:id',
   sprintIssues: '/sprints/:id/issues',
   webhooks: '/webhooks',
+  webhook: '/webhooks/:id',
   webhookDeliveries: '/webhooks/deliveries',
   webhookDeliveryReplay: '/webhooks/deliveries/:id/replay',
 } as const;

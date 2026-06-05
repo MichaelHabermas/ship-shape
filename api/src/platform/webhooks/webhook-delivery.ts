@@ -101,16 +101,19 @@ export async function dispatchWebhookDeliveries(deliveryIds: string[]): Promise<
 export async function processDueWebhookDeliveries(now = webhookServiceDependencies.clock.now()): Promise<number> {
   const staleSendingBefore = new Date(now.getTime() - staleSendingMs());
   const due = await webhookDb().query<{ id: string }>(
-    `SELECT id
-       FROM webhook_deliveries
+    `SELECT d.id
+       FROM webhook_deliveries d
+       JOIN webhook_subscriptions s ON s.id = d.subscription_id
       WHERE (
-        status = 'pending'
-        AND (next_attempt_at IS NULL OR next_attempt_at <= $1)
+        s.active = TRUE
+        AND d.status = 'pending'
+        AND (d.next_attempt_at IS NULL OR d.next_attempt_at <= $1)
       ) OR (
-        status = 'sending'
-        AND updated_at <= $2
+        s.active = TRUE
+        AND d.status = 'sending'
+        AND d.updated_at <= $2
       )
-      ORDER BY next_attempt_at ASC NULLS FIRST, created_at ASC
+      ORDER BY d.next_attempt_at ASC NULLS FIRST, d.created_at ASC
       LIMIT 50`,
     [now, staleSendingBefore]
   );
@@ -288,6 +291,22 @@ async function recordDeliveryResult(input: {
   const delay = WEBHOOK_RETRY_DELAYS_MS[input.delivery.attempt_number - 1] ?? WEBHOOK_RETRY_DELAYS_MS[0];
   const nextAttemptAt = new Date(webhookServiceDependencies.clock.nowMs() + delay);
   await withWebhookTransaction(async (db) => {
+    const subscriptionActive = await lockWebhookSubscriptionActive(
+      input.delivery.subscription_id,
+      input.delivery.workspace_id,
+      db
+    );
+    if (!subscriptionActive) {
+      await updateDelivery(input.delivery.id, 'dlq', {
+        ...input,
+        error: input.error ?? 'Webhook subscription deactivated',
+      }, {
+        failedAt: webhookServiceDependencies.clock.now(),
+        nextAttemptAt: null,
+      }, db);
+      return;
+    }
+
     await updateDelivery(input.delivery.id, 'retrying', input, { nextAttemptAt }, db);
     await createDeliveryAttempt({
       subscriptionId: input.delivery.subscription_id,
@@ -368,6 +387,7 @@ async function claimDeliveryContext(deliveryId: string): Promise<DeliveryContext
       WHERE d.id = $1
         AND e.id = d.event_id
         AND s.id = d.subscription_id
+        AND s.active = TRUE
         AND (
           (
             d.status = 'pending'
@@ -397,6 +417,22 @@ async function nextDeliveryAttemptNumber(eventId: string, subscriptionId: string
     [eventId, subscriptionId]
   );
   return result.rows[0]?.next_attempt ?? 1;
+}
+
+async function lockWebhookSubscriptionActive(
+  subscriptionId: string,
+  workspaceId: string,
+  db: QueryRunner
+): Promise<boolean> {
+  const result = await db.query<{ active: boolean }>(
+    `SELECT active
+       FROM webhook_subscriptions
+      WHERE id = $1
+        AND workspace_id = $2
+      FOR UPDATE`,
+    [subscriptionId, workspaceId]
+  );
+  return result.rows[0]?.active === true;
 }
 
 async function withWebhookTransaction<T>(run: (db: QueryRunner) => Promise<T>): Promise<T> {

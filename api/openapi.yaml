@@ -7287,6 +7287,17 @@ components:
           format: uuid
           description: UUID identifier
           example: 550e8400-e29b-41d4-a716-446655440000
+        event_type:
+          type: string
+          enum:
+            - document.created
+            - document.updated
+            - document.deleted
+            - issue.created
+            - issue.assigned
+            - issue.status_changed
+            - sprint.started
+            - sprint.completed
         attempt_number:
           type: integer
         status:
@@ -7323,6 +7334,7 @@ components:
         - id
         - subscription_id
         - event_id
+        - event_type
         - attempt_number
         - status
         - idempotency_key

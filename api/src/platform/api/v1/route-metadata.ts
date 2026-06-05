@@ -14,13 +14,14 @@ import {
   PUBLIC_SPRINTS_PATH,
   PUBLIC_WEBHOOK_DELIVERIES_PATH,
   PUBLIC_WEBHOOK_DELIVERY_REPLAY_PATH,
+  PUBLIC_WEBHOOK_PATH,
   PUBLIC_WEBHOOKS_PATH,
 } from './paths.js';
 import { SHIP_AGENT_READ_SCOPES } from '../../oauth/ship-agent-scopes.js';
 
 // Current edge-piece methods only. Extend this union when a real public route
 // needs another method; do not treat GET/POST as the whole platform contract.
-export type PublicHttpMethod = 'GET' | 'POST' | 'PATCH';
+export type PublicHttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 export type PublicRouteAuth = 'oauth' | 'none';
 export type PublicRouteSdkMetadata = {
   client: 'root' | 'documents' | 'issues' | 'sprints' | 'fleetgraph' | 'webhooks';
@@ -277,6 +278,20 @@ export const publicWebhooksCreateRouteMetadata = {
   },
 } satisfies PublicRouteMetadata;
 
+export const publicWebhooksDeleteRouteMetadata = {
+  method: 'DELETE',
+  path: PUBLIC_WEBHOOK_PATH,
+  operationId: 'webhooks.delete',
+  requiredScopes: ['webhooks:manage'],
+  auth: 'oauth',
+  handlerMountPath: '/webhooks/:id',
+  isListEndpoint: false,
+  sdk: {
+    client: 'webhooks',
+    method: 'delete',
+  },
+} satisfies PublicRouteMetadata;
+
 export const publicWebhookDeliveriesListRouteMetadata = {
   method: 'GET',
   path: PUBLIC_WEBHOOK_DELIVERIES_PATH,
@@ -323,6 +338,7 @@ export const publicApiV1RouteRegistry = [
   publicSprintIssuesListRouteMetadata,
   publicWebhooksListRouteMetadata,
   publicWebhooksCreateRouteMetadata,
+  publicWebhooksDeleteRouteMetadata,
   publicWebhookDeliveriesListRouteMetadata,
   publicWebhookDeliveryReplayRouteMetadata,
 ] as const satisfies readonly PublicRouteMetadata[];

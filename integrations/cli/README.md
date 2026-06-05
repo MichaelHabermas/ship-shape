@@ -9,4 +9,4 @@ Required commands:
 - `ship docs ls`
 - `ship docs get`
 - `ship docs create`
-- `ship webhooks tail`
+- `ship webhooks tail` (`--once` auto-cleans its subscription unless `--keep-subscription` is set)

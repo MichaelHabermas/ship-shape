@@ -233,7 +233,13 @@ async function routeWebhooks(sub, action, parsed) {
       }));
       return;
     }
-    throw usage('ship webhooks subscriptions <list|create>');
+    if (action === 'delete' || action === 'deactivate') {
+      const id = parsed.positionals[3];
+      if (!id) throw usage(`ship webhooks subscriptions ${action} <subscription-id>`);
+      printJson(await client.webhooks.deactivate(id));
+      return;
+    }
+    throw usage('ship webhooks subscriptions <list|create|delete|deactivate>');
   }
   if (sub === 'deliveries') {
     if (action === 'list' || action === 'ls') {
@@ -263,6 +269,7 @@ async function webhooksTail(parsed) {
     resolveFirstEvent = resolve;
   });
   let signingSecret = stringFlag(parsed.flags.secret) ?? '';
+  let registeredSubscriptionId = null;
   const received = [];
 
   const server = http.createServer(async (req, res) => {
@@ -288,7 +295,6 @@ async function webhooksTail(parsed) {
       server.closeIdleConnections?.();
       server.closeAllConnections?.();
       server.close(() => undefined);
-      setTimeout(() => process.exit(0), 25);
     }
   });
 
@@ -301,6 +307,7 @@ async function webhooksTail(parsed) {
   if (!parsed.flags['no-register']) {
     const subscription = await client.webhooks.create({ event, targetUrl });
     signingSecret = subscription.signing_secret;
+    registeredSubscriptionId = subscription.id;
     console.error(`Listening on ${targetUrl}`);
     console.error(`Subscribed ${subscription.id} to ${event}`);
   } else {
@@ -309,13 +316,26 @@ async function webhooksTail(parsed) {
 
   if (once) {
     const timer = setTimeout(() => {
-      server.close();
       resolveFirstEvent(null);
     }, timeoutMs);
-    const eventLine = await firstEvent;
-    clearTimeout(timer);
+    let eventLine = null;
+    let cleanupError = null;
+    try {
+      eventLine = await firstEvent;
+    } finally {
+      clearTimeout(timer);
+      await closeServer(server);
+      cleanupError = await deactivateTailSubscription(
+        client,
+        registeredSubscriptionId,
+        isTruthyFlag(parsed.flags['keep-subscription'])
+      );
+    }
+    if (cleanupError) {
+      console.error(`Failed to deactivate ${registeredSubscriptionId}: ${errorMessage(cleanupError)}`);
+    }
     if (!eventLine) throw new ShipError({ kind: 'network', message: 'Timed out waiting for webhook event' });
-    await closeServer(server);
+    if (cleanupError) throw cleanupError;
   } else {
     await new Promise(resolve => server.on('close', resolve));
   }
@@ -332,6 +352,25 @@ function requireValue(parsed, flag, envValue, envName) {
     });
   }
   return value;
+}
+
+function isTruthyFlag(value) {
+  return value === true || value === 'true' || value === '1';
+}
+
+async function deactivateTailSubscription(client, subscriptionId, keepSubscription) {
+  if (!subscriptionId || keepSubscription) return null;
+  try {
+    await client.webhooks.deactivate(subscriptionId);
+    console.error(`Deactivated ${subscriptionId}`);
+    return null;
+  } catch (error) {
+    return error;
+  }
+}
+
+function errorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function requireFlag(parsed, flag) {
@@ -351,8 +390,9 @@ ship documents list|get <id>|create --title <title>
 ship issues list|get <id>|create --title <t>|update <id> --state <s>
 ship sprints list|get <id>|issues <sprint-id>
 ship fleetgraph attention-contexts
-ship webhooks tail --once
-ship webhooks subscriptions list|create --event <e> --target-url <url>
+ship webhooks tail [--once] [--keep-subscription] [--no-register]
+ship webhooks subscriptions create --event <e> --target-url <url>
+ship webhooks subscriptions list|delete|deactivate [subscription-id]
 ship webhooks deliveries list|replay <delivery-id>`);
 }
 
