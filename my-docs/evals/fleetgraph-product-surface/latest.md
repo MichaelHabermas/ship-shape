@@ -1,6 +1,6 @@
 # FleetGraph Product Surface Eval
 
-Generated: 2026-06-01T02:10:34.570Z
+Generated: 2026-06-06T21:19:09.486Z
 
 ## Current Surface Summary
 
@@ -285,9 +285,9 @@ Older fleetgraph_runs.output_snapshot rows for trend review only. These do not a
 - Pass: 0
 - Fail: 20
 
-### fg-surface-persisted-update_finding-3d0d67a9
+### fg-surface-persisted-update_finding-11d84ed9
 
-Persisted proactive/update_finding output from 2026-05-31T23:34:35.787Z
+Persisted proactive/update_finding output from 2026-06-06T21:16:40.612Z
 
 Visible copy:
 
@@ -316,9 +316,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-b34cbe83
+### fg-surface-persisted-update_finding-e7a09758
 
-Persisted proactive/update_finding output from 2026-05-31T23:34:35.783Z
+Persisted proactive/update_finding output from 2026-06-06T21:16:40.603Z
 
 Visible copy:
 
@@ -347,9 +347,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-12b3c31e
+### fg-surface-persisted-update_finding-789dc854
 
-Persisted proactive/update_finding output from 2026-05-31T23:34:35.779Z
+Persisted proactive/update_finding output from 2026-06-06T21:16:40.594Z
 
 Visible copy:
 
@@ -378,9 +378,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-6be0b551
+### fg-surface-persisted-update_finding-9d1fbb72
 
-Persisted proactive/update_finding output from 2026-05-31T23:34:35.711Z
+Persisted proactive/update_finding output from 2026-06-06T21:16:40.498Z
 
 Visible copy:
 
@@ -409,9 +409,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-6c268340
+### fg-surface-persisted-update_finding-6720098d
 
-Persisted proactive/update_finding output from 2026-05-31T23:34:35.704Z
+Persisted proactive/update_finding output from 2026-06-06T21:16:40.489Z
 
 Visible copy:
 
@@ -440,9 +440,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-47073ae7
+### fg-surface-persisted-update_finding-2c5fe65b
 
-Persisted proactive/update_finding output from 2026-05-31T23:32:35.664Z
+Persisted proactive/update_finding output from 2026-06-06T21:14:40.403Z
 
 Visible copy:
 
@@ -471,9 +471,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-bb2d71ac
+### fg-surface-persisted-update_finding-2116b699
 
-Persisted proactive/update_finding output from 2026-05-31T23:32:35.661Z
+Persisted proactive/update_finding output from 2026-06-06T21:14:40.398Z
 
 Visible copy:
 
@@ -502,9 +502,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-deca1482
+### fg-surface-persisted-update_finding-4a85b654
 
-Persisted proactive/update_finding output from 2026-05-31T23:32:35.656Z
+Persisted proactive/update_finding output from 2026-06-06T21:14:40.392Z
 
 Visible copy:
 
@@ -533,9 +533,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-fbcdbedf
+### fg-surface-persisted-update_finding-a6740b85
 
-Persisted proactive/update_finding output from 2026-05-31T23:32:35.578Z
+Persisted proactive/update_finding output from 2026-06-06T21:14:40.293Z
 
 Visible copy:
 
@@ -564,9 +564,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-2f1e72e7
+### fg-surface-persisted-update_finding-51d6c223
 
-Persisted proactive/update_finding output from 2026-05-31T23:32:35.566Z
+Persisted proactive/update_finding output from 2026-06-06T21:14:40.281Z
 
 Visible copy:
 
@@ -595,9 +595,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-d926fcac
+### fg-surface-persisted-update_finding-49edc0ff
 
-Persisted proactive/update_finding output from 2026-05-31T23:30:35.510Z
+Persisted proactive/update_finding output from 2026-06-06T21:12:40.233Z
 
 Visible copy:
 
@@ -626,9 +626,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-e1625e3a
+### fg-surface-persisted-update_finding-140d7237
 
-Persisted proactive/update_finding output from 2026-05-31T23:30:35.500Z
+Persisted proactive/update_finding output from 2026-06-06T21:12:40.228Z
 
 Visible copy:
 
@@ -657,9 +657,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-63023d62
+### fg-surface-persisted-update_finding-a539eb93
 
-Persisted proactive/update_finding output from 2026-05-31T23:30:35.495Z
+Persisted proactive/update_finding output from 2026-06-06T21:12:40.222Z
 
 Visible copy:
 
@@ -688,9 +688,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-0b8ac197
+### fg-surface-persisted-update_finding-b67cbbf9
 
-Persisted proactive/update_finding output from 2026-05-31T23:30:35.419Z
+Persisted proactive/update_finding output from 2026-06-06T21:12:40.126Z
 
 Visible copy:
 
@@ -719,9 +719,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-e91a4458
+### fg-surface-persisted-update_finding-f9eff846
 
-Persisted proactive/update_finding output from 2026-05-31T23:30:35.408Z
+Persisted proactive/update_finding output from 2026-06-06T21:12:40.114Z
 
 Visible copy:
 
@@ -750,9 +750,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-9301ba0e
+### fg-surface-persisted-update_finding-177854be
 
-Persisted proactive/update_finding output from 2026-05-31T23:28:35.354Z
+Persisted proactive/update_finding output from 2026-06-06T21:10:40.066Z
 
 Visible copy:
 
@@ -781,9 +781,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-f39ced43
+### fg-surface-persisted-update_finding-83593395
 
-Persisted proactive/update_finding output from 2026-05-31T23:28:35.349Z
+Persisted proactive/update_finding output from 2026-06-06T21:10:40.060Z
 
 Visible copy:
 
@@ -812,9 +812,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-56606193
+### fg-surface-persisted-update_finding-ae8f9e87
 
-Persisted proactive/update_finding output from 2026-05-31T23:28:35.345Z
+Persisted proactive/update_finding output from 2026-06-06T21:10:40.052Z
 
 Visible copy:
 
@@ -843,9 +843,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-436fb819
+### fg-surface-persisted-update_finding-648ac236
 
-Persisted proactive/update_finding output from 2026-05-31T23:28:35.268Z
+Persisted proactive/update_finding output from 2026-06-06T21:10:39.957Z
 
 Visible copy:
 
@@ -874,9 +874,9 @@ Notes:
 Human review:
 - TBD
 
-### fg-surface-persisted-update_finding-63bbd803
+### fg-surface-persisted-update_finding-9015312f
 
-Persisted proactive/update_finding output from 2026-05-31T23:28:35.257Z
+Persisted proactive/update_finding output from 2026-06-06T21:10:39.949Z
 
 Visible copy:
 

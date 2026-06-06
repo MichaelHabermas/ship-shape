@@ -31,6 +31,9 @@ export function buildReviewerModel(evidence) {
       totalMs: ttfe.result?.totalMs ?? ttfe.durationMs,
       command: ttfe.command ?? 'pnpm drill ttfe',
       withinGate: (ttfe.result?.totalMs ?? ttfe.durationMs) < (ttfe.targets?.maxTotalMs ?? 60000),
+      stages: Array.isArray(ttfe?.drill?.timings)
+        ? ttfe.drill.timings.filter((s) => s.stage !== 'total')
+        : (Array.isArray(ttfe?.timings) ? ttfe.timings.filter((s) => s.stage !== 'total') : []),
     },
     slack: {
       runId: slack.run_id,

@@ -1,10 +1,10 @@
 # FleetGraph Reviewer Proof
 
-Generated: 2026-06-06T20:38:35.664Z
-Run: fleetgraph-proof-2026-06-06T20-38-35-664Z
+Generated: 2026-06-06T21:17:30.463Z
+Run: fleetgraph-proof-2026-06-06T21-17-30-463Z
 Target: both
 Verdict: fail
-Git: master @ 4e5c58a79b65b45eb02160e68de78f74f980bc46
+Git: master @ 9595fc0c25c3f1154774d4d005c9622d5735ba34
 
 ## Verdict
 

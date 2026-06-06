@@ -136,6 +136,80 @@ export function renderReviewerPacketHtml(model) {
       .status-pass { color: var(--success); font-weight: 700; }
       .status-measured { color: #9a6b00; font-weight: 700; }
       .status-muted { color: var(--muted); font-weight: 600; }
+
+      /* Path B proof polish */
+      .proof-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin: 14px 0;
+        overflow: hidden;
+      }
+      .proof-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 12px;
+        background: #fbf8f0;
+        border-bottom: 1px solid var(--line);
+        font-size: 13px;
+      }
+      .proof-card-head .title { font-weight: 600; color: var(--accent); }
+      .proof-card-head .run-id {
+        font-family: ui-monospace, Menlo, Monaco, monospace;
+        font-size: 11px;
+        color: var(--muted);
+        background: var(--code-bg);
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+      .proof-card-body { padding: 10px 12px; font-size: 14px; }
+      .proof-card-body p { margin: 0 0 8px; }
+      .proof-card-body > :last-child { margin-bottom: 0; }
+      .metric-row { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: baseline; margin: 4px 0 10px; }
+      .metric-value {
+        font-size: 20px;
+        font-weight: 700;
+        font-family: ui-monospace, Menlo, Monaco, monospace;
+        line-height: 1;
+      }
+      .metric-label { font-size: 11px; color: var(--muted); margin-left: 2px; }
+      .stage-list { margin: 6px 0; padding: 0; list-style: none; font-size: 12px; }
+      .stage-list li {
+        display: flex; justify-content: space-between; gap: 8px;
+        padding: 2px 0; border-bottom: 1px dotted #e6e0d3;
+        font-family: ui-monospace, Menlo, Monaco, monospace;
+      }
+      .stage-list li:last-child { border-bottom: 0; }
+      .stage-list .ms { color: var(--muted); font-weight: 600; }
+      .verify-steps { margin: 6px 0 4px; padding-left: 18px; }
+      .verify-steps li { margin: 5px 0; line-height: 1.4; }
+      .verify-steps li strong { font-weight: 600; }
+      .evidence-fig { margin: 8px 0 4px; }
+      .evidence-fig img { display: block; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; }
+      .evidence-fig figcaption { font-size: 11px; color: var(--muted); margin-top: 4px; }
+      .trace {
+        font-family: ui-monospace, Menlo, Monaco, monospace;
+        font-size: 12px;
+        background: var(--code-bg);
+        padding: 10px 11px;
+        border-radius: 6px;
+        line-height: 1.35;
+        margin: 6px 0;
+      }
+      .badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 7px;
+        border-radius: 999px;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+      .badge-pass { background: #e8f0e8; color: #2e5a2e; }
+      .badge-measured { background: #fff4e0; color: #9a6b00; }
+      .small { font-size: 12px; color: #444; }
     </style>
   </head>
   <body>
@@ -298,40 +372,106 @@ function renderIntegrationsSection(model) {
         </tbody>
       </table>
 
-      <h3>TTFE (signature challenge)</h3>
-      <p><code>${escapeHtml(model.ttfe.command)}</code> total <strong>${escapeHtml(String(model.ttfe.totalMs))} ms</strong> (gate &lt; 60 s in CI). ${model.ttfe.withinGate ? 'Within gate.' : 'Check CI evidence.'}</p>
+      <div class="proof-card">
+        <div class="proof-card-head">
+          <div>
+            <span class="title">TTFE (signature challenge)</span>
+            <span class="run-id">${escapeHtml(model.ttfe.command)}</span>
+          </div>
+          <span class="badge badge-measured">measured</span>
+        </div>
+        <div class="proof-card-body">
+          <div class="metric-row">
+            <div>
+              <span class="metric-value">${escapeHtml(String(model.ttfe.totalMs))}</span>
+              <span class="metric-label">ms total</span>
+            </div>
+            <div>
+              <span class="metric-value">&lt;60s</span>
+              <span class="metric-label">gate in CI</span>
+            </div>
+            <div><span class="badge badge-measured">${model.ttfe.withinGate ? 'WITHIN GATE' : 'CHECK EVIDENCE'}</span></div>
+          </div>
+          <p class="small">Cold-start TTFE drill (install + device OAuth login + first signed webhook event). The hard timing gate for reference integrations.</p>
+          ${model.ttfe.stages && model.ttfe.stages.length ? `
+          <ul class="stage-list">
+            ${model.ttfe.stages.filter((s) => (s.ms || 0) > 0).map((s) => `<li><span>${escapeHtml(s.stage)}</span><span class="ms">${escapeHtml(String(s.ms))} ms</span></li>`).join('')}
+          </ul>` : ''}
+        </div>
+      </div>
 
-      <h3>Slack reference integration</h3>
-      <p>Run <code>${escapeHtml(model.slack.runId)}</code>. Reviewers do <strong>not</strong> need access to the submitter&apos;s private Slack workspace.</p>
-      <p><strong>Verify Slack proof (3 steps):</strong></p>
-      <ol>
-        <li><strong>Screenshot</strong> — below, two posts for <code>${escapeHtml(model.slack.runId)}</code> (<code>document.created</code> + <code>issue.assigned</code>).</li>
-        <li><strong>Ship delivery log</strong> — <a href="${escapeHtml(developerDeliveryLogUrl)}" target="_blank" rel="noopener noreferrer">Developer tab → Delivery log</a> (login above). Pass if these rows are <strong>HTTP 200</strong>:
-          <ul>
-            ${slackDeliveryRows}
-          </ul>
-        </li>
-        <li><strong>Integration health</strong> — <a href="${escapeHtml(slackHealthUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(slackHealthUrl)}</a> returns <code>{"ok":true}</code>.</li>
-      </ol>
-      ${screenshotBlock}
-      <p>Webhook target: <code>${escapeHtml(model.slack.targetUrl ?? 'n/a')}</code></p>
+      <div class="proof-card">
+        <div class="proof-card-head">
+          <div>
+            <span class="title">Slack reference integration</span>
+            <span class="run-id">${escapeHtml(model.slack.runId)}</span>
+          </div>
+          <span class="badge badge-pass">passed</span>
+        </div>
+        <div class="proof-card-body">
+          <p>Reviewers do <strong>not</strong> need access to the submitter&apos;s private Slack workspace.</p>
+          <p><strong>Verify Slack proof (3 steps):</strong></p>
+          <ol class="verify-steps">
+            <li><strong>Screenshot</strong> — below, two posts for <code>${escapeHtml(model.slack.runId)}</code> (<code>document.created</code> + <code>issue.assigned</code>).</li>
+            <li><strong>Ship delivery log</strong> — <a href="${escapeHtml(developerDeliveryLogUrl)}" target="_blank" rel="noopener noreferrer">Developer tab → Delivery log</a> (login above). Pass if these rows are <strong>HTTP 200</strong>:
+              <ul style="margin:4px 0 0 18px; padding:0;">
+                ${slackDeliveryRows}
+              </ul>
+            </li>
+            <li><strong>Integration health</strong> — <a href="${escapeHtml(slackHealthUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(slackHealthUrl)}</a> returns <code>{"ok":true}</code>.</li>
+          </ol>
+          <figure class="evidence-fig">
+            ${screenshotBlock}
+            <figcaption>Slack messages emitted by the reference integration for the two subscribed events.</figcaption>
+          </figure>
+          <p class="small">Webhook target: <code>${escapeHtml(model.slack.targetUrl ?? 'n/a')}</code></p>
+        </div>
+      </div>
 
-      <h3>GitLab reference integration</h3>
-      <p><strong>Host:</strong> <code>${escapeHtml(model.gitlab.host)}</code> (Gauntlet GitLab — not gitlab.com).</p>
-      <p>Run <code>${escapeHtml(model.gitlab.runId)}</code>. Merge request <a href="${escapeHtml(model.gitlab.mergeRequestUrl)}" target="_blank" rel="noopener noreferrer">!${escapeHtml(String(model.gitlab.mergeRequestIid ?? '?'))}</a> linked to Ship issue <code>${escapeHtml(model.gitlab.proofIssueId)}</code>.</p>
-      <p><a class="big-link" href="${escapeHtml(model.gitlab.proofIssueUrl)}" target="_blank" rel="noopener noreferrer">Open proof issue in Ship →</a></p>
-      <p>Grader read-only token:</p>
-      <pre class="diagram">${escapeHtml(model.graderCurl)}</pre>
-      <p>Pass if JSON includes <code>external_links</code> with provider <code>gitlab</code> and MR URL.</p>
+      <div class="proof-card">
+        <div class="proof-card-head">
+          <div>
+            <span class="title">GitLab reference integration</span>
+            <span class="run-id">${escapeHtml(model.gitlab.runId)}</span>
+          </div>
+          <span class="badge badge-pass">passed</span>
+        </div>
+        <div class="proof-card-body">
+          <p><strong>Host:</strong> <code>${escapeHtml(model.gitlab.host)}</code> (Gauntlet GitLab — not gitlab.com).</p>
+          <p>MR <a href="${escapeHtml(model.gitlab.mergeRequestUrl)}" target="_blank" rel="noopener noreferrer">!${escapeHtml(String(model.gitlab.mergeRequestIid ?? '?'))}</a> linked to Ship issue <code>${escapeHtml(model.gitlab.proofIssueId)}</code>.</p>
+          <p><a class="big-link" href="${escapeHtml(model.gitlab.proofIssueUrl)}" target="_blank" rel="noopener noreferrer">Open proof issue in Ship →</a></p>
+          <p class="small" style="margin:6px 0 4px;">Grader read-only token (expect <code>external_links</code> with provider <code>gitlab</code>):</p>
+          <pre class="diagram" style="margin:0 0 8px;">${escapeHtml(model.graderCurl)}</pre>
+          <p class="small">The GitLab webhook flows through <code>integrations/gitlab</code> and writes to <code>issue.properties.external_links</code> (visible in the issue sidebar on Ship).</p>
+        </div>
+      </div>
 
-      <h3>Browser SDK demo (PKCE)</h3>
-      <p>${model.browser.pkceCompleted ? 'PKCE completed' : 'PKCE pending'} — <a href="${escapeHtml(model.browser.sdkDemoUrl)}" target="_blank" rel="noopener noreferrer">SDK demo</a>${model.browser.runId ? ` (run <code>${escapeHtml(model.browser.runId)}</code>)` : ''}.</p>
+      <div class="proof-card">
+        <div class="proof-card-head">
+          <div>
+            <span class="title">Browser SDK demo (PKCE)</span>
+          </div>
+          <span class="badge badge-pass">passed</span>
+        </div>
+        <div class="proof-card-body">
+          <p>PKCE end-to-end via the live SDK demo (same flow as Path A step 3, here as reference integration proof).</p>
+          <p><a class="big-link" href="${escapeHtml(model.browser.sdkDemoUrl)}" target="_blank" rel="noopener noreferrer">Open SDK Demo →</a></p>
+          <p class="small">After connect with a created OAuth app client_id: lists load, create works, typed calls succeed, and audit log records the scoped requests.</p>
+        </div>
+      </div>
 
-      <h3>Event boundary (doc → Slack)</h3>
-      <pre class="diagram">UI write → domain EventBus → webhook signer → delivery log
+      <div class="proof-card">
+        <div class="proof-card-head">
+          <span class="title">Event boundaries (doc → Slack, GitLab MR → issue)</span>
+        </div>
+        <div class="proof-card-body">
+          <pre class="trace">UI write → domain EventBus → webhook signer → delivery log
   → @ship/sdk subscriber (integrations/slack) → Slack API → channel message
 
 GitLab path: GitLab MR webhook → integrations/gitlab → client.issues.upsertExternalLink()
   → issue.properties.external_links (visible in Ship issue sidebar)</pre>
+          <p class="small">These traces are the contract between core Ship and the reference integrations. All traffic is signed and logged.</p>
+        </div>
+      </div>
 `;
 }

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-06T20:38:35.664Z",
-  "runId": "fleetgraph-proof-2026-06-06T20-38-35-664Z",
+  "generatedAt": "2026-06-06T21:17:30.463Z",
+  "runId": "fleetgraph-proof-2026-06-06T21-17-30-463Z",
   "target": "both",
   "git": {
     "branch": "master",
-    "sha": "4e5c58a79b65b45eb02160e68de78f74f980bc46",
-    "dirty": true
+    "sha": "9595fc0c25c3f1154774d4d005c9622d5735ba34",
+    "dirty": false
   },
   "verdict": "fail",
   "summary": {
@@ -49,7 +49,7 @@
     }
   ],
   "deployedEvidence": {
-    "checkedAt": "2026-06-06T20:39:40.400Z",
+    "checkedAt": "2026-06-06T21:18:33.913Z",
     "evidenceSource": "render-postgres",
     "workerTickCount": 5,
     "completedWorkerTickCount": 5,
@@ -57,7 +57,7 @@
     "activeRunningTickCount": 0,
     "stuckRunningTickCount": 7,
     "eventCounts": {
-      "skipped": 3
+      "skipped": 4
     },
     "signalTypes": [
       "blocked",
@@ -119,50 +119,50 @@
       "bySignal": {
         "blocked": {
           "signal": "blocked",
-          "runId": "67101bcc-4601-427c-a6a6-08188687f590",
+          "runId": "04488cd2-985c-47d1-bd07-22db4a3cc7ee",
           "decision": "update_finding",
           "triggerReason": "scheduled-worker",
           "traceUrl": null,
           "traceId": null,
-          "createdAt": "2026-06-06 20:38:42.321877+00"
+          "createdAt": "2026-06-06 21:18:29.493767+00"
         },
         "stale": {
           "signal": "stale",
-          "runId": "de8f4b69-9ae2-40c1-9727-c33049bf104a",
+          "runId": "54b253bd-119d-42b4-934d-2fd56ffe30dd",
           "decision": "update_finding",
           "triggerReason": "scheduled-worker",
           "traceUrl": null,
           "traceId": null,
-          "createdAt": "2026-06-06 20:38:42.311768+00"
+          "createdAt": "2026-06-06 21:18:29.296824+00"
         }
       },
       "bySignalDecision": {
         "blocked:quiet_exit": {
           "signal": "blocked",
-          "runId": "f83e5864-31cf-4e31-bce6-9691454bec44",
+          "runId": "8a48d0b3-5a6c-4fce-9729-262aed40bbc2",
           "decision": "quiet_exit",
           "triggerReason": "scheduled-worker",
           "traceUrl": null,
           "traceId": null,
-          "createdAt": "2026-06-06 20:38:42.494819+00"
+          "createdAt": "2026-06-06 21:18:29.893753+00"
         },
         "blocked:update_finding": {
           "signal": "blocked",
-          "runId": "67101bcc-4601-427c-a6a6-08188687f590",
+          "runId": "04488cd2-985c-47d1-bd07-22db4a3cc7ee",
           "decision": "update_finding",
           "triggerReason": "scheduled-worker",
           "traceUrl": null,
           "traceId": null,
-          "createdAt": "2026-06-06 20:38:42.321877+00"
+          "createdAt": "2026-06-06 21:18:29.493767+00"
         },
         "stale:update_finding": {
           "signal": "stale",
-          "runId": "de8f4b69-9ae2-40c1-9727-c33049bf104a",
+          "runId": "54b253bd-119d-42b4-934d-2fd56ffe30dd",
           "decision": "update_finding",
           "triggerReason": "scheduled-worker",
           "traceUrl": null,
           "traceId": null,
-          "createdAt": "2026-06-06 20:38:42.311768+00"
+          "createdAt": "2026-06-06 21:18:29.296824+00"
         }
       },
       "missingRequired": [
@@ -174,11 +174,11 @@
     },
     "recentRuns": [
       {
-        "id": "f83e5864-31cf-4e31-bce6-9691454bec44",
+        "id": "8a48d0b3-5a6c-4fce-9729-262aed40bbc2",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:38:42.494819+00",
+        "createdAt": "2026-06-06 21:18:29.893753+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -188,11 +188,11 @@
         "traceId": null
       },
       {
-        "id": "67101bcc-4601-427c-a6a6-08188687f590",
+        "id": "04488cd2-985c-47d1-bd07-22db4a3cc7ee",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:38:42.321877+00",
+        "createdAt": "2026-06-06 21:18:29.493767+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -202,11 +202,11 @@
         "traceId": null
       },
       {
-        "id": "de8f4b69-9ae2-40c1-9727-c33049bf104a",
+        "id": "54b253bd-119d-42b4-934d-2fd56ffe30dd",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-06-06 20:38:42.311768+00",
+        "createdAt": "2026-06-06 21:18:29.296824+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -216,11 +216,11 @@
         "traceId": null
       },
       {
-        "id": "86ee9cb3-f554-4806-8798-7f94030cc5e2",
+        "id": "f7e873da-9eb6-4881-9f3e-d05dc6e503af",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-06-06 20:38:42.301199+00",
+        "createdAt": "2026-06-06 21:18:29.200976+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -230,11 +230,11 @@
         "traceId": null
       },
       {
-        "id": "872d653a-5dfc-4875-a24f-65e9a2521130",
+        "id": "b2aacec0-67df-4ebd-8f4e-8d57b276e8ab",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:38:41.613877+00",
+        "createdAt": "2026-06-06 21:18:28.002131+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -244,11 +244,11 @@
         "traceId": null
       },
       {
-        "id": "01d03ef3-7ae2-45eb-a977-981ed49b734c",
+        "id": "7f8f972b-ea19-49f8-86a3-f0f451ad05b3",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:38:41.598172+00",
+        "createdAt": "2026-06-06 21:18:27.904919+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -258,11 +258,11 @@
         "traceId": null
       },
       {
-        "id": "073faec7-8917-4a5f-9e70-2ef2c47d423f",
+        "id": "78e0ea9f-9a0c-4949-bb39-084c69349cb6",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:36:41.505086+00",
+        "createdAt": "2026-06-06 21:16:27.706001+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -272,11 +272,11 @@
         "traceId": null
       },
       {
-        "id": "6d9a5daf-0a18-45a8-88d8-272f81fa24bc",
+        "id": "7695e94d-a859-4e8e-8ecc-286743c6aab1",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:36:41.438539+00",
+        "createdAt": "2026-06-06 21:16:27.595735+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -286,11 +286,11 @@
         "traceId": null
       },
       {
-        "id": "19884f36-bb18-43e8-abb2-e9dcb8697021",
+        "id": "41c016bd-2ca5-4318-8f60-7b778b1e373a",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-06-06 20:36:41.401997+00",
+        "createdAt": "2026-06-06 21:16:27.51897+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -300,11 +300,11 @@
         "traceId": null
       },
       {
-        "id": "2386aeff-7d92-4958-8df9-72959b88e60a",
+        "id": "eb5aa92c-9d43-4c23-a940-234e3940d568",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-06-06 20:36:41.305518+00",
+        "createdAt": "2026-06-06 21:16:27.504227+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -314,11 +314,11 @@
         "traceId": null
       },
       {
-        "id": "06387ed8-366d-452d-9e48-2b0535be6a37",
+        "id": "ecb39334-fdd9-478b-924c-320978eadb6b",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:36:40.712728+00",
+        "createdAt": "2026-06-06 21:16:26.400018+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -328,11 +328,11 @@
         "traceId": null
       },
       {
-        "id": "7c9a3398-bd24-49fa-9128-fc6fa7a55cea",
+        "id": "64990056-d74e-435f-809c-0c925c413059",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:36:40.696544+00",
+        "createdAt": "2026-06-06 21:16:25.991887+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -342,11 +342,11 @@
         "traceId": null
       },
       {
-        "id": "c9d92f30-ab07-481d-9eb0-12d3aba564c5",
+        "id": "290af9be-76d3-4773-840c-0600c0146621",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:34:40.600266+00",
+        "createdAt": "2026-06-06 21:14:19.897563+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -356,11 +356,11 @@
         "traceId": null
       },
       {
-        "id": "a2cb507c-1776-4178-a8b3-7e27b53c16b0",
+        "id": "63ab2254-93c6-4843-a58d-c67e22f49b82",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:34:40.505616+00",
+        "createdAt": "2026-06-06 21:14:19.793721+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -370,11 +370,11 @@
         "traceId": null
       },
       {
-        "id": "fa0ac54b-da70-4260-a6fa-dd96e781bb06",
+        "id": "e5930569-9b71-4ec8-a81e-cf337ccc34f7",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-06-06 20:34:40.494652+00",
+        "createdAt": "2026-06-06 21:14:19.714233+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -384,11 +384,11 @@
         "traceId": null
       },
       {
-        "id": "eb0717f8-c277-4e16-a55f-f235db462761",
+        "id": "a9757149-9203-4e92-a02c-b10ba3ef3472",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-06-06 20:34:40.402955+00",
+        "createdAt": "2026-06-06 21:14:19.702566+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -398,11 +398,11 @@
         "traceId": null
       },
       {
-        "id": "4477535c-99ea-4c4c-98d2-a14c4220bf46",
+        "id": "bb72f261-f960-4018-8633-87b70f05b376",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:34:39.815417+00",
+        "createdAt": "2026-06-06 21:14:19.113144+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -412,11 +412,11 @@
         "traceId": null
       },
       {
-        "id": "bfde8090-14ff-4069-8804-09154865fa9e",
+        "id": "d4f3ee40-6af6-466f-b1fc-100e6d6e93dc",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:34:39.798888+00",
+        "createdAt": "2026-06-06 21:14:19.098498+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -426,11 +426,11 @@
         "traceId": null
       },
       {
-        "id": "de4e6e69-2a6e-436f-93c5-8e0851796566",
+        "id": "dbc7dc6b-4148-4edc-ba51-85668fe29c5a",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:32:39.691875+00",
+        "createdAt": "2026-06-06 21:12:18.999691+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -440,11 +440,11 @@
         "traceId": null
       },
       {
-        "id": "8e20dfe2-d0a4-45a7-84bf-cfed3c1ca5b6",
+        "id": "f189e3ea-4909-4756-a4b0-eace55fcd65c",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:32:39.516329+00",
+        "createdAt": "2026-06-06 21:12:18.822713+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -454,11 +454,11 @@
         "traceId": null
       },
       {
-        "id": "2ccb38a6-5c0e-4683-8f48-ce023f16d429",
+        "id": "f25aa56c-7675-43b3-b151-5887412d73ad",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-06-06 20:32:39.505084+00",
+        "createdAt": "2026-06-06 21:12:18.812519+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -468,11 +468,11 @@
         "traceId": null
       },
       {
-        "id": "77580e28-48e7-47f3-8905-1aaf5271b25b",
+        "id": "9348ea52-86e4-48af-a4a0-421febc0c259",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-06-06 20:32:39.494777+00",
+        "createdAt": "2026-06-06 21:12:18.801615+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -482,11 +482,11 @@
         "traceId": null
       },
       {
-        "id": "3ce7f078-c0f2-4f1c-a6c3-a4c67b02338f",
+        "id": "6e4a3355-11ab-4512-861a-26cc556769f1",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:32:38.910419+00",
+        "createdAt": "2026-06-06 21:12:18.214297+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -496,11 +496,11 @@
         "traceId": null
       },
       {
-        "id": "a9e45caf-ff1f-4274-b0d2-60eb8a1a3ba3",
+        "id": "5b12591c-a426-48cd-8530-95b5e81c54ae",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:32:38.896654+00",
+        "createdAt": "2026-06-06 21:12:18.19767+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -510,11 +510,11 @@
         "traceId": null
       },
       {
-        "id": "51807933-7f61-452f-ad07-1547bdbba740",
+        "id": "da0d02fc-177d-4b96-9f83-ac0010106c14",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-06-06 20:30:38.797075+00",
+        "createdAt": "2026-06-06 21:10:18.096258+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
@@ -1049,7 +1049,7 @@
       "shipState": "Source condition disappears or evidence becomes unsafe",
       "expectedOutput": "Finding resolves/suppresses or quiet-exits without model cost",
       "traceUrl": null,
-      "runId": "f83e5864-31cf-4e31-bce6-9691454bec44",
+      "runId": "8a48d0b3-5a6c-4fce-9729-262aed40bbc2",
       "decision": "quiet_exit",
       "triggerReason": "scheduled-worker"
     },
@@ -1140,7 +1140,7 @@
   ],
   "costs": {
     "runCount": 5,
-    "measuredCommandMs": 49176,
+    "measuredCommandMs": 48702,
     "graphInvocationCount": 100,
     "modelCallCount": 0,
     "inputTokens": 0,
@@ -1168,50 +1168,50 @@
     "bySignal": {
       "blocked": {
         "signal": "blocked",
-        "runId": "67101bcc-4601-427c-a6a6-08188687f590",
+        "runId": "04488cd2-985c-47d1-bd07-22db4a3cc7ee",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "traceUrl": null,
         "traceId": null,
-        "createdAt": "2026-06-06 20:38:42.321877+00"
+        "createdAt": "2026-06-06 21:18:29.493767+00"
       },
       "stale": {
         "signal": "stale",
-        "runId": "de8f4b69-9ae2-40c1-9727-c33049bf104a",
+        "runId": "54b253bd-119d-42b4-934d-2fd56ffe30dd",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "traceUrl": null,
         "traceId": null,
-        "createdAt": "2026-06-06 20:38:42.311768+00"
+        "createdAt": "2026-06-06 21:18:29.296824+00"
       }
     },
     "bySignalDecision": {
       "blocked:quiet_exit": {
         "signal": "blocked",
-        "runId": "f83e5864-31cf-4e31-bce6-9691454bec44",
+        "runId": "8a48d0b3-5a6c-4fce-9729-262aed40bbc2",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "traceUrl": null,
         "traceId": null,
-        "createdAt": "2026-06-06 20:38:42.494819+00"
+        "createdAt": "2026-06-06 21:18:29.893753+00"
       },
       "blocked:update_finding": {
         "signal": "blocked",
-        "runId": "67101bcc-4601-427c-a6a6-08188687f590",
+        "runId": "04488cd2-985c-47d1-bd07-22db4a3cc7ee",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "traceUrl": null,
         "traceId": null,
-        "createdAt": "2026-06-06 20:38:42.321877+00"
+        "createdAt": "2026-06-06 21:18:29.493767+00"
       },
       "stale:update_finding": {
         "signal": "stale",
-        "runId": "de8f4b69-9ae2-40c1-9727-c33049bf104a",
+        "runId": "54b253bd-119d-42b4-934d-2fd56ffe30dd",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "traceUrl": null,
         "traceId": null,
-        "createdAt": "2026-06-06 20:38:42.311768+00"
+        "createdAt": "2026-06-06 21:18:29.296824+00"
       }
     },
     "missingRequired": [
@@ -1226,7 +1226,7 @@
       "name": "product surface eval",
       "command": "pnpm fleetgraph:eval:surface",
       "status": "fail",
-      "durationMs": 295,
+      "durationMs": 291,
       "stdoutTail": "undefined\n ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command \"fleetgraph:eval:surface\" not found\n\nDid you mean \"pnpm fleetgraph:observe\"?",
       "stderrTail": ""
     },
@@ -1234,7 +1234,7 @@
       "name": "shared package build",
       "command": "pnpm build:shared",
       "status": "pass",
-      "durationMs": 945,
+      "durationMs": 953,
       "stdoutTail": "> ship@0.0.0 build:shared /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/shared build\n\n\n> @ship/shared@0.0.0 build /Users/michaelhabermas/repos/GAI/ship-shape/shared\n> tsc",
       "stderrTail": ""
     },
@@ -1242,15 +1242,15 @@
       "name": "FleetGraph proof tests",
       "command": "pnpm --filter @ship/api test src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts",
       "status": "pass",
-      "durationMs": 3145,
-      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  34 passed (34)\n   Start at  15:38:37\n   Duration  2.56s (transform 346ms, setup 115ms, import 1.03s, tests 907ms, environment 0ms)",
+      "durationMs": 3215,
+      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  34 passed (34)\n   Start at  16:17:32\n   Duration  2.65s (transform 374ms, setup 129ms, import 1.05s, tests 924ms, environment 0ms)",
       "stderrTail": ""
     },
     {
       "name": "API package build for E2E",
       "command": "pnpm --filter @ship/api build",
       "status": "pass",
-      "durationMs": 7821,
+      "durationMs": 7313,
       "stdoutTail": "> @ship/api@0.0.0 build /Users/michaelhabermas/repos/GAI/ship-shape/api\n> rm -rf dist && tsc && cp src/db/schema.sql dist/db/schema.sql && cp -r src/db/migrations dist/db/migrations && cp -r src/static dist/static",
       "stderrTail": ""
     },
@@ -1258,8 +1258,8 @@
       "name": "FleetGraph attention loop E2E",
       "command": "pnpm test:e2e:run e2e/fleetgraph-attention-loop.spec.ts",
       "status": "pass",
-      "durationMs": 36970,
-      "stdoutTail": "> ship@0.0.0 test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape\n> ./scripts/run-e2e-profiled.sh e2e/fleetgraph-attention-loop.spec.ts\n\nStarting Playwright E2E suite in the background...\nLog: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/fleetgraph-proof/e2e-run.log\nProgress: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/fleetgraph-proof/summary.json\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 3s ago\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 8s ago\n\n\u001b[0;32mPassed: 1\u001b[0m | Failed: 0 | Pending: 0 | \u001b[0;34mTotal: 1\u001b[0m | Last update: 0s ago\n\nPlaywright exited with status 0.",
+      "durationMs": 36930,
+      "stdoutTail": "> ship@0.0.0 test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape\n> ./scripts/run-e2e-profiled.sh e2e/fleetgraph-attention-loop.spec.ts\n\nStarting Playwright E2E suite in the background...\nLog: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/fleetgraph-proof/e2e-run.log\nProgress: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/fleetgraph-proof/summary.json\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 3s ago\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 9s ago\n\n\u001b[0;32mPassed: 1\u001b[0m | Failed: 0 | Pending: 0 | \u001b[0;34mTotal: 1\u001b[0m | Last update: 2s ago\n\nPlaywright exited with status 0.",
       "stderrTail": ""
     }
   ],

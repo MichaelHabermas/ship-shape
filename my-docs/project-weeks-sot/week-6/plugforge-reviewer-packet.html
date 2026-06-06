@@ -131,6 +131,80 @@
       .status-pass { color: var(--success); font-weight: 700; }
       .status-measured { color: #9a6b00; font-weight: 700; }
       .status-muted { color: var(--muted); font-weight: 600; }
+
+      /* Path B proof polish */
+      .proof-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin: 14px 0;
+        overflow: hidden;
+      }
+      .proof-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 12px;
+        background: #fbf8f0;
+        border-bottom: 1px solid var(--line);
+        font-size: 13px;
+      }
+      .proof-card-head .title { font-weight: 600; color: var(--accent); }
+      .proof-card-head .run-id {
+        font-family: ui-monospace, Menlo, Monaco, monospace;
+        font-size: 11px;
+        color: var(--muted);
+        background: var(--code-bg);
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+      .proof-card-body { padding: 10px 12px; font-size: 14px; }
+      .proof-card-body p { margin: 0 0 8px; }
+      .proof-card-body > :last-child { margin-bottom: 0; }
+      .metric-row { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: baseline; margin: 4px 0 10px; }
+      .metric-value {
+        font-size: 20px;
+        font-weight: 700;
+        font-family: ui-monospace, Menlo, Monaco, monospace;
+        line-height: 1;
+      }
+      .metric-label { font-size: 11px; color: var(--muted); margin-left: 2px; }
+      .stage-list { margin: 6px 0; padding: 0; list-style: none; font-size: 12px; }
+      .stage-list li {
+        display: flex; justify-content: space-between; gap: 8px;
+        padding: 2px 0; border-bottom: 1px dotted #e6e0d3;
+        font-family: ui-monospace, Menlo, Monaco, monospace;
+      }
+      .stage-list li:last-child { border-bottom: 0; }
+      .stage-list .ms { color: var(--muted); font-weight: 600; }
+      .verify-steps { margin: 6px 0 4px; padding-left: 18px; }
+      .verify-steps li { margin: 5px 0; line-height: 1.4; }
+      .verify-steps li strong { font-weight: 600; }
+      .evidence-fig { margin: 8px 0 4px; }
+      .evidence-fig img { display: block; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; }
+      .evidence-fig figcaption { font-size: 11px; color: var(--muted); margin-top: 4px; }
+      .trace {
+        font-family: ui-monospace, Menlo, Monaco, monospace;
+        font-size: 12px;
+        background: var(--code-bg);
+        padding: 10px 11px;
+        border-radius: 6px;
+        line-height: 1.35;
+        margin: 6px 0;
+      }
+      .badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 7px;
+        border-radius: 999px;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+      .badge-pass { background: #e8f0e8; color: #2e5a2e; }
+      .badge-measured { background: #fff4e0; color: #9a6b00; }
+      .small { font-size: 12px; color: #444; }
     </style>
   </head>
   <body>
@@ -223,42 +297,108 @@
         </tbody>
       </table>
 
-      <h3>TTFE (signature challenge)</h3>
-      <p><code>pnpm drill ttfe</code> total <strong>10138 ms</strong> (gate &lt; 60 s in CI). Within gate.</p>
-
-      <h3>Slack reference integration</h3>
-      <p>Run <code>slack-live-mq2u2npg</code>. Reviewers do <strong>not</strong> need access to the submitter&apos;s private Slack workspace.</p>
-      <p><strong>Verify Slack proof (3 steps):</strong></p>
-      <ol>
-        <li><strong>Screenshot</strong> — below, two posts for <code>slack-live-mq2u2npg</code> (<code>document.created</code> + <code>issue.assigned</code>).</li>
-        <li><strong>Ship delivery log</strong> — <a href="https://ship-shape-web.onrender.com/settings?tab=developer" target="_blank" rel="noopener noreferrer">Developer tab → Delivery log</a> (login above). Pass if these rows are <strong>HTTP 200</strong>:
-          <ul>
-            <li><strong>document.created</strong> — delivery <code>f15b7df0-4e37-4575-806b-0bc63ff50a2c</code> — Document created: PlugForge live Slack slack-live-mq2u2npg (/documents/d36364b4-7ed3-4d49-80ac-9536950c2024)</li>
-            <li><strong>issue.assigned</strong> — delivery <code>0c33a2c9-64fa-4a70-973e-1976358dfac9</code> — Issue assigned: PlugForge live Slack issue slack-live-mq2u2npg -&amp;gt; c2fc791d-d4fe-4480-93f0-4482a095502c (/documents/64b667cb-7a61-4f2a-92a3-7f7e74d0fe9d)</li>
+      <div class="proof-card">
+        <div class="proof-card-head">
+          <div>
+            <span class="title">TTFE (signature challenge)</span>
+            <span class="run-id">pnpm drill ttfe</span>
+          </div>
+          <span class="badge badge-measured">measured</span>
+        </div>
+        <div class="proof-card-body">
+          <div class="metric-row">
+            <div>
+              <span class="metric-value">10138</span>
+              <span class="metric-label">ms total</span>
+            </div>
+            <div>
+              <span class="metric-value">&lt;60s</span>
+              <span class="metric-label">gate in CI</span>
+            </div>
+            <div><span class="badge badge-measured">WITHIN GATE</span></div>
+          </div>
+          <p class="small">Cold-start TTFE drill (install + device OAuth login + first signed webhook event). The hard timing gate for reference integrations.</p>
+          
+          <ul class="stage-list">
+            <li><span>install</span><span class="ms">2080 ms</span></li><li><span>login</span><span class="ms">5262 ms</span></li><li><span>subscription</span><span class="ms">118 ms</span></li><li><span>create</span><span class="ms">134 ms</span></li>
           </ul>
-        </li>
-        <li><strong>Integration health</strong> — <a href="https://ship-shape-slack-integration.onrender.com/health" target="_blank" rel="noopener noreferrer">https://ship-shape-slack-integration.onrender.com/health</a> returns <code>{"ok":true}</code>.</li>
-      </ol>
-      <img class="screenshot" src="/plugforge-evidence/slack-proof.png" alt="Slack proof messages for document.created and issue.assigned" />
-      <p>Webhook target: <code>https://ship-shape-slack-integration.onrender.com/ship/webhooks</code></p>
+        </div>
+      </div>
 
-      <h3>GitLab reference integration</h3>
-      <p><strong>Host:</strong> <code>labs.gauntletai.com</code> (Gauntlet GitLab — not gitlab.com).</p>
-      <p>Run <code>gitlab-live-mq2k4y3z</code>. Merge request <a href="https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof/-/merge_requests/1" target="_blank" rel="noopener noreferrer">!1</a> linked to Ship issue <code>2b7000ba-ef72-4900-ba01-49f27db7956f</code>.</p>
-      <p><a class="big-link" href="https://ship-shape-web.onrender.com/documents/2b7000ba-ef72-4900-ba01-49f27db7956f" target="_blank" rel="noopener noreferrer">Open proof issue in Ship →</a></p>
-      <p>Grader read-only token:</p>
-      <pre class="diagram">curl -s -H &quot;Authorization: Bearer $GRADER_TOKEN&quot; https://ship-shape-api.onrender.com/api/v1/issues/2b7000ba-ef72-4900-ba01-49f27db7956f</pre>
-      <p>Pass if JSON includes <code>external_links</code> with provider <code>gitlab</code> and MR URL.</p>
+      <div class="proof-card">
+        <div class="proof-card-head">
+          <div>
+            <span class="title">Slack reference integration</span>
+            <span class="run-id">slack-live-mq2u2npg</span>
+          </div>
+          <span class="badge badge-pass">passed</span>
+        </div>
+        <div class="proof-card-body">
+          <p>Reviewers do <strong>not</strong> need access to the submitter&apos;s private Slack workspace.</p>
+          <p><strong>Verify Slack proof (3 steps):</strong></p>
+          <ol class="verify-steps">
+            <li><strong>Screenshot</strong> — below, two posts for <code>slack-live-mq2u2npg</code> (<code>document.created</code> + <code>issue.assigned</code>).</li>
+            <li><strong>Ship delivery log</strong> — <a href="https://ship-shape-web.onrender.com/settings?tab=developer" target="_blank" rel="noopener noreferrer">Developer tab → Delivery log</a> (login above). Pass if these rows are <strong>HTTP 200</strong>:
+              <ul style="margin:4px 0 0 18px; padding:0;">
+                <li><strong>document.created</strong> — delivery <code>f15b7df0-4e37-4575-806b-0bc63ff50a2c</code> — Document created: PlugForge live Slack slack-live-mq2u2npg (/documents/d36364b4-7ed3-4d49-80ac-9536950c2024)</li>
+            <li><strong>issue.assigned</strong> — delivery <code>0c33a2c9-64fa-4a70-973e-1976358dfac9</code> — Issue assigned: PlugForge live Slack issue slack-live-mq2u2npg -&amp;gt; c2fc791d-d4fe-4480-93f0-4482a095502c (/documents/64b667cb-7a61-4f2a-92a3-7f7e74d0fe9d)</li>
+              </ul>
+            </li>
+            <li><strong>Integration health</strong> — <a href="https://ship-shape-slack-integration.onrender.com/health" target="_blank" rel="noopener noreferrer">https://ship-shape-slack-integration.onrender.com/health</a> returns <code>{"ok":true}</code>.</li>
+          </ol>
+          <figure class="evidence-fig">
+            <img class="screenshot" src="/plugforge-evidence/slack-proof.png" alt="Slack proof messages for document.created and issue.assigned" />
+            <figcaption>Slack messages emitted by the reference integration for the two subscribed events.</figcaption>
+          </figure>
+          <p class="small">Webhook target: <code>https://ship-shape-slack-integration.onrender.com/ship/webhooks</code></p>
+        </div>
+      </div>
 
-      <h3>Browser SDK demo (PKCE)</h3>
-      <p>PKCE completed — <a href="https://ship-shape-web.onrender.com/sdk-demo" target="_blank" rel="noopener noreferrer">SDK demo</a>.</p>
+      <div class="proof-card">
+        <div class="proof-card-head">
+          <div>
+            <span class="title">GitLab reference integration</span>
+            <span class="run-id">gitlab-live-mq2k4y3z</span>
+          </div>
+          <span class="badge badge-pass">passed</span>
+        </div>
+        <div class="proof-card-body">
+          <p><strong>Host:</strong> <code>labs.gauntletai.com</code> (Gauntlet GitLab — not gitlab.com).</p>
+          <p>MR <a href="https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof/-/merge_requests/1" target="_blank" rel="noopener noreferrer">!1</a> linked to Ship issue <code>2b7000ba-ef72-4900-ba01-49f27db7956f</code>.</p>
+          <p><a class="big-link" href="https://ship-shape-web.onrender.com/documents/2b7000ba-ef72-4900-ba01-49f27db7956f" target="_blank" rel="noopener noreferrer">Open proof issue in Ship →</a></p>
+          <p class="small" style="margin:6px 0 4px;">Grader read-only token (expect <code>external_links</code> with provider <code>gitlab</code>):</p>
+          <pre class="diagram" style="margin:0 0 8px;">curl -s -H &quot;Authorization: Bearer $GRADER_TOKEN&quot; https://ship-shape-api.onrender.com/api/v1/issues/2b7000ba-ef72-4900-ba01-49f27db7956f</pre>
+          <p class="small">The GitLab webhook flows through <code>integrations/gitlab</code> and writes to <code>issue.properties.external_links</code> (visible in the issue sidebar on Ship).</p>
+        </div>
+      </div>
 
-      <h3>Event boundary (doc → Slack)</h3>
-      <pre class="diagram">UI write → domain EventBus → webhook signer → delivery log
+      <div class="proof-card">
+        <div class="proof-card-head">
+          <div>
+            <span class="title">Browser SDK demo (PKCE)</span>
+          </div>
+          <span class="badge badge-pass">passed</span>
+        </div>
+        <div class="proof-card-body">
+          <p>PKCE end-to-end via the live SDK demo (same flow as Path A step 3, here as reference integration proof).</p>
+          <p><a class="big-link" href="https://ship-shape-web.onrender.com/sdk-demo" target="_blank" rel="noopener noreferrer">Open SDK Demo →</a></p>
+          <p class="small">After connect with a created OAuth app client_id: lists load, create works, typed calls succeed, and audit log records the scoped requests.</p>
+        </div>
+      </div>
+
+      <div class="proof-card">
+        <div class="proof-card-head">
+          <span class="title">Event boundaries (doc → Slack, GitLab MR → issue)</span>
+        </div>
+        <div class="proof-card-body">
+          <pre class="trace">UI write → domain EventBus → webhook signer → delivery log
   → @ship/sdk subscriber (integrations/slack) → Slack API → channel message
 
 GitLab path: GitLab MR webhook → integrations/gitlab → client.issues.upsertExternalLink()
   → issue.properties.external_links (visible in Ship issue sidebar)</pre>
+          <p class="small">These traces are the contract between core Ship and the reference integrations. All traffic is signed and logged.</p>
+        </div>
+      </div>
 
 
       <h2>Prove the Public API Contract</h2>

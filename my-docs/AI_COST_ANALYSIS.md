@@ -28,8 +28,8 @@ The important conclusion is not "AI was free." It is narrower: the FleetGraph pr
 | FleetGraph persisted estimated model spend | $0.0510714 |
 | FleetGraph corrected estimated model spend | $0.0617114 |
 | Owner-confirmed development/platform cash committed | $537 |
-| Latest published FleetGraph proof packet | 2026-06-01T16:03:40.433Z; `target: local`; 0 model calls |
-| Latest deployed/both proof refresh attempt | 2026-06-06T20:38:35.664Z; verdict `fail`; not deployed |
+| Latest published FleetGraph proof packet | 2026-06-06T20:38:35.664Z; `target: both`; verdict `fail`; 0 model calls |
+| Latest local proof rerun | 2026-06-06T21:17:30.463Z; verdict `fail`; not final proof |
 | Latest published reviewer chain latency | 865 ms |
 | Week 6 PlugForge platform model calls | 0 by design boundary |
 | Week 6 PlugForge metrics aggregate | 219,286 ms local command runtime |
@@ -274,26 +274,24 @@ The two missing persisted-cost rows are both `gpt-5.5` demo-proactive-create run
 
 ### Latest Published Proof Packet
 
-The currently published FleetGraph proof URL returns a local-target packet:
+The currently published FleetGraph proof URL now returns a failed `both` target packet:
 
 | Metric | Value |
 | --- | ---: |
 | URL | `https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.json` |
-| Generated at | 2026-06-01T16:03:40.433Z |
-| Target | `local` |
-| Deployed configured | false |
+| Generated at | 2026-06-06T20:38:35.664Z |
+| Target | `both` |
+| Verdict | `fail` |
+| Deployed configured | true |
 | Required scenarios | 9 |
 | Proven scenarios in latest packet | 0 |
 | Current surface pass/fail | 8 / 0 |
-| Proof packet graph invocations | 0 |
+| Proof packet graph invocations | 100 |
 | Proof packet model calls | 0 |
 | Proof packet estimated model spend | $0.00 |
-| Reviewer chain status | complete |
-| Reviewer chain latency | 865 ms |
-| Reviewer chain model calls | 0 |
-| Reviewer chain cost source | `none` |
+| Public proof status | Deployed, but not pass proof |
 
-This is not the same evidentiary posture as the earlier Week 5 deployed proof packet. The public static file is local because commit `a5c3d066` replaced `web/public/fleetgraph-observability/proof/latest.json` with a local proof artifact and that static artifact later shipped with the web deployment. FleetGraph itself is not local-only; the proof artifact is. For final deployed FleetGraph proof claims, regenerate a deployed/both proof packet and deploy the refreshed static artifact.
+This is better than the earlier stale local-target artifact, but it is still not the same evidentiary posture as the earlier Week 5 deployed proof packet. The prior public static file was local because commit `a5c3d066` replaced `web/public/fleetgraph-observability/proof/latest.json` with a local proof artifact and that static artifact later shipped with the web deployment. FleetGraph itself was never local-only; the proof artifact was stale. For final deployed FleetGraph proof claims, regenerate a deployed/both proof packet until the verdict is `pass`, then deploy that refreshed static artifact.
 
 Proof refresh attempt on 2026-06-06:
 
@@ -314,7 +312,25 @@ Proof refresh attempt on 2026-06-06:
 | Missing public trace links | `blocked`, `stale`, `at_risk`, `on_demand` |
 | Script mismatch | root `pnpm fleetgraph:eval:surface` is missing; API package has `fleetgraph:eval:surface` |
 
-The generated failed `both` packet should not be deployed as final proof. It is useful failure evidence: Render DB access works, the focused E2E path works, and the remaining deployed proof gaps are signal freshness plus public trace publication.
+Fresh local rerun on 2026-06-06:
+
+| Field | Value |
+| --- | ---: |
+| Command | `FLEETGRAPH_PROOF_API_URL=https://ship-shape-api.onrender.com FLEETGRAPH_PROOF_WEB_URL=https://ship-shape-web.onrender.com FLEETGRAPH_PROOF_RENDER_POSTGRES=ship-shape-db E2E_RESULTS_DIR=test-results/fleetgraph-proof pnpm fleetgraph:proof -- --mode both --with-e2e` |
+| Generated at | 2026-06-06T21:17:30.463Z |
+| Target | `both` |
+| Verdict | `fail` |
+| Product surface eval from root proof command | fail; root `fleetgraph:eval:surface` command not found |
+| Direct API product surface eval | pass; 8 current cases pass, 0 fail |
+| Focused API proof tests | pass; 4 files, 34 tests |
+| Focused FleetGraph E2E | pass; 1 test |
+| Deployed configured | true |
+| Deployed graph invocations in packet | 100 |
+| Deployed model calls in packet | 0 |
+| Stuck deployed running ticks | 7 |
+| Missing trace signals | `blocked`, `stale`, `at_risk`, `on_demand` |
+
+The generated failed `both` packets should not be treated as final proof. They are useful failure evidence: Render DB access works, focused API tests work, the focused E2E path works, and the remaining deployed proof gaps are script wiring, signal freshness, public trace publication, and cleanup or explanation of stuck deployed ticks.
 
 ### Runtime Cost Controls
 
@@ -642,5 +658,5 @@ Resolved from owner input on 2026-06-06:
 
 Still open:
 
-1. Refresh deployed FleetGraph proof until the packet verdict is `pass`, then deploy the refreshed static artifact. The 2026-06-06 attempt failed because deployed evidence lacked `at_risk`, lacked public LangSmith trace links, and the root `fleetgraph:eval:surface` script is missing.
+1. Refresh deployed FleetGraph proof until the packet verdict is `pass`, then deploy the refreshed static artifact. The latest 2026-06-06 rerun failed because the root `fleetgraph:eval:surface` script is missing, deployed proof evidence still lacks `at_risk`, public LangSmith trace links are missing, and 7 deployed worker ticks are stuck in `running`.
 2. Provide any Claude/ChatGPT invoice or token export if there was paid usage beyond the confirmed $537 cash basis.
