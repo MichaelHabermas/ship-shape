@@ -9,6 +9,7 @@ import type {
   WebhookDelivery,
   WebhookSubscription,
 } from '@/lib/platform-apps-api';
+import { IntegrationProofPanel } from '@/components/developer/IntegrationProofPanel';
 import {
   AppSelector,
   CreateAppForm,
@@ -255,6 +256,8 @@ export function DeveloperSettingsTab() {
 
   return (
     <div className="space-y-5">
+      <IntegrationProofPanel />
+
       {error && (
         <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
           {error}

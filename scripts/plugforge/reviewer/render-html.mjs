@@ -1,4 +1,9 @@
-<!doctype html>
+// Renders the PlugForge reviewer walkthrough HTML from a normalized evidence model.
+import { ciWorkflowUrl, deployedApiBase, deployedWebBase } from './paths.mjs';
+import { escapeHtml, flowStatusClass, usesEphemeralTunnel } from './reviewer-model.mjs';
+
+export function renderReviewerPacketHtml(model) {
+  return `<!doctype html>
 <!-- GENERATED FILE: run pnpm plugforge:render-reviewer. Do not edit by hand. -->
 <html lang="en">
   <head>
@@ -135,14 +140,14 @@
   </head>
   <body>
     <div class="page">
-      <p class="meta">Week 6 • PlugForge Final Submission • Human Reviewer Edition • evidence run matrix-live-mq2kc6wc</p>
+      <p class="meta">Week 6 • PlugForge Final Submission • Human Reviewer Edition • evidence run ${escapeHtml(model.matrixRunId)}</p>
       <h1>PlugForge Reviewer Walkthrough</h1>
       <p class="lede">Two paths on the <strong>live deployed site</strong>: <strong>Path A</strong> proves the 10 MVP gates (~8–12 min). <strong>Path B</strong> proves the six reference integrations and TTFE (~5 min read, optional clicks). No repo required.</p>
 
       <div class="panel" style="border-color:#e6c96a;background:#fff8e6;">
         <strong style="font-size:15px;">Preflight (do this first)</strong>
         <p style="margin:8px 0 4px;">The API must be the PlugForge build.</p>
-        <pre style="margin:4px 0 8px; font-size:13px;">curl -s https://ship-shape-api.onrender.com/health</pre>
+        <pre style="margin:4px 0 8px; font-size:13px;">curl -s ${deployedApiBase}/health</pre>
         <p style="margin:0;"><strong>Pass if</strong> you see <code>"plugforge":true</code>. If not, the API is stale — redeploy the API. Without this the Developer tab will 404 or show expired errors.</p>
       </div>
 
@@ -153,7 +158,7 @@
           <div><dt>Password</dt><dd>admin123</dd></div>
         </div>
         <p style="margin:10px 0 0; font-size:13px;">After login → workspace name (top left) → <strong>Workspace Settings → Developer</strong> tab.<br>
-        Direct link: <a href="https://ship-shape-web.onrender.com/settings?tab=developer">/settings?tab=developer</a></p>
+        Direct link: <a href="${deployedWebBase}/settings?tab=developer">/settings?tab=developer</a></p>
       </div>
 
       <h2 id="path-a">Path A — MVP gates (5-minute happy path)</h2>
@@ -162,7 +167,7 @@
         <div class="step-num">1</div>
         <div class="step-content">
           <h3>Log in and open the Developer Portal</h3>
-          <p><a class="big-link" href="https://ship-shape-web.onrender.com/settings?tab=developer" target="_blank" rel="noopener noreferrer">Open Developer Tab →</a></p>
+          <p><a class="big-link" href="${deployedWebBase}/settings?tab=developer" target="_blank" rel="noopener noreferrer">Open Developer Tab →</a></p>
           <div class="proof"><strong>Proof:</strong> Live self-service dashboard for OAuth apps, webhooks, delivery log, and audit trail.</div>
         </div>
       </div>
@@ -180,7 +185,7 @@
         <div class="step-num">3</div>
         <div class="step-content">
           <h3>Prove SDK + PKCE (browser demo)</h3>
-          <p><a class="big-link" href="https://ship-shape-web.onrender.com/sdk-demo" target="_blank" rel="noopener noreferrer">Open SDK Demo →</a></p>
+          <p><a class="big-link" href="${deployedWebBase}/sdk-demo" target="_blank" rel="noopener noreferrer">Open SDK Demo →</a></p>
           <p>Paste <strong>client_id</strong> → Connect → consent → lists load. Try Create.</p>
           <div class="proof"><strong>Proof:</strong> Authorization Code + PKCE end-to-end. Gates 2 and 8.</div>
         </div>
@@ -204,58 +209,12 @@
         • Public API audit log<br>
         • Integration proof panel (six-flow status from committed evidence)
       </div>
-      <p><a class="big-link" href="https://ship-shape-web.onrender.com/settings?tab=developer" target="_blank" rel="noopener noreferrer">Open Developer Portal →</a></p>
+      <p><a class="big-link" href="${deployedWebBase}/settings?tab=developer" target="_blank" rel="noopener noreferrer">Open Developer Portal →</a></p>
 
-      
-      <h2 id="integrations">Path B — Reference integrations (beyond MVP gates)</h2>
-      <p>Spec requires at least five integration flows. This submission ships six. Evidence run <code>matrix-live-mq2kc6wc</code> status <span class="status-pass">passed</span>.</p>
-      <div class="callout"><strong>Ephemeral tunnel URLs in evidence.</strong> Webhook targets below use Cloudflare/ngrok tunnels from the last live drill. Re-run with Render-hosted integration URLs per <code>INTEGRATION_HOSTING_RUNBOOK.md</code> before final submission.</div>
-
-      <table>
-        <thead><tr><th>Flow</th><th>Status</th><th>Proof class</th></tr></thead>
-        <tbody>
-          <tr><td>CLI + TTFE drill</td><td class="status-measured">measured</td><td>live</td></tr>
-          <tr><td>Slack reference integration</td><td class="status-pass">passed</td><td>live</td></tr>
-          <tr><td>Browser SDK demo (PKCE)</td><td class="status-pass">passed</td><td>live</td></tr>
-          <tr><td>GitLab MR ↔ issue links</td><td class="status-pass">passed</td><td>live</td></tr>
-          <tr><td>Refresh-token theft drill</td><td class="status-pass">passed_in_proof_pack</td><td>n/a</td></tr>
-          <tr><td>Idempotency-Key replay drill</td><td class="status-pass">passed_in_proof_pack</td><td>n/a</td></tr>
-        </tbody>
-      </table>
-
-      <h3>TTFE (signature challenge)</h3>
-      <p><code>pnpm drill ttfe</code> total <strong>10138 ms</strong> (gate &lt; 60 s in CI). Within gate.</p>
-
-      <h3>Slack reference integration</h3>
-      <p>Run <code>slack-live-mq2i7qe0</code>. Signed webhooks delivered with HTTP 200; Slack OAuth completed; two channel posts verified.</p>
-      <ul>
-            <li><strong>document.created</strong> — ts 1780759487.789429 — Document created: PlugForge live Slack slack-live-mq2i7qe0 (/documents/bad4f53c-d3a5-44b9-971d-6b626fb3f40c)</li>
-            <li><strong>issue.assigned</strong> — ts 1780759488.998489 — Issue assigned: PlugForge live Slack issue slack-live-mq2i7qe0 -&gt; c2fc791d-d4fe-4480-93f0-4482a095502c (/documents/44afa793-e818-4c30-bf40-7622c499268c)</li>
-      </ul>
-      <img class="screenshot" src="/plugforge-evidence/slack-proof.png" alt="Slack proof messages for document.created and issue.assigned" />
-      <p>Webhook target: <code>https://darwin-the-arabic-lows.trycloudflare.com/ship/webhooks</code></p>
-
-      <h3>GitLab reference integration</h3>
-      <p><strong>Host:</strong> <code>labs.gauntletai.com</code> (Gauntlet GitLab — not gitlab.com).</p>
-      <p>Run <code>gitlab-live-mq2k4y3z</code>. Merge request <a href="https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof/-/merge_requests/1" target="_blank" rel="noopener noreferrer">!1</a> linked to Ship issue <code>2b7000ba-ef72-4900-ba01-49f27db7956f</code>.</p>
-      <p><a class="big-link" href="https://ship-shape-web.onrender.com/documents/2b7000ba-ef72-4900-ba01-49f27db7956f" target="_blank" rel="noopener noreferrer">Open proof issue in Ship →</a></p>
-      <p>Grader read-only token:</p>
-      <pre class="diagram">curl -s -H &quot;Authorization: Bearer $GRADER_TOKEN&quot; https://ship-shape-api.onrender.com/api/v1/issues/2b7000ba-ef72-4900-ba01-49f27db7956f</pre>
-      <p>Pass if JSON includes <code>external_links</code> with provider <code>gitlab</code> and MR URL.</p>
-
-      <h3>Browser SDK demo (PKCE)</h3>
-      <p>PKCE completed — <a href="https://ship-shape-web.onrender.com/sdk-demo" target="_blank" rel="noopener noreferrer">SDK demo</a>.</p>
-
-      <h3>Event boundary (doc → Slack)</h3>
-      <pre class="diagram">UI write → domain EventBus → webhook signer → delivery log
-  → @ship/sdk subscriber (integrations/slack) → Slack API → channel message
-
-GitLab path: GitLab MR webhook → integrations/gitlab → client.issues.upsertExternalLink()
-  → issue.properties.external_links (visible in Ship issue sidebar)</pre>
-
+      ${renderIntegrationsSection(model)}
 
       <h2>Prove the Public API Contract</h2>
-      <p><a class="big-link" href="https://ship-shape-web.onrender.com/platform-docs.html" target="_blank" rel="noopener noreferrer">Open Platform Docs →</a></p>
+      <p><a class="big-link" href="${deployedWebBase}/platform-docs.html" target="_blank" rel="noopener noreferrer">Open Platform Docs →</a></p>
       <div class="proof"><strong>Proof:</strong> Generated OpenAPI 3.1, scoped routes, ApiError shape. Gates 4, 5, 7.</div>
 
       <h2 id="gates">Quick Reference: The 10 Hard Gates</h2>
@@ -270,20 +229,84 @@ GitLab path: GitLab MR webhook → integrations/gitlab → client.issues.upsertE
           <tr><td>4</td><td>Documents + scopes</td><td>Platform docs + SDK demo</td></tr>
           <tr><td>5</td><td>ApiError shape</td><td>Any 401/403 body</td></tr>
           <tr><td>6</td><td>403 names missing scope</td><td>Read-only app → try write</td></tr>
-          <tr><td>7</td><td>OpenAPI 3.1</td><td><a href="https://ship-shape-api.onrender.com/api/v1/openapi.json">https://ship-shape-api.onrender.com/api/v1/openapi.json</a></td></tr>
+          <tr><td>7</td><td>OpenAPI 3.1</td><td><a href="${deployedApiBase}/api/v1/openapi.json">${deployedApiBase}/api/v1/openapi.json</a></td></tr>
           <tr><td>8</td><td>SDK typed calls</td><td>SDK demo after connect</td></tr>
-          <tr><td>9</td><td>Regression + perf +10%</td><td><a href="https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml">plugforge-submission CI</a></td></tr>
+          <tr><td>9</td><td>Regression + perf +10%</td><td><a href="${ciWorkflowUrl}">plugforge-submission CI</a></td></tr>
           <tr><td>10</td><td>Deployed + grader OAuth</td><td>Health <code>plugforge:true</code> + submission channel</td></tr>
         </tbody>
       </table>
 
       <div class="callout">
-        <strong>Gates 1–8 are live on the deployed site.</strong> Gates 9–10 and all six integration flows close in <code>pnpm plugforge:submission</code> (<a href="https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml">CI workflow</a>).
+        <strong>Gates 1–8 are live on the deployed site.</strong> Gates 9–10 and all six integration flows close in <code>pnpm plugforge:submission</code> (<a href="${ciWorkflowUrl}">CI workflow</a>).
       </div>
 
       <div class="footer">
-        Path A: login → Developer tab + SDK demo. Path B: <a href="#integrations">integrations section</a> above. Generated 2026-06-06T16:24:04.332Z.
+        Path A: login → Developer tab + SDK demo. Path B: <a href="#integrations">integrations section</a> above. Generated ${escapeHtml(model.generatedAt)}.
       </div>
     </div>
   </body>
-</html>
+</html>`;
+}
+
+function renderIntegrationsSection(model) {
+  const tunnelNote = usesEphemeralTunnel(model)
+    ? '<div class="callout"><strong>Ephemeral tunnel URLs in evidence.</strong> Webhook targets below use Cloudflare/ngrok tunnels from the last live drill. Re-run with Render-hosted integration URLs per <code>INTEGRATION_HOSTING_RUNBOOK.md</code> before final submission.</div>'
+    : '';
+
+  const flowRows = model.flows.map((flow) => (
+    `<tr><td>${escapeHtml(flow.label)}</td><td class="${flowStatusClass(flow.status)}">${escapeHtml(flow.status)}</td><td>${escapeHtml(flow.proofClass)}</td></tr>`
+  )).join('\n          ');
+
+  const slackMessages = model.slack.messages.map((message) => {
+    const link = message.permalink
+      ? `<a href="${escapeHtml(message.permalink)}" target="_blank" rel="noopener noreferrer">permalink</a>`
+      : `ts ${escapeHtml(message.messageTs ?? 'n/a')}`;
+    return `<li><strong>${escapeHtml(message.event)}</strong> — ${link} — ${escapeHtml(message.textPreview ?? '')}</li>`;
+  }).join('\n            ');
+
+  const screenshotBlock = model.slack.hasScreenshot
+    ? `<img class="screenshot" src="${escapeHtml(model.slack.screenshotPublicPath)}" alt="Slack proof messages for document.created and issue.assigned" />`
+    : '<p><em>Screenshot: see submission evidence bundle after next render cycle.</em></p>';
+
+  return `
+      <h2 id="integrations">Path B — Reference integrations (beyond MVP gates)</h2>
+      <p>Spec requires at least five integration flows. This submission ships six. Evidence run <code>${escapeHtml(model.matrixRunId)}</code> status <span class="${flowStatusClass(model.matrixStatus)}">${escapeHtml(model.matrixStatus)}</span>.</p>
+      ${tunnelNote}
+
+      <table>
+        <thead><tr><th>Flow</th><th>Status</th><th>Proof class</th></tr></thead>
+        <tbody>
+          ${flowRows}
+        </tbody>
+      </table>
+
+      <h3>TTFE (signature challenge)</h3>
+      <p><code>${escapeHtml(model.ttfe.command)}</code> total <strong>${escapeHtml(String(model.ttfe.totalMs))} ms</strong> (gate &lt; 60 s in CI). ${model.ttfe.withinGate ? 'Within gate.' : 'Check CI evidence.'}</p>
+
+      <h3>Slack reference integration</h3>
+      <p>Run <code>${escapeHtml(model.slack.runId)}</code>. Signed webhooks delivered with HTTP 200; Slack OAuth completed; two channel posts verified.</p>
+      <ul>
+            ${slackMessages}
+      </ul>
+      ${screenshotBlock}
+      <p>Webhook target: <code>${escapeHtml(model.slack.targetUrl ?? 'n/a')}</code></p>
+
+      <h3>GitLab reference integration</h3>
+      <p><strong>Host:</strong> <code>${escapeHtml(model.gitlab.host)}</code> (Gauntlet GitLab — not gitlab.com).</p>
+      <p>Run <code>${escapeHtml(model.gitlab.runId)}</code>. Merge request <a href="${escapeHtml(model.gitlab.mergeRequestUrl)}" target="_blank" rel="noopener noreferrer">!${escapeHtml(String(model.gitlab.mergeRequestIid ?? '?'))}</a> linked to Ship issue <code>${escapeHtml(model.gitlab.proofIssueId)}</code>.</p>
+      <p><a class="big-link" href="${escapeHtml(model.gitlab.proofIssueUrl)}" target="_blank" rel="noopener noreferrer">Open proof issue in Ship →</a></p>
+      <p>Grader read-only token:</p>
+      <pre class="diagram">${escapeHtml(model.graderCurl)}</pre>
+      <p>Pass if JSON includes <code>external_links</code> with provider <code>gitlab</code> and MR URL.</p>
+
+      <h3>Browser SDK demo (PKCE)</h3>
+      <p>${model.browser.pkceCompleted ? 'PKCE completed' : 'PKCE pending'} — <a href="${escapeHtml(model.browser.sdkDemoUrl)}" target="_blank" rel="noopener noreferrer">SDK demo</a>${model.browser.runId ? ` (run <code>${escapeHtml(model.browser.runId)}</code>)` : ''}.</p>
+
+      <h3>Event boundary (doc → Slack)</h3>
+      <pre class="diagram">UI write → domain EventBus → webhook signer → delivery log
+  → @ship/sdk subscriber (integrations/slack) → Slack API → channel message
+
+GitLab path: GitLab MR webhook → integrations/gitlab → client.issues.upsertExternalLink()
+  → issue.properties.external_links (visible in Ship issue sidebar)</pre>
+`;
+}

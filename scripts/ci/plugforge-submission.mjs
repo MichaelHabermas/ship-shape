@@ -14,6 +14,7 @@ const allowManualPending = args.has('--allow-manual-pending');
 const skipProofPack = args.has('--skip-proof-pack');
 const skipOauthE2e = args.has('--skip-oauth-e2e');
 const skipRender = args.has('--skip-render') || process.env.PLUGFORGE_SUBMISSION_SKIP_RENDER === '1';
+const skipRenderReviewer = args.has('--skip-render-reviewer') || process.env.PLUGFORGE_SUBMISSION_SKIP_RENDER_REVIEWER === '1';
 const skipUrlCheck = args.has('--skip-url-check') || process.env.PLUGFORGE_SUBMISSION_SKIP_URLS === '1';
 const skipLegacySubmission = args.has('--skip-legacy-submission') || process.env.PLUGFORGE_SUBMISSION_SKIP_LEGACY === '1';
 const strictLegacySubmission = args.has('--strict-legacy-submission') || process.env.PLUGFORGE_SUBMISSION_STRICT_LEGACY === '1';
@@ -85,6 +86,7 @@ const requiredFiles = [
 const requiredUrls = [
   { label: 'web app', url: 'https://ship-shape-web.onrender.com/' },
   { label: 'reviewer packet', url: 'https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html' },
+  { label: 'integration proof evidence', url: 'https://ship-shape-web.onrender.com/plugforge-evidence/matrix.json' },
   { label: 'browser SDK demo', url: 'https://ship-shape-web.onrender.com/sdk-demo' },
   { label: 'developer portal route', url: 'https://ship-shape-web.onrender.com/settings?tab=developer' },
   { label: 'API health', url: 'https://ship-shape-api.onrender.com/health', kind: 'health' },
@@ -112,6 +114,11 @@ async function main() {
   }
 
   runStep('Gate honesty (live proof gaps and mock evidence)', 'pnpm', ['plugforge:gate-honesty']);
+
+  if (!skipRenderReviewer) {
+    runStep('Reviewer packet render', 'pnpm', ['plugforge:render-reviewer']);
+    runStep('Reviewer packet freshness check', 'pnpm', ['plugforge:render-reviewer:check']);
+  }
 
   const errors = strictLegacySubmission ? warnings.splice(0) : [];
   errors.push(...validateRequiredFiles(requiredFiles));

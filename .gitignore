@@ -73,6 +73,8 @@ my-docs/evidence/security-audit/runs/**/install.stderr
 my-docs/evidence/security-audit/runs/**/summary-prod.json
 my-docs/evidence/security-audit/runs/**/methodology.json
 *.png
+!my-docs/evidence/plugforge-integrations/live/slack-proof.png
+!web/public/plugforge-evidence/slack-proof.png
 
 # Playwright test artifacts
 playwright-report/

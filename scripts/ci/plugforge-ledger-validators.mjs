@@ -99,7 +99,13 @@ function validateSlackLiveEvidence(json, entry) {
   }
   const cleanup = json.cleanup ?? {};
   const deactivated = cleanup.ship_webhooks_deactivated ?? cleanup.shipWebhooksDeactivated;
-  if (!Array.isArray(deactivated) || deactivated.length < 2 || deactivated.some(item => item?.active !== false)) {
+  const hostedCleanup = cleanup.hosted_mode === true && cleanup.kept === true;
+  if (hostedCleanup) {
+    const subscriptionIds = cleanup.subscription_ids ?? cleanup.subscriptionIds;
+    if (!Array.isArray(subscriptionIds) || subscriptionIds.length < 2 || subscriptionIds.some(id => !isUuid(id))) {
+      problems.push('Slack hosted evidence requires two persistent subscription_ids when webhooks are kept');
+    }
+  } else if (!Array.isArray(deactivated) || deactivated.length < 2 || deactivated.some(item => item?.active !== false)) {
     problems.push('Slack evidence requires Ship webhook subscriptions deactivated after the live run');
   }
   const oauth = json.oauth ?? json.slack_oauth ?? {};

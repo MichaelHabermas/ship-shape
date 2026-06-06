@@ -1,0 +1,156 @@
+{
+  "metric": "ttfe-timing",
+  "proofClass": "live",
+  "approvalMethod": "oauth_device_ui",
+  "status": "measured",
+  "ok": true,
+  "generatedAt": "2026-06-05T19:51:13.098Z",
+  "durationMs": 10412,
+  "command": "pnpm drill ttfe",
+  "targets": {
+    "requiredStages": [
+      "install",
+      "login",
+      "subscription",
+      "create",
+      "receipt",
+      "verification",
+      "total"
+    ],
+    "maxTotalMs": 60000,
+    "cleanMachineDocsOnlyMaxMs": 1800000
+  },
+  "result": {
+    "missingStages": [],
+    "totalMs": 10138,
+    "liveApprovalOk": true,
+    "tailOk": true
+  },
+  "evidence": {
+    "approval": {
+      "method": "oauth_device_ui",
+      "verificationPath": "/oauth/device",
+      "usedUserCodeParam": true,
+      "durationMs": 747
+    },
+    "origins": {
+      "apiUrl": "http://127.0.0.1:62912",
+      "webUrl": "http://127.0.0.1:62913"
+    },
+    "tailEvent": {
+      "verified": true,
+      "event": "document.created",
+      "idempotency_key": "document.created:dffd2207-37c8-4746-987f-65efd884dc68",
+      "payload": {
+        "id": "ea241f57-fb82-4c53-8190-42cac8d25a32",
+        "type": "document.created",
+        "created_at": "2026-06-05T19:51:12.997Z",
+        "data": {
+          "actor": {
+            "id": "568ce94b-f271-442b-aa4b-58a7b2f5bc34"
+          },
+          "document": {
+            "id": "dffd2207-37c8-4746-987f-65efd884dc68",
+            "title": "hello",
+            "ui_url": "/documents/dffd2207-37c8-4746-987f-65efd884dc68",
+            "api_url": "/api/v1/documents/dffd2207-37c8-4746-987f-65efd884dc68",
+            "document_type": "wiki"
+          }
+        }
+      }
+    }
+  },
+  "process": {
+    "exitCode": 0,
+    "signal": null,
+    "durationMs": 10412,
+    "error": null
+  },
+  "drill": {
+    "ok": true,
+    "proofClass": "live",
+    "approvalMethod": "oauth_device_ui",
+    "origins": {
+      "apiUrl": "http://127.0.0.1:62912",
+      "webUrl": "http://127.0.0.1:62913"
+    },
+    "approval": {
+      "method": "oauth_device_ui",
+      "verificationPath": "/oauth/device",
+      "usedUserCodeParam": true,
+      "durationMs": 747
+    },
+    "tailEvent": {
+      "verified": true,
+      "event": "document.created",
+      "idempotency_key": "document.created:dffd2207-37c8-4746-987f-65efd884dc68",
+      "payload": {
+        "id": "ea241f57-fb82-4c53-8190-42cac8d25a32",
+        "type": "document.created",
+        "created_at": "2026-06-05T19:51:12.997Z",
+        "data": {
+          "actor": {
+            "id": "568ce94b-f271-442b-aa4b-58a7b2f5bc34"
+          },
+          "document": {
+            "id": "dffd2207-37c8-4746-987f-65efd884dc68",
+            "title": "hello",
+            "ui_url": "/documents/dffd2207-37c8-4746-987f-65efd884dc68",
+            "api_url": "/api/v1/documents/dffd2207-37c8-4746-987f-65efd884dc68",
+            "document_type": "wiki"
+          }
+        }
+      }
+    },
+    "timings": [
+      {
+        "stage": "install",
+        "ms": 2080
+      },
+      {
+        "stage": "login",
+        "ms": 5262
+      },
+      {
+        "stage": "subscription",
+        "ms": 118
+      },
+      {
+        "stage": "create",
+        "ms": 134
+      },
+      {
+        "stage": "receipt",
+        "ms": 0
+      },
+      {
+        "stage": "verification",
+        "ms": 0
+      },
+      {
+        "stage": "total",
+        "ms": 10138
+      }
+    ],
+    "debugTimings": [
+      {
+        "stage": "migrate",
+        "ms": 445
+      },
+      {
+        "stage": "seed",
+        "ms": 35
+      },
+      {
+        "stage": "api-ready",
+        "ms": 1367
+      },
+      {
+        "stage": "web-ready",
+        "ms": 613
+      }
+    ]
+  },
+  "stderrTail": "oute-properties.d.ts\ndist/types/route-properties.d.ts.map\ndist/types/route-properties.js\ndist/types/route-properties.js.map\ndist/types/user.d.ts\ndist/types/user.d.ts.map\ndist/types/user.js\ndist/types/user.js.map\ndist/types/workspace.d.ts\ndist/types/workspace.d.ts.map\ndist/types/workspace.js\ndist/types/workspace.js.map\npackage.json\nTarball Details\n/var/folders/vq/4drfx8g53yx1wpb4_vyfk_f80000gn/T/ship-ttfe-yJXiIF/artifacts/ship-shared-0.0.0.tgz\n📦  @ship/sdk@0.0.0\nTarball Contents\ndist/errors.d.ts\ndist/errors.d.ts.map\ndist/errors.js\ndist/errors.js.map\ndist/http.d.ts\ndist/http.d.ts.map\ndist/http.js\ndist/http.js.map\ndist/index.d.ts\ndist/index.d.ts.map\ndist/index.js\ndist/index.js.map\ndist/resources.d.ts\ndist/resources.d.ts.map\ndist/resources.js\ndist/resources.js.map\ndist/token-store.d.ts\ndist/token-store.d.ts.map\ndist/token-store.js\ndist/token-store.js.map\ndist/webhook.d.ts\ndist/webhook.d.ts.map\ndist/webhook.js\ndist/webhook.js.map\npackage.json\nsrc/errors.ts\nsrc/http.ts\nsrc/index.test.ts\nsrc/index.ts\nsrc/resources.ts\nsrc/token-store.ts\nsrc/webhook.test.ts\nsrc/webhook.ts\ntsconfig.json\nTarball Details\n/var/folders/vq/4drfx8g53yx1wpb4_vyfk_f80000gn/T/ship-ttfe-yJXiIF/artifacts/ship-sdk-0.0.0.tgz\n📦  @ship/cli@0.0.0\nTarball Contents\npackage.json\nREADME.md\nsrc/index.mjs\nsrc/parse-args.mjs\nsrc/public-api.mjs\ntest/cli-args.test.mjs\ntest/token-store.test.mjs\nTarball Details\n/var/folders/vq/4drfx8g53yx1wpb4_vyfk_f80000gn/T/ship-ttfe-yJXiIF/artifacts/ship-cli-0.0.0.tgz\nProgress: resolved 0, reused 0, downloaded 1, added 0\nPackages: +5\n+++++\nProgress: resolved 5, reused 2, downloaded 3, added 5, done\n\ndependencies:\n+ @ship/cli 0.0.0\n+ @ship/sdk 0.0.0\n+ @ship/shared 0.0.0\n\nDone in 442ms\n(node:59920) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n[ttfe] install: 2080ms\n[api] ◇ injected env (7) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]\n[api] ◇ injected env (10) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }\n[api] API server listening on http://127.0.0.1:62912\n[api] CORS origin: http://127.0.0.1:62913\n[api] ◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]\n[api] ◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }\n[api] Yjs collaboration server attached\nEvents WebSocket server attached\n[api] [FleetGraph] Worker enabled; interval=120000ms instance=fleetgraph-52fbc97c-eba5-4957-8cc8-d7b7ff44a877\n[api] API app ready\n[ttfe:debug] api-ready: 1367ms\n[web] \n  VITE v6.4.2  ready in 105 ms\n\n[web]   ➜  Local:   http://127.0.0.1:62913/\n[ttfe:debug] web-ready: 613ms\nOpen: http://127.0.0.1:62913/oauth/device?user_code=JSEQ-GPUC\nCode: JSEQ-GPUC\nWaiting for approval at http://127.0.0.1:62913/oauth/device\n[api] [Events] User 568ce94b-f271-442b-aa4b-58a7b2f5bc34 connected (1 total connections)\n[web] 2:51:08 PM [vite] ws proxy socket error:\nError: read ECONNRESET\n    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)\n[api] [Events] User 568ce94b-f271-442b-aa4b-58a7b2f5bc34 disconnected (0 total connections)\n[api] [Events] User 568ce94b-f271-442b-aa4b-58a7b2f5bc34 connected (1 total connections)\n[api] [Events] User 568ce94b-f271-442b-aa4b-58a7b2f5bc34 disconnected (0 total connections)\n[ttfe] login: 5262ms\n[tail] Listening on http://127.0.0.1:63000/ship/webhooks\nListening on http://127.0.0.1:63000/ship/webhooks\n[tail] Subscribed b687ea14-2c1c-43b3-8a14-bf8d853e0f29 to document.created\nSubscribed b687ea14-2c1c-43b3-8a14-bf8d853e0f29 to document.created\n[ttfe] subscription: 118ms\n[tail] Deactivated b687ea14-2c1c-43b3-8a14-bf8d853e0f29\ndffd2207-37c8-4746-987f-65efd884dc68\thello\n[ttfe] create: 134ms\n[ttfe] receipt: 0ms\n[ttfe] verification: 0ms\n[ttfe] total: 10138ms\n[api] [Runtime] SIGTERM received; starting graceful shutdown undefined\n",
+  "stdoutTail": null
+}

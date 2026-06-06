@@ -39,7 +39,11 @@ Decision: Render is the final public host for this submission. The final URL nam
 | Decision log | `my-docs/project-weeks-sot/week-6/DECISION_LOG-w6.md` | `pnpm plugforge:submission` |
 | Pre-search | `my-docs/project-weeks-sot/week-6/PRESEARCH.md` | Manual read; all phases answered |
 | Proof ledger | `my-docs/project-weeks-sot/week-6/proof-ledger.yaml` | `pnpm plugforge:ledger` |
-| Reviewer packet | `REVIEWER_GUIDE.md`, `my-docs/project-weeks-sot/week-6/plugforge-reviewer-packet.html`, `web/public/plugforge-reviewer-packet.html` | URL check in `pnpm plugforge:submission` |
+| Reviewer packet | `REVIEWER_GUIDE.md`, `my-docs/project-weeks-sot/week-6/plugforge-reviewer-packet.html`, `web/public/plugforge-reviewer-packet.html` | `pnpm plugforge:render-reviewer` + `:check`; URL check in `pnpm plugforge:submission` |
+| Integration live evidence | `my-docs/evidence/plugforge-integrations/live/{matrix,slack,gitlab,browser-sdk}.json` | Ledger `W6-INT-*`; feeds reviewer renderer |
+| TTFE timing evidence | `my-docs/evidence/plugforge-metrics/ttfe-timing.json` | Ledger `W6-METRIC-*`; feeds reviewer renderer |
+| Slack proof screenshot | `my-docs/evidence/plugforge-integrations/live/slack-proof.png` | Embedded in packet via `web/public/plugforge-evidence/` |
+| Integration hosting runbook | `my-docs/project-weeks-sot/week-6/INTEGRATION_HOSTING_RUNBOOK.md` | Manual Render ops for always-on receivers |
 
 ## External Attachments (gate-relevant)
 

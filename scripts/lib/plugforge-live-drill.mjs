@@ -139,6 +139,34 @@ export function isLocalUrl(value) {
   }
 }
 
+export function isHostedIntegrationUrl(value) {
+  if (!isRealExternalHttpsUrl(value)) return false;
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return hostname.endsWith('.onrender.com');
+  } catch {
+    return false;
+  }
+}
+
+/** True when a webhook/integration URL still points at an ephemeral tunnel. */
+export function isTunnelUrl(value) {
+  if (typeof value !== 'string' || !value) return false;
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return hostname.includes('trycloudflare.com') ||
+      hostname.endsWith('.ngrok-free.app') ||
+      hostname.endsWith('.ngrok.io') ||
+      hostname.endsWith('.loca.lt');
+  } catch {
+    return false;
+  }
+}
+
+export const defaultSlackIntegrationUrl = 'https://ship-shape-slack-integration.onrender.com';
+
+export const defaultGitlabWebhookUrl = 'https://ship-shape-gitlab-integration.onrender.com/gitlab/webhook';
+
 export function isRealExternalHttpsUrl(value) {
   if (typeof value !== 'string' || !value.startsWith('https://')) return false;
   try {

@@ -1,4 +1,5 @@
-import type { BelongsTo } from '@ship/shared';
+// Issue sidebar form state and props; mirrors issue document fields shown in the properties panel.
+import type { BelongsTo, PublicIssueExternalLink } from '@ship/shared';
 
 export interface Issue {
   id: string;
@@ -13,6 +14,7 @@ export interface Issue {
   converted_from_id?: string | null;
   /** Multi-parent associations via junction table */
   belongs_to?: BelongsTo[];
+  external_links?: PublicIssueExternalLink[];
 }
 
 export interface IssueIteration {

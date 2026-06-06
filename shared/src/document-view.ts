@@ -10,6 +10,7 @@ import type {
   IssuePriority,
   IssueState,
 } from './types/document.js';
+import type { PublicIssueExternalLink } from './public-api.js';
 import { ISSUE_PRIORITY_VALUES, ISSUE_STATE_VALUES } from './enums/document-enums.js';
 
 /** Document types rendered in UnifiedEditor (excludes standup/review-only types). */
@@ -114,6 +115,7 @@ export interface IssueDocumentView extends BaseDocumentView {
   converted_from_id?: string | null;
   display_id?: string;
   belongs_to?: BelongsTo[];
+  external_links?: PublicIssueExternalLink[];
 }
 
 export interface ProjectDocumentView extends BaseDocumentView {

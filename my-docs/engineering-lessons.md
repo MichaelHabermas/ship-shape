@@ -427,3 +427,20 @@ The transferable rules:
 - Defer merging unrelated traceability schemas; document which ledger owns which week instead.
 
 ShipShape example (2026-06): `scripts/` had five incompatible `runCommand` implementations, three `parseLedger` copies, and hand-listed PlugForge verify tests that drifted from the YAML ledger. Consolidating `scripts/lib/run-command.mjs`, `plugforge-gate-lib.mjs` parsing, and `plugforge-api-tests.manifest.json` reduced seam risk without collapsing Week 4 and Week 6 ledgers.
+
+## 34. Generate Reviewer Surfaces From Evidence JSON
+
+Hand-maintaining duplicate HTML copies of integration proof guarantees drift the moment live evidence JSON updates. Reviewer walkthroughs should render from the same artifacts the ledger validators trust.
+
+The transferable rules:
+
+- One renderer writes all deployable copies (repo evidence path + `web/public/`).
+- A `:check` command fails CI when HTML is stale vs evidence JSON.
+- Dynamic sections list provider-visible identifiers: MR URLs, message timestamps, delivery ids, TTFE ms.
+- Keep markdown guides as pointers and curl blocks; generate the heavy HTML from evidence.
+
+ShipShape example (2026-06): `pnpm plugforge:render-reviewer` reads `matrix.json`, `slack.json`, `gitlab.json`, and `ttfe-timing.json`, injects Path B into `plugforge-reviewer-packet.html`, and `plugforge:render-reviewer:check` runs in `plugforge:verify` and `plugforge:submission`.
+
+**Are-you-sure follow-ups (2026-06):** Root `*.png` gitignore blocked committing `slack-proof.png` — add negation rules for plugforge evidence paths. `build:web` must call `plugforge:render-reviewer` (not only `copy-evidence`) so local builds match Render. Matrix `cli_ttfe` status is `measured`, not `passed`; renderer must not paint every flow green.
+
+**Proof refresh (2026-06):** `pnpm plugforge:refresh-proof` health-checks Render integrations, runs hosted GitLab + Slack drills, gates on `slack-proof.meta.json` (`live_capture` not `synthetic`), re-renders the reviewer packet, and fails if evidence still cites tunnel URLs. Hosted Slack uses persistent webhook subscription ids + `SLACK_BOT_TOKEN` channel readback (no local OAuth). CI uploads `plugforge-reviewer-proof` artifacts. Secrets checklist: `my-docs/project-weeks-sot/week-6/PROOF_REFRESH_SECRETS.md`.

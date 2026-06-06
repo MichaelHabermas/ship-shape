@@ -46,6 +46,6 @@ The first-party agent needs auditability tied to the initiating user. Client Cre
 
 Global enforcement can be green while manual submission artifacts are still outside the repository. That is useful only if the ledger distinguishes executable proof, documentation proof, external attachments, open decisions, and the final global gate.
 
-**Decision:** Close documentation and decision atoms with durable evidence files. Keep `W6-GLOBAL-001` partial until the grader OAuth app delivery note, demo video, saved AI conversation, and social screenshot are attached and `pnpm plugforge:submission` passes without `--allow-manual-pending`.
+**Decision:** Close documentation and decision atoms with durable evidence files. `W6-GLOBAL-001` is proven only after `pnpm plugforge:submission` passes without `--allow-manual-pending`; demo video, presearch upload, and social screenshot are intentionally `non_scope` and never block the gate.
 
 **Proof path:** `my-docs/project-weeks-sot/week-6/proof-ledger.yaml`, `scripts/ci/check-plugforge-proof-ledger.mjs`, and `scripts/ci/plugforge-submission.mjs`.

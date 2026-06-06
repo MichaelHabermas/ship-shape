@@ -16,6 +16,7 @@ import {
   IssueTriagePanel,
   UndoConversionBanner,
 } from '@/components/sidebars/issue-sidebar-panels';
+import { IssueExternalLinkChips } from '@/components/issues/IssueExternalLinkChips';
 import {
   computeSprintDates,
   type Issue,
@@ -433,6 +434,12 @@ export function IssueSidebar({
           {issue.source === 'external' ? 'External' : 'Internal'}
         </span>
       </PropertyRow>
+
+      {issue.external_links && issue.external_links.length > 0 ? (
+        <PropertyRow label="External links">
+          <IssueExternalLinkChips links={issue.external_links} />
+        </PropertyRow>
+      ) : null}
 
       {issue.state === 'cancelled' && issue.rejection_reason && (
         <PropertyRow label="Rejection Reason">

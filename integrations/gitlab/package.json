@@ -5,6 +5,7 @@
   "description": "Ship GitLab reference integration",
   "type": "module",
   "scripts": {
+    "start": "node src/index.mjs",
     "check": "node --check src/index.mjs && node --test test/*.test.mjs"
   },
   "peerDependencies": {

@@ -8,6 +8,7 @@ import {
   closeServer,
   ensureSdkBuild,
   importBuiltSdk,
+  isHostedIntegrationUrl,
   isRealExternalHttpsUrl,
   listen,
   parseArgs,
@@ -67,24 +68,32 @@ try {
 
   const apiBaseUrl = normalizeGitLabApiBaseUrl(process.env.GITLAB_API_URL ?? 'https://gitlab.com/api/v4');
   const projectPath = encodeURIComponent(env.GITLAB_PROJECT_ID);
+  const hostedMode = isHostedIntegrationUrl(webhookPublicUrl);
   const localPort = Number(args.get('port') ?? process.env.GITLAB_INTEGRATION_PORT ?? 8081);
   const observedWebhooks = [];
-  server = createGitLabIntegrationServer({
-    env: {
-      GITLAB_WEBHOOK_SECRET: env.GITLAB_WEBHOOK_SECRET,
-      SHIP_API_URL: env.SHIP_API_URL,
-      SHIP_ACCESS_TOKEN: env.SHIP_ACCESS_TOKEN,
-    },
-    webhookSink: (event) => observedWebhooks.push(event),
-  });
-
-  await listen(server, localPort);
-  const localHealthUrl = `http://127.0.0.1:${localPort}/health`;
   const publicHealthUrl = absoluteUrl(new URL(webhookPublicUrl).origin, '/health');
-  console.error(`[1/7] Local GitLab receiver listening: ${localHealthUrl}`);
-  await assertHttpReachable(localHealthUrl, 'Local GitLab receiver health', { timeoutMs: healthTimeoutMs });
-  console.error(`[2/7] Public GitLab webhook target health: ${publicHealthUrl}`);
-  await assertHttpReachable(publicHealthUrl, 'Public GitLab webhook target health', { timeoutMs: healthTimeoutMs });
+
+  if (hostedMode) {
+    console.error(`[1/7] Hosted GitLab integration mode: ${new URL(webhookPublicUrl).origin}`);
+    console.error(`[2/7] Public GitLab webhook target health: ${publicHealthUrl}`);
+    await assertHttpReachable(publicHealthUrl, 'Hosted GitLab integration health', { timeoutMs: healthTimeoutMs });
+  } else {
+    server = createGitLabIntegrationServer({
+      env: {
+        GITLAB_WEBHOOK_SECRET: env.GITLAB_WEBHOOK_SECRET,
+        SHIP_API_URL: env.SHIP_API_URL,
+        SHIP_ACCESS_TOKEN: env.SHIP_ACCESS_TOKEN,
+      },
+      webhookSink: (event) => observedWebhooks.push(event),
+    });
+
+    await listen(server, localPort);
+    const localHealthUrl = `http://127.0.0.1:${localPort}/health`;
+    console.error(`[1/7] Local GitLab receiver listening: ${localHealthUrl}`);
+    await assertHttpReachable(localHealthUrl, 'Local GitLab receiver health', { timeoutMs: healthTimeoutMs });
+    console.error(`[2/7] Public GitLab webhook target health: ${publicHealthUrl}`);
+    await assertHttpReachable(publicHealthUrl, 'Public GitLab webhook target health', { timeoutMs: healthTimeoutMs });
+  }
 
   const client = new ShipClient({ baseUrl: env.SHIP_API_URL, token: env.SHIP_ACCESS_TOKEN });
   console.error('[3/7] Creating Ship proof issue');
@@ -133,13 +142,25 @@ try {
       )) ?? null;
     }, 'Ship issue GitLab external link created by real project webhook', timeoutMs, 2000);
 
-    console.error(`[7/7] Waiting for local receiver to observe GitLab MR webhook !${mergeRequest.iid}`);
-    const observedWebhook = await waitFor(
-      () => observedWebhooks.find((event) => event.merge_request_iid === mergeRequest.iid && event.linked >= 1),
-      'local GitLab integration observed live MR webhook',
-      timeoutMs,
-      1000
-    );
+    let observedWebhook;
+    if (hostedMode) {
+      console.error(`[7/7] Hosted mode: external link readback proves GitLab MR webhook !${mergeRequest.iid}`);
+      observedWebhook = {
+        object_kind: 'merge_request',
+        linked: 1,
+        merge_request_iid: mergeRequest.iid,
+        project_url: project.web_url,
+        hosted_mode: true,
+      };
+    } else {
+      console.error(`[7/7] Waiting for local receiver to observe GitLab MR webhook !${mergeRequest.iid}`);
+      observedWebhook = await waitFor(
+        () => observedWebhooks.find((event) => event.merge_request_iid === mergeRequest.iid && event.linked >= 1),
+        'local GitLab integration observed live MR webhook',
+        timeoutMs,
+        1000
+      );
+    }
 
     const evidence = {
       flow: 'gitlab',

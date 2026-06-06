@@ -26,7 +26,13 @@ test('Slack OAuth install stores token and signed Ship webhooks post once per Id
         return jsonResponse({ ok: true, access_token: 'xoxb-installed', team: { id: 'T123' }, bot_user_id: 'B123' });
       }
       if (url.toString().endsWith('/chat.postMessage')) {
-        return jsonResponse({ ok: true, ts: '1.234' });
+        return jsonResponse({ ok: true, ts: '1.234', channel: 'C123' });
+      }
+      if (url.toString().includes('/chat.getPermalink')) {
+        return jsonResponse({
+          ok: true,
+          permalink: 'https://example.slack.com/archives/C123/p1234',
+        });
       }
       return jsonResponse({ ok: false }, 404);
     },
@@ -69,7 +75,7 @@ test('Slack OAuth install stores token and signed Ship webhooks post once per Id
       event: 'document.created',
       channel: 'C123',
       message_ts: '1.234',
-      permalink: null,
+      permalink: 'https://example.slack.com/archives/C123/p1234',
       text: 'Document created: Demo Doc (https://ship.test/documents/doc-1)',
     }]);
   } finally {
@@ -86,9 +92,14 @@ test('signed issue.assigned webhooks post to Slack with env bot token', async ()
       SHIP_WEBHOOK_SECRET: webhookSecret,
     },
     fetch: async (url, init) => {
-      assert.equal(url.toString(), 'https://slack.com/api/chat.postMessage');
-      postBodies.push(JSON.parse(init.body));
-      return jsonResponse({ ok: true, ts: '2.345' });
+      if (url.toString().endsWith('/chat.postMessage')) {
+        postBodies.push(JSON.parse(init.body));
+        return jsonResponse({ ok: true, ts: '2.345', channel: 'C999' });
+      }
+      if (url.toString().includes('/chat.getPermalink')) {
+        return jsonResponse({ ok: true, permalink: 'https://example.slack.com/archives/C999/p2345' });
+      }
+      return jsonResponse({ ok: false }, 404);
     },
   });
   await listen(server);

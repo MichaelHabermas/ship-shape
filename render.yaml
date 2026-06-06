@@ -68,7 +68,7 @@ services:
   - type: web
     name: ship-shape-web
     runtime: static
-    buildCommand: CI=true pnpm install --frozen-lockfile && pnpm build:shared && pnpm --filter @ship/web exec tsc && VITE_API_URL=https://ship-shape-api.onrender.com VITE_WS_URL=https://ship-shape-api.onrender.com VITE_APP_ENV=production pnpm --filter @ship/web exec vite build
+    buildCommand: CI=true pnpm install --frozen-lockfile && pnpm build:shared && pnpm plugforge:copy-evidence && pnpm plugforge:render-reviewer && pnpm --filter @ship/web exec tsc && VITE_API_URL=https://ship-shape-api.onrender.com VITE_WS_URL=https://ship-shape-api.onrender.com VITE_APP_ENV=production pnpm --filter @ship/web exec vite build
     staticPublishPath: ./web/dist
     headers:
       - path: /*
@@ -88,6 +88,50 @@ services:
         value: https://ship-shape-api.onrender.com
       - key: VITE_WS_URL
         value: https://ship-shape-api.onrender.com
+
+  - type: web
+    name: ship-shape-slack-integration
+    runtime: node
+    plan: starter
+    buildCommand: CI=true pnpm install --frozen-lockfile && pnpm --filter @ship/shared build && pnpm --filter @ship/sdk build
+    startCommand: node integrations/slack/src/index.mjs
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: SLACK_CLIENT_ID
+        sync: false
+      - key: SLACK_CLIENT_SECRET
+        sync: false
+      - key: SLACK_REDIRECT_URI
+        value: https://ship-shape-slack-integration.onrender.com/slack/oauth/callback
+      - key: SLACK_CHANNEL_ID
+        sync: false
+      - key: SLACK_BOT_TOKEN
+        sync: false
+      - key: SHIP_WEBHOOK_SECRETS
+        sync: false
+
+  - type: web
+    name: ship-shape-gitlab-integration
+    runtime: node
+    plan: starter
+    buildCommand: CI=true pnpm install --frozen-lockfile && pnpm --filter @ship/shared build && pnpm --filter @ship/sdk build
+    startCommand: node integrations/gitlab/src/index.mjs
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: SHIP_API_URL
+        value: https://ship-shape-api.onrender.com
+      - key: SHIP_ACCESS_TOKEN
+        sync: false
+      - key: GITLAB_WEBHOOK_SECRET
+        sync: false
 
   - type: web
     name: ship-shape-reviewer-evidence

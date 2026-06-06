@@ -8,6 +8,7 @@ import { verifyWebhook } from '@ship/sdk';
 const SLACK_AUTHORIZE_URL = 'https://slack.com/oauth/v2/authorize';
 const SLACK_OAUTH_URL = 'https://slack.com/api/oauth.v2.access';
 const SLACK_POST_MESSAGE_URL = 'https://slack.com/api/chat.postMessage';
+const SLACK_GET_PERMALINK_URL = 'https://slack.com/api/chat.getPermalink';
 const JSON_HEADERS = { 'content-type': 'application/json' };
 
 export function createSlackIntegrationServer(options = {}) {
@@ -166,10 +167,30 @@ async function postSlackMessage(text, deps) {
     const reason = payload.error ?? `${response.status} ${response.statusText}`;
     throw new Error(`SLACK_POST_MESSAGE_FAILED: ${reason}`);
   }
+  const resolvedChannel = payload.channel ?? channel;
+  const permalink = payload.ts
+    ? await fetchSlackPermalink(deps.fetchImpl, token, resolvedChannel, payload.ts)
+    : null;
   return {
     ...payload,
-    channel: payload.channel ?? channel,
+    channel: resolvedChannel,
+    permalink,
   };
+}
+
+async function fetchSlackPermalink(fetchImpl, token, channel, messageTs) {
+  const url = new URL(SLACK_GET_PERMALINK_URL);
+  url.searchParams.set('channel', channel);
+  url.searchParams.set('message_ts', messageTs);
+  const response = await fetchImpl(url, {
+    method: 'GET',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.ok === false || typeof payload.permalink !== 'string') {
+    return null;
+  }
+  return payload.permalink;
 }
 
 export function slackMessageForEvent(event) {

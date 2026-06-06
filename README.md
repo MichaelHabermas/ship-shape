@@ -256,7 +256,9 @@ Start with [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md). The final Week 5 delivera
 
 **The only closure target:** `pnpm plugforge:submission` — one command, runs everything (proof pack, OAuth E2E, gate honesty, evidence, deployed URLs, ledger enforce). CI: [`.github/workflows/plugforge-submission.yml`](./.github/workflows/plugforge-submission.yml).
 
-Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-docs/project-weeks-sot/week-6/). Canonical surfaces:
+Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-docs/project-weeks-sot/week-6/). The broader [`my-docs/`](./my-docs/) tree is the public submission evidence archive: proof ledgers, assignment specs, manual proof logs, and generated evidence. It is not personal scratch space.
+
+Canonical surfaces:
 
 | Surface | Local path |
 |---------|------------|
@@ -274,6 +276,8 @@ Week 6 source of truth lives under [`my-docs/project-weeks-sot/week-6/`](./my-do
 | Slack live proof drill | `pnpm plugforge:live:slack` |
 | GitLab reference integration | [`integrations/gitlab`](./integrations/gitlab) |
 | GitLab live proof drill | `pnpm plugforge:live:gitlab` |
+| Reviewer packet renderer | `pnpm plugforge:render-reviewer` (from live evidence JSON) |
+| Integration hosting runbook | [`INTEGRATION_HOSTING_RUNBOOK.md`](./my-docs/project-weeks-sot/week-6/INTEGRATION_HOSTING_RUNBOOK.md) |
 
 Demo login remains `dev@ship.local` / `admin123` for live gate proofs in the Developer tab. Per [`Plugforge-specs.txt`](./my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt), graders receive a **pre-registered** read-only OAuth app (`documents:read`, `issues:read`, `sprints:read`): public repo and README list `client_id`, redirect URI, and scopes; `client_secret` is delivered only through the private submission channel (`W6-SUBMIT-006`). Run the drill live — it produces the verified signed webhook that is the actual acceptance bar.
 

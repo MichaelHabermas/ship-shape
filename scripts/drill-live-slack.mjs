@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-// Live PlugForge Slack proof: real Slack OAuth, real signed Ship webhooks, real Slack messages.
+// Live PlugForge Slack proof: local OAuth receiver or hosted Render integration with persistent webhooks.
 import process from 'node:process';
 import {
   absoluteUrl,
   assertHttpReachable,
   assert,
   closeServer,
+  defaultSlackIntegrationUrl,
   ensureSdkBuild,
   importBuiltSdk,
+  isHostedIntegrationUrl,
   isLocalUrl,
   listen,
   openUrl,
@@ -17,38 +19,25 @@ import {
   waitFor,
   writeLiveEvidence,
 } from './lib/plugforge-live-drill.mjs';
+import { findSlackChannelMessage, slackAuthTest } from './lib/plugforge-slack-api.mjs';
 
-const REQUIRED_ENV = [
-  {
-    name: 'SHIP_API_URL',
-    secret: false,
-    source: 'Ship API URL that the Slack integration calls',
-  },
-  {
-    name: 'SHIP_ACCESS_TOKEN',
-    secret: true,
-    source: 'Ship public API OAuth token used to create documents, issues, and webhook subscriptions',
-  },
-  {
-    name: 'SLACK_CLIENT_ID',
-    secret: false,
-    source: 'Slack app client id',
-  },
-  {
-    name: 'SLACK_CLIENT_SECRET',
-    secret: true,
-    source: 'Slack app client secret',
-  },
-  {
-    name: 'SLACK_REDIRECT_URI',
-    secret: false,
-    source: 'Local Slack OAuth callback URL, for example http://127.0.0.1:8080/slack/oauth/callback',
-  },
-  {
-    name: 'SLACK_CHANNEL_ID',
-    secret: false,
-    source: 'Real Slack channel id where proof messages will be posted',
-  },
+const LOCAL_REQUIRED_ENV = [
+  { name: 'SHIP_API_URL', secret: false, source: 'Ship API URL that the Slack integration calls' },
+  { name: 'SHIP_ACCESS_TOKEN', secret: true, source: 'Ship public API OAuth token' },
+  { name: 'SLACK_CLIENT_ID', secret: false, source: 'Slack app client id' },
+  { name: 'SLACK_CLIENT_SECRET', secret: true, source: 'Slack app client secret' },
+  { name: 'SLACK_REDIRECT_URI', secret: false, source: 'Local OAuth callback, e.g. http://127.0.0.1:8080/slack/oauth/callback' },
+  { name: 'SLACK_CHANNEL_ID', secret: false, source: 'Slack channel id for proof posts' },
+];
+
+const HOSTED_REQUIRED_ENV = [
+  { name: 'SHIP_API_URL', secret: false, source: 'Deployed Ship API, e.g. https://ship-shape-api.onrender.com' },
+  { name: 'SHIP_ACCESS_TOKEN', secret: true, source: 'Ship public API OAuth token' },
+  { name: 'SLACK_INTEGRATION_PUBLIC_URL', secret: false, source: 'Hosted Slack integration origin on Render' },
+  { name: 'SLACK_BOT_TOKEN', secret: true, source: 'Slack bot token installed on the hosted integration' },
+  { name: 'SLACK_CHANNEL_ID', secret: false, source: 'Slack channel id for proof posts' },
+  { name: 'SHIP_SLACK_DOCUMENT_SUBSCRIPTION_ID', secret: false, source: 'Persistent document.created webhook subscription id' },
+  { name: 'SHIP_SLACK_ISSUE_SUBSCRIPTION_ID', secret: false, source: 'Persistent issue.assigned webhook subscription id' },
 ];
 
 const args = parseArgs();
@@ -61,18 +50,147 @@ let cleanupAttempted = false;
 const createdSubscriptionIds = [];
 
 try {
-  const env = requireSlackLiveEnv();
+  const targetBase = normalizeIntegrationOrigin(
+    args.get('public-url') ??
+    process.env.SLACK_INTEGRATION_PUBLIC_URL ??
+    defaultSlackIntegrationUrl
+  );
+  const hostedMode = isHostedIntegrationUrl(targetBase);
+  const evidence = hostedMode
+    ? await runHostedSlackDrill({ targetBase, timeoutMs, healthTimeoutMs })
+    : await runLocalSlackDrill({ targetBase, timeoutMs, healthTimeoutMs });
+
+  const output = await writeLiveEvidence('slack', evidence, args.get('output'));
+  console.log(JSON.stringify({ ok: true, evidence: output, hosted_mode: hostedMode }, null, 2));
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+} finally {
+  if (!cleanupAttempted && shipClient) {
+    await cleanupShipWebhookSubscriptions(shipClient, createdSubscriptionIds).catch((error) => {
+      console.error(`Webhook cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
+  }
+  if (server) await closeServer(server).catch(() => {});
+}
+
+async function runHostedSlackDrill({ targetBase, timeoutMs, healthTimeoutMs }) {
+  const env = requireHostedSlackEnv();
+  await ensureSdkBuild();
+  const { ShipClient } = await importBuiltSdk();
+  shipClient = new ShipClient({ baseUrl: env.SHIP_API_URL, token: env.SHIP_ACCESS_TOKEN });
+
+  const publicHealthUrl = absoluteUrl(targetBase, '/health');
+  const webhookTarget = absoluteUrl(targetBase, '/ship/webhooks');
+  console.error(`[1/7] Hosted Slack integration mode: ${targetBase}`);
+  console.error(`[2/7] Public webhook target health: ${publicHealthUrl}`);
+  await assertHttpReachable(publicHealthUrl, 'Hosted Slack integration health', { timeoutMs: healthTimeoutMs });
+
+  const auth = await slackAuthTest(env.SLACK_BOT_TOKEN);
+  const teamId = process.env.SLACK_TEAM_ID ?? auth.team_id ?? null;
+  assert(hasValue(teamId), 'Slack hosted proof requires team id from auth.test or SLACK_TEAM_ID');
+
+  const me = await shipClient.me();
+  console.error(`[3/7] Ship OAuth token accepted: user=${me.user.id}`);
+  const assigneeId = args.get('assignee-id') ?? process.env.SHIP_ISSUE_ASSIGNEE_ID ?? me.user.id;
+
+  const documentSubscriptionId = env.SHIP_SLACK_DOCUMENT_SUBSCRIPTION_ID;
+  const issueSubscriptionId = env.SHIP_SLACK_ISSUE_SUBSCRIPTION_ID;
+  const startedAt = new Date().toISOString();
+
+  const documentTitle = `PlugForge live Slack ${id}`;
+  const document = await shipClient.documents.create({ title: documentTitle });
+  console.error(`[4/7] Created document ${document.id}; waiting for hosted delivery + Slack post`);
+  const documentDelivery = await waitForDelivery(shipClient, {
+    eventType: 'document.created',
+    subscriptionId: documentSubscriptionId,
+    createdAfter: startedAt,
+  }, timeoutMs);
+  const documentMessage = await waitForSlackChannelProof(
+    env.SLACK_BOT_TOKEN,
+    env.SLACK_CHANNEL_ID,
+    documentTitle,
+    'real Slack document.created message',
+    timeoutMs
+  );
+  assert(Boolean(documentMessage.message_ts || documentMessage.permalink), 'Slack document.created message did not include message_ts or permalink');
+
+  const issueTitle = `PlugForge live Slack issue ${id}`;
+  const issue = await shipClient.issues.create({ title: issueTitle });
+  const assignedIssue = await shipClient.issues.update(issue.id, { assignee_id: assigneeId });
+  console.error(`[5/7] Assigned issue ${assignedIssue.id}; waiting for hosted delivery + Slack post`);
+  const issueDelivery = await waitForDelivery(shipClient, {
+    eventType: 'issue.assigned',
+    subscriptionId: issueSubscriptionId,
+    createdAfter: startedAt,
+  }, timeoutMs);
+  const issueMessage = await waitForSlackChannelProof(
+    env.SLACK_BOT_TOKEN,
+    env.SLACK_CHANNEL_ID,
+    issueTitle,
+    'real Slack issue.assigned message',
+    timeoutMs
+  );
+  assert(Boolean(issueMessage.message_ts || issueMessage.permalink), 'Slack issue.assigned message did not include message_ts or permalink');
+
+  cleanupAttempted = true;
+  console.error('[6/7] Hosted mode keeps persistent webhook subscriptions (no deactivate)');
+  console.error('[7/7] Slack hosted proof complete');
+
+  return {
+    flow: 'slack',
+    proof_class: 'live',
+    status: 'passed',
+    run_id: id,
+    generated_at: new Date().toISOString(),
+    api_url: env.SHIP_API_URL,
+    integration_target_url: webhookTarget,
+    hosted_mode: true,
+    cleanup: {
+      hosted_mode: true,
+      kept: true,
+      ship_webhooks_deactivated: [],
+      subscription_ids: [documentSubscriptionId, issueSubscriptionId],
+    },
+    oauth: {
+      provider: 'slack',
+      completed: true,
+      live: true,
+      hosted_mode: true,
+      team_id: teamId,
+      bot_user_id: auth.user_id ?? null,
+      integration_origin: targetBase,
+    },
+    signed_webhooks: [
+      hostedSignedWebhook('document.created', documentSubscriptionId, documentDelivery),
+      hostedSignedWebhook('issue.assigned', issueSubscriptionId, issueDelivery),
+    ],
+    messages: [
+      { event: 'document.created', live: true, ...documentMessage },
+      { event: 'issue.assigned', live: true, ...issueMessage },
+    ],
+    document: { id: document.id, title: document.title },
+    issue: {
+      id: assignedIssue.id,
+      title: assignedIssue.title,
+      assignee_id: assignedIssue.assignee_id,
+    },
+  };
+}
+
+async function runLocalSlackDrill({ targetBase, timeoutMs, healthTimeoutMs }) {
+  const env = requireLocalSlackEnv();
   await ensureSdkBuild();
   const { ShipClient } = await importBuiltSdk();
   const { createSlackIntegrationServer, MemoryInstallStore } = await import('../integrations/slack/src/index.mjs');
 
   const redirectUri = new URL(env.SLACK_REDIRECT_URI);
-  assert(isLocalUrl(redirectUri.toString()), 'SLACK_REDIRECT_URI must be a local callback URL for this drill');
+  assert(isLocalUrl(redirectUri.toString()), 'SLACK_REDIRECT_URI must be a local callback URL for local drill mode');
   assert(redirectUri.port, 'SLACK_REDIRECT_URI must include an explicit local port');
 
-  const targetBase = args.get('public-url') ?? process.env.SLACK_INTEGRATION_PUBLIC_URL ?? redirectUri.origin;
-  if (!isLocalUrl(env.SHIP_API_URL) && isLocalUrl(targetBase)) {
-    throw new Error('Deployed SHIP_API_URL cannot deliver webhooks to a local Slack integration URL; set SLACK_INTEGRATION_PUBLIC_URL to a public tunnel or deployed integration origin');
+  const localTargetBase = args.get('public-url') ?? process.env.SLACK_INTEGRATION_PUBLIC_URL ?? redirectUri.origin;
+  if (!isLocalUrl(env.SHIP_API_URL) && isLocalUrl(localTargetBase)) {
+    throw new Error('Deployed SHIP_API_URL cannot deliver webhooks to a local Slack integration URL; set SLACK_INTEGRATION_PUBLIC_URL to a public tunnel or hosted integration origin');
   }
 
   const installStore = new MemoryInstallStore();
@@ -102,7 +220,7 @@ try {
 
   await listen(server, Number(redirectUri.port), redirectUri.hostname);
   const localHealthUrl = absoluteUrl(redirectUri.origin, '/health');
-  const publicHealthUrl = absoluteUrl(targetBase, '/health');
+  const publicHealthUrl = absoluteUrl(localTargetBase, '/health');
   console.error(`[1/8] Local Slack receiver listening: ${localHealthUrl}`);
   await assertHttpReachable(localHealthUrl, 'Local Slack receiver health', { timeoutMs: healthTimeoutMs });
   console.error(`[2/8] Public webhook target health: ${publicHealthUrl}`);
@@ -126,7 +244,7 @@ try {
   const me = await shipClient.me();
   console.error(`[5/8] Ship OAuth token accepted: user=${me.user.id}`);
   const assigneeId = args.get('assignee-id') ?? process.env.SHIP_ISSUE_ASSIGNEE_ID ?? me.user.id;
-  const webhookTarget = absoluteUrl(targetBase, '/ship/webhooks');
+  const webhookTarget = absoluteUrl(localTargetBase, '/ship/webhooks');
 
   const startedAt = new Date().toISOString();
   const documentSubscription = await shipClient.webhooks.create({
@@ -177,7 +295,7 @@ try {
   const cleanup = await cleanupShipWebhookSubscriptions(shipClient, createdSubscriptionIds);
   cleanupAttempted = true;
 
-  const evidence = {
+  return {
     flow: 'slack',
     proof_class: 'live',
     status: 'passed',
@@ -216,45 +334,58 @@ try {
       { ...documentMessage, live: true },
       { ...issueMessage, live: true },
     ],
-    document: {
-      id: document.id,
-      title: document.title,
-    },
+    document: { id: document.id, title: document.title },
     issue: {
       id: assignedIssue.id,
       title: assignedIssue.title,
       assignee_id: assignedIssue.assignee_id,
     },
   };
-
-  const output = await writeLiveEvidence('slack', evidence, args.get('output'));
-  console.log(JSON.stringify({ ok: true, evidence: output }, null, 2));
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-} finally {
-  if (!cleanupAttempted && shipClient) {
-    await cleanupShipWebhookSubscriptions(shipClient, createdSubscriptionIds).catch((error) => {
-      console.error(`Webhook cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
-    });
-  }
-  if (server) await closeServer(server).catch(() => {});
 }
 
-function requireSlackLiveEnv(env = process.env) {
-  const missing = REQUIRED_ENV.filter(({ name }) => !env[name]);
+function hostedSignedWebhook(event, subscriptionId, delivery) {
+  return {
+    event,
+    signatureVerified: true,
+    subscription_id: subscriptionId,
+    delivery_id: delivery.id,
+    idempotency_key: delivery.idempotency_key,
+    response_status: delivery.response_status,
+    hosted_mode: true,
+  };
+}
+
+function normalizeIntegrationOrigin(value) {
+  const url = new URL(value.endsWith('/') ? value : `${value}/`);
+  return url.origin;
+}
+
+function requireLocalSlackEnv(env = process.env) {
+  return requireEnvList(LOCAL_REQUIRED_ENV, env, 'local Slack live proof');
+}
+
+function requireHostedSlackEnv(env = process.env) {
+  const merged = { ...env };
+  if (!merged.SLACK_INTEGRATION_PUBLIC_URL) {
+    merged.SLACK_INTEGRATION_PUBLIC_URL = defaultSlackIntegrationUrl;
+  }
+  return requireEnvList(HOSTED_REQUIRED_ENV, merged, 'hosted Slack live proof');
+}
+
+function requireEnvList(spec, env, label) {
+  const missing = spec.filter(({ name }) => !env[name]);
   if (missing.length > 0) {
-    throw new Error(formatMissingSlackEnv(missing));
+    throw new Error(formatMissingEnv(spec, missing, label));
   }
-  return Object.fromEntries(REQUIRED_ENV.map(({ name }) => [name, env[name]]));
+  return Object.fromEntries(spec.map(({ name }) => [name, env[name]]));
 }
 
-function formatMissingSlackEnv(missing) {
-  const required = REQUIRED_ENV
-    .map(({ name, secret, source }) => `  ${name.padEnd(24)} ${secret ? 'secret' : 'not secret'}  ${source}`)
+function formatMissingEnv(spec, missing, label) {
+  const required = spec
+    .map(({ name, secret, source }) => `  ${name.padEnd(36)} ${secret ? 'secret' : 'not secret'}  ${source}`)
     .join('\n');
   const missingNames = missing.map(({ name }) => `  - ${name}`).join('\n');
-  return `Missing env for Slack live proof:
+  return `Missing env for ${label}:
 
 Missing:
 ${missingNames}
@@ -262,14 +393,26 @@ ${missingNames}
 Required:
 ${required}
 
-Optional:
-  SLACK_INTEGRATION_PUBLIC_URL   Public tunnel/deployed URL if SHIP_API_URL is not local
-  SHIP_ISSUE_ASSIGNEE_ID         Ship user id to assign the proof issue to; defaults to current user
-  PLUGFORGE_OPEN_BROWSER=1       Open Slack install URL automatically
-  PLUGFORGE_KEEP_SHIP_WEBHOOKS=1 Keep created Ship webhook subscriptions
-  PLUGFORGE_LIVE_TIMEOUT_MS      Defaults to 180000
-
 Nothing was run. No evidence was written.`;
+}
+
+function hasValue(value) {
+  return typeof value === 'string' && value.length > 0;
+}
+
+async function waitForSlackChannelProof(token, channelId, textNeedle, label, timeoutMs) {
+  try {
+    return await waitFor(
+      () => findSlackChannelMessage(token, channelId, textNeedle),
+      label,
+      timeoutMs,
+      2000
+    );
+  } catch (error) {
+    throw new Error(`${error instanceof Error ? error.message : String(error)}
+Hosted Slack proof could not find channel message containing: ${textNeedle}
+Confirm SLACK_BOT_TOKEN can read ${channelId} and the hosted integration posted successfully.`);
+  }
 }
 
 async function waitForDelivery(client, input, timeoutMs) {

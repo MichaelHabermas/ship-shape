@@ -4,11 +4,11 @@ This file is the **entry index** for human reviewers: preflight, URLs, and the f
 
 **https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html**
 
-Open that packet first (~8–12 min on the live site). Use the sections below for curl preflight, gate-by-gate checks, grader OAuth delivery (spec gate 10), and CI closure.
+Open that packet first. **Path A** (MVP gates) takes ~8–12 min on the live site. **Path B** (six reference integrations + TTFE) is a ~5 min read in the packet’s [integrations section](https://ship-shape-web.onrender.com/plugforge-reviewer-packet.html#integrations). Use the sections below for curl preflight, gate-by-gate checks, grader OAuth delivery (spec gate 10), and CI closure.
 
 Verify the **10 hard gates** from [`Plugforge-specs.txt`](./my-docs/project-weeks-sot/week-6/w6-specs/Plugforge-specs.txt) on the **deployed** site. No local setup.
 
-**Closure target:** `pnpm plugforge:submission` must pass on `main` ([CI workflow](https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml)).
+**Closure target:** `pnpm plugforge:submission` must pass on `master` ([CI workflow](https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml)).
 
 ---
 
@@ -90,6 +90,34 @@ Each row: do the **live check**, then confirm **pass if**.
 
 ---
 
+## Integrations proof (beyond MVP gates) — Path B
+
+The spec requires at least five integration flows; this submission ships six (CLI/TTFE, Slack, browser SDK, GitLab, refresh-token theft, idempotency replay). The deployed packet section is **generated** from committed evidence JSON — run `pnpm plugforge:render-reviewer` after evidence changes.
+
+| Flow | Quick reviewer check |
+|------|----------------------|
+| **Matrix rollup** | Packet shows run id and six rows all passed |
+| **CLI / TTFE** | Total ms &lt; 60 s in [`ttfe-timing.json`](./my-docs/evidence/plugforge-metrics/ttfe-timing.json) |
+| **Browser SDK** | [SDK demo](https://ship-shape-web.onrender.com/sdk-demo) — same as gate 2 |
+| **Slack** | Screenshot + signed webhook delivery ids in packet; live posts to Slack channel |
+| **GitLab** | [Live MR on labs.gauntletai.com](https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof/-/merge_requests/1) — **not** gitlab.com |
+| **Security drills** | CI proof pack only (refresh-theft + idempotency tests) |
+
+**GitLab proof issue in Ship:** open [proof issue](https://ship-shape-web.onrender.com/documents/2b7000ba-ef72-4900-ba01-49f27db7956f) after login — external link chip should show the GitLab MR.
+
+**Grader API readback** (pre-registered read-only token from submission channel):
+
+```bash
+curl -s -H "Authorization: Bearer $GRADER_TOKEN" \
+  https://ship-shape-api.onrender.com/api/v1/issues/2b7000ba-ef72-4900-ba01-49f27db7956f
+```
+
+**Pass if:** JSON includes `external_links` with `provider: "gitlab"` and the MR URL.
+
+Evidence paths: [`my-docs/evidence/plugforge-integrations/live/`](./my-docs/evidence/plugforge-integrations/live/) (`matrix.json`, `slack.json`, `gitlab.json`, `browser-sdk.json`).
+
+---
+
 ## Automated closure
 
 Everything in the proof ledger, evidence files, deployed URLs, live integrations, and TTFE/webhook drills must pass:
@@ -98,7 +126,7 @@ Everything in the proof ledger, evidence files, deployed URLs, live integrations
 pnpm plugforge:submission
 ```
 
-Pre-handoff (external attachments still pending):
+Pre-handoff only while the private grader OAuth secret delivery note is still pending:
 
 ```bash
 pnpm plugforge:submission -- --allow-manual-pending

@@ -8,6 +8,7 @@ cd "${ROOT_DIR}"
 pnpm lint
 pnpm type-check
 pnpm plugforge:ledger
+pnpm plugforge:render-reviewer:check
 pnpm openapi:check:strict
 bash ./scripts/ci/check-public-openapi-drift.sh
 pnpm plugforge:integrations:check

@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - master
 
 concurrency:
   group: plugforge-submission-${{ github.ref }}
@@ -60,4 +60,16 @@ jobs:
         with:
           name: plugforge-metrics
           path: my-docs/evidence/plugforge-metrics-ci/**
+          if-no-files-found: warn
+
+      - name: Upload reviewer proof artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugforge-reviewer-proof
+          path: |
+            web/public/plugforge-reviewer-packet.html
+            my-docs/project-weeks-sot/week-6/plugforge-reviewer-packet.html
+            my-docs/evidence/plugforge-integrations/live/**
+            web/public/plugforge-evidence/**
           if-no-files-found: warn

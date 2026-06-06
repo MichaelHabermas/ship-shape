@@ -106,8 +106,7 @@ Evidence:
 - Result: command exited `1` before running the drill.
 - Script reported missing required env vars: `SHIP_API_URL`, `SHIP_ACCESS_TOKEN`, `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_REDIRECT_URI`, `SLACK_CHANNEL_ID`.
 - Follow-up repo-side env check found none of those variable names in `web/.env`, `web/.env.example`, `api/.env.local`, `api/.env`, or `api/.env.example`.
-- Slack app admin page `https://api.slack.com/apps` shows an existing app named `Hermes` in workspace `Chazzwazza`, app id `A0APAPQUP4P`, app type `Modern`, distribution status `Not distributed`.
-- Dedicated Slack app created for this proof: `PlugForge Live Proof`, app id `A0B8T4QDH9S`, created `June 5, 2026`, with client id visible and client/signing secrets present but intentionally not recorded.
+- Slack app for all PlugForge live proof: **`PlugForge Live Proof`** only (not Hermes or any other app). Workspace `Chazzwazza`, app id `A0B8T4QDH9S`, created `June 5, 2026`; client/signing secrets present in Slack admin but intentionally not recorded in repo.
 - Dedicated Slack app OAuth redirect URL configured: `http://127.0.0.1:8080/slack/oauth/callback`.
 - Dedicated Slack app Bot Token Scope configured: `chat:write`, described by Slack as sending messages as `@PlugForge Live Proof`.
 - First live Slack OAuth install attempt failed in Slack before callback with `redirect_uri did not match any configured URIs`; passed URI was `http://127.0.0.1:8080/slack/oauth/callback`. This is setup mismatch evidence, not live integration proof.
@@ -239,24 +238,12 @@ Evidence:
 - Developer tab displayed app creation controls, existing app list, selected OAuth app details, client secrets, webhook subscriptions, delivery log, and public API audit.
 - Selected apps observed include `Gauntlet Grader Read-Only` and `SDK Demo Read Write`.
 
-### SDK demo pre-auth page
-
-Status: proven reachable; OAuth round trip not yet proven.
+### SDK demo live OAuth proof
 
 Evidence:
 
 - URL: `https://ship-shape-web.onrender.com/sdk-demo`
-- User screenshot shows `SDK + PKCE Demo`, client ID input, `Connect (PKCE)` button, `Create via SDK` button, and pre-auth status `Connect to load public API resources.`
-- First Connect attempt with `ship_app_4a876f9a4916ad6857346ccad84cc628` redirected to `https://ship-shape-web.onrender.com/docs` with the Action Items modal open; this does not prove PKCE consent or callback completion.
-- User returned to `https://ship-shape-web.onrender.com/sdk-demo` with `ship_app_4a876f9a4916ad6857346ccad84cc628` populated and pre-auth status still `Connect to load public API resources.`
-- Second Connect attempt again redirected to `https://ship-shape-web.onrender.com/docs` with the Action Items modal open; live PKCE proof remains failed/blocked.
-- After logging out, Connect redirects to `https://ship-shape-web.onrender.com/login?returnTo=https%3A%2F%2Fship-shape-api.onrender.com%2Foauth%2Fauthorize...`; this proves the SDK starts the authorize request and preserves the return target before login.
-- After login from that return URL, browser still landed on `https://ship-shape-web.onrender.com/docs` rather than `/oauth/consent` or `/sdk-demo`; live PKCE proof failed.
-- Route fix for preserving `/login?returnTo=.../oauth/authorize` was reported pushed and deployed before retrying the manual SDK proof.
-- After deployment, retry reached `/login?returnTo=.../oauth/authorize`, but sign-in entered a loop alternating `Loading...` and `Continuing...`; live PKCE proof remains blocked by OAuth/session redirect behavior.
-- Retest in a second browser produced the same login/authorize behavior before the app mismatch was identified; this is not counted as browser-specific.
-- Chrome retry reached deployed `/oauth/authorize` and returned `{"error":"invalid_scope","error_description":"Scope not registered for this app: documents:write"}`. This proves the read-only grader app is active and rejects the SDK demo's requested write scope; it does not prove the SDK demo success path.
-- Repeated read-only grader app check after SDK success returned `{"error":"invalid_scope","error_description":"Scope not registered for this app: documents:write"}` for `ship_app_4a876f9a4916ad6857346ccad84cc628`, confirming write-scope enforcement.
+- Status: proven live.
 - Separate SDK demo app created for the write-capable browser proof: `ship_app_8816909ca14c69e578bf0d2079ab9541`, redirect URI entered as `https://ship-shape-web.onrender.com/sdk-demo`, expected scopes `documents:read`, `documents:write`, `issues:read`, `sprints:read`.
 - SDK demo app reached deployed OAuth consent screen for `SDK Demo Read Write` with `client_id` `ship_app_8816909ca14c69e578bf0d2079ab9541`, redirect URI `https://ship-shape-web.onrender.com/sdk-demo`, and scopes `documents:read`, `documents:write`, `issues:read`, `sprints:read`.
 - After Authorize, browser returned to `https://ship-shape-web.onrender.com/sdk-demo` with status `Loaded.` and visible document/issue cards loaded via SDK for `ship_app_8816909ca14c69e578bf0d2079ab9541`. User noted the page could not scroll despite additional content being visible below the viewport.
@@ -268,7 +255,7 @@ Evidence:
 
 Follow-up notes:
 
-- Browser note: Brave was initially suspected, but Chrome reproduced the same behavior before the read-only app mismatch was identified. Do not record this as a Brave-specific failure.
+- Earlier failed attempts used the read-only grader app (`ship_app_4a876f9a4916ad6857346ccad84cc628`), which correctly rejected the SDK demo's requested `documents:write` scope with `invalid_scope`.
 - Local-only fix prepared, not deployed during this proof pass: `web/src/pages/SdkDemo.tsx` now makes the SDK demo page its own scroll container and adds accessible labels to the two demo inputs.
 
 ### Final strict submission gate

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assertHttpReachable, probeHttpUrl } from './plugforge-live-drill.mjs';
+import { assertHttpReachable, isHostedIntegrationUrl, isTunnelUrl, probeHttpUrl } from './plugforge-live-drill.mjs';
 
 test('probeHttpUrl captures status and response body for failed public health checks', async () => {
   const result = await probeHttpUrl('https://tunnel.example.test/health', {
@@ -16,6 +16,17 @@ test('probeHttpUrl captures status and response body for failed public health ch
     statusText: 'Service Unavailable',
     body: '503 - Tunnel Unavailable',
   });
+});
+
+test('isHostedIntegrationUrl recognizes Render service origins', () => {
+  assert.equal(isHostedIntegrationUrl('https://ship-shape-slack-integration.onrender.com/health'), true);
+  assert.equal(isHostedIntegrationUrl('https://tunnel.example.test/health'), false);
+  assert.equal(isHostedIntegrationUrl('http://127.0.0.1:8080'), false);
+});
+
+test('isTunnelUrl flags cloudflare and ngrok hosts', () => {
+  assert.equal(isTunnelUrl('https://darwin-the-arabic-lows.trycloudflare.com/ship/webhooks'), true);
+  assert.equal(isTunnelUrl('https://ship-shape-slack-integration.onrender.com/ship/webhooks'), false);
 });
 
 test('assertHttpReachable fails before running the live drill when health is unreachable', async () => {

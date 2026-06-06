@@ -1,12 +1,14 @@
+// Maps API document responses into unified editor document views (issues, projects, sprints, etc.).
 import type {
   EditorDocumentType,
   IssueDocumentView,
   ProgramDocumentView,
   ProjectDocumentView,
+  PublicIssueExternalLink,
   SprintDocumentView,
   UnifiedDocumentView,
 } from '@ship/shared';
-import { asIssuePriority, asIssueState } from '@ship/shared';
+import { asIssuePriority, asIssueState, PublicIssueExternalLinkSchema } from '@ship/shared';
 import type { DocumentResponse } from '@/lib/document-tabs';
 import {
   getBelongsTo,
@@ -42,6 +44,18 @@ function getOwner(value: unknown): Owner | null {
 
 function getIssueSource(value: unknown): IssueDocumentView['source'] {
   return value === 'internal' || value === 'external' ? value : undefined;
+}
+
+function getIssueExternalLinks(properties: Record<string, unknown> | undefined): PublicIssueExternalLink[] {
+  const rawLinks = properties?.external_links;
+  if (!Array.isArray(rawLinks)) return [];
+
+  const links: PublicIssueExternalLink[] = [];
+  for (const rawLink of rawLinks) {
+    const parsed = PublicIssueExternalLinkSchema.safeParse(rawLink);
+    if (parsed.success) links.push(parsed.data);
+  }
+  return links;
 }
 
 function getSprintStatus(value: unknown): SprintDocumentView['status'] {
@@ -165,6 +179,7 @@ export function mapApiDocumentToUnifiedDocumentView(document: DocumentResponse):
       converted_from_id: getNullableString(document.converted_from_id),
       display_id: ticketNumber ? `#${ticketNumber}` : undefined,
       belongs_to: getBelongsTo(document.belongs_to),
+      external_links: getIssueExternalLinks(getRecord(document.properties)),
     };
   }
 

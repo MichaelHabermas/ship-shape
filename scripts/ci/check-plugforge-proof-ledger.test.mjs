@@ -179,6 +179,24 @@ test('rejects Slack evidence without external target URL and cleanup proof', () 
   });
 });
 
+test('accepts hosted Slack evidence with persistent subscription cleanup', () => {
+  const evidence = cloneJson(slackLiveEvidence());
+  evidence.integration_target_url = 'https://ship-shape-slack-integration.onrender.com/ship/webhooks';
+  evidence.cleanup = {
+    hosted_mode: true,
+    kept: true,
+    ship_webhooks_deactivated: [],
+    subscription_ids: [
+      '123e4567-e89b-42d3-a456-426614174000',
+      '123e4567-e89b-42d3-a456-426614174001',
+    ],
+  };
+
+  withTempLedger('W6-INT-003', evidence, result => {
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  });
+});
+
 test('rejects fabricated GitLab live evidence on example domains', () => {
   withTempLedger('W6-INT-010', {
     flow: 'gitlab',

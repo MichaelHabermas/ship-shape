@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- GENERATED FILE: run pnpm plugforge:render-reviewer. Do not edit by hand. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -49,8 +50,6 @@
       .creds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 24px; font-size: 14px; }
       .creds-grid dt { font-weight: 600; margin: 0; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
       .creds-grid dd { margin: 2px 0 0; font-family: ui-monospace, Menlo, Monaco, monospace; font-size: 13px; }
-      .links { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-      .links li a { display: inline-block; padding: 2px 0; }
       .step {
         display: flex;
         gap: 16px;
@@ -90,7 +89,6 @@
         border-radius: 8px;
         margin: 12px 0;
       }
-      .dashboard h4 { margin: 0 0 8px; font-size: 14px; color: var(--accent); }
       table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
       th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
       th { background: #fbf8f0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
@@ -115,19 +113,37 @@
         padding: 10px 14px;
         margin: 12px 0;
       }
+      .screenshot {
+        max-width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        margin-top: 10px;
+      }
+      .diagram {
+        font-family: ui-monospace, Menlo, Monaco, monospace;
+        font-size: 13px;
+        background: var(--code-bg);
+        padding: 12px 14px;
+        border-radius: 6px;
+        white-space: pre-wrap;
+        margin: 10px 0;
+      }
+      .status-pass { color: var(--success); font-weight: 700; }
+      .status-measured { color: #9a6b00; font-weight: 700; }
+      .status-muted { color: var(--muted); font-weight: 600; }
     </style>
   </head>
   <body>
     <div class="page">
-      <p class="meta">Week 6 • PlugForge Final Submission • Human Reviewer Edition</p>
+      <p class="meta">Week 6 • PlugForge Final Submission • Human Reviewer Edition • evidence run matrix-live-mq2kc6wc</p>
       <h1>PlugForge Reviewer Walkthrough</h1>
-      <p class="lede">A clear, human-first guide to proving the entire platform on the <strong>live deployed site</strong>. No repo, no local commands, no agents. ~8-12 minutes. Everything you need is one click away after login.</p>
+      <p class="lede">Two paths on the <strong>live deployed site</strong>: <strong>Path A</strong> proves the 10 MVP gates (~8–12 min). <strong>Path B</strong> proves the six reference integrations and TTFE (~5 min read, optional clicks). No repo required.</p>
 
       <div class="panel" style="border-color:#e6c96a;background:#fff8e6;">
-        <strong style="font-size:15px;">⚡ Preflight (do this first)</strong>
+        <strong style="font-size:15px;">Preflight (do this first)</strong>
         <p style="margin:8px 0 4px;">The API must be the PlugForge build.</p>
         <pre style="margin:4px 0 8px; font-size:13px;">curl -s https://ship-shape-api.onrender.com/health</pre>
-        <p style="margin:0;"><strong>Pass if</strong> you see <code>"plugforge":true</code>. If not, the API is stale — tell us to redeploy it. Without this the Developer tab will 404 or show expired errors.</p>
+        <p style="margin:0;"><strong>Pass if</strong> you see <code>"plugforge":true</code>. If not, the API is stale — redeploy the API. Without this the Developer tab will 404 or show expired errors.</p>
       </div>
 
       <div class="panel creds">
@@ -136,19 +152,18 @@
           <div><dt>Email</dt><dd>dev@ship.local</dd></div>
           <div><dt>Password</dt><dd>admin123</dd></div>
         </div>
-        <p style="margin:10px 0 0; font-size:13px;">After login → click your workspace name (top left) → <strong>Workspace Settings → Developer</strong> tab.<br>
-        Direct link after login: <a href="https://ship-shape-web.onrender.com/settings?tab=developer">/settings?tab=developer</a></p>
+        <p style="margin:10px 0 0; font-size:13px;">After login → workspace name (top left) → <strong>Workspace Settings → Developer</strong> tab.<br>
+        Direct link: <a href="https://ship-shape-web.onrender.com/settings?tab=developer">/settings?tab=developer</a></p>
       </div>
 
-      <h2>The 5-Minute Happy Path (the actual platform demo)</h2>
-      <p>This is the "five-line developer story" turned into clicks you can watch in the browser.</p>
+      <h2 id="path-a">Path A — MVP gates (5-minute happy path)</h2>
 
       <div class="step">
         <div class="step-num">1</div>
         <div class="step-content">
           <h3>Log in and open the Developer Portal</h3>
-          <p><a class="big-link" href="https://ship-shape-web.onrender.com/settings?tab=developer" target="_blank">Open Developer Tab →</a></p>
-          <div class="proof"><strong>Proof:</strong> You are looking at the live self-service dashboard for the platform. This is what a real developer uses to manage their integration.</div>
+          <p><a class="big-link" href="https://ship-shape-web.onrender.com/settings?tab=developer" target="_blank" rel="noopener noreferrer">Open Developer Tab →</a></p>
+          <div class="proof"><strong>Proof:</strong> Live self-service dashboard for OAuth apps, webhooks, delivery log, and audit trail.</div>
         </div>
       </div>
 
@@ -156,80 +171,118 @@
         <div class="step-num">2</div>
         <div class="step-content">
           <h3>Create an OAuth app (secret shown once)</h3>
-          <p>In the Developer tab: click <strong>Create app</strong>, give it a name, add a redirect URI (anything like <code>https://example.com/callback</code> works for demo), pick scopes <code>documents:read documents:write webhooks:manage</code>, submit.</p>
-          <div class="proof"><strong>Proof:</strong> The raw client secret appears exactly once in a big yellow box. Copy it. Refresh the page — it is gone forever. This proves gate 1 and the "shown once" UX.</div>
+          <p>Create app → scopes <code>documents:read documents:write webhooks:manage</code> → submit.</p>
+          <div class="proof"><strong>Proof:</strong> Raw client secret appears exactly once. Refresh — it is gone. Gate 1.</div>
         </div>
       </div>
 
       <div class="step">
         <div class="step-num">3</div>
         <div class="step-content">
-          <h3>Prove the SDK + PKCE flow (browser demo)</h3>
-          <p><a class="big-link" href="https://ship-shape-web.onrender.com/sdk-demo" target="_blank">Open the SDK Demo page →</a></p>
-          <p>Paste the <strong>client_id</strong> from the app you just created. Click <strong>Connect</strong>. Approve the consent screen. After redirect you should see "Connected." and live lists of Documents and Issues loaded via the typed SDK.</p>
-          <p>Try the "Create" button to make a new document.</p>
-          <div class="proof"><strong>Proof:</strong> Full Authorization Code + PKCE completed in the browser. The SDK made authenticated calls to the public <code>/api/v1</code> surface using the token it obtained. This proves gates 2 and 8 live.</div>
+          <h3>Prove SDK + PKCE (browser demo)</h3>
+          <p><a class="big-link" href="https://ship-shape-web.onrender.com/sdk-demo" target="_blank" rel="noopener noreferrer">Open SDK Demo →</a></p>
+          <p>Paste <strong>client_id</strong> → Connect → consent → lists load. Try Create.</p>
+          <div class="proof"><strong>Proof:</strong> Authorization Code + PKCE end-to-end. Gates 2 and 8.</div>
         </div>
       </div>
 
       <div class="step">
         <div class="step-num">4</div>
         <div class="step-content">
-          <h3>Prove webhooks + delivery visibility (the Delivery Log "dashboard")</h3>
-          <p>Back in the <strong>Developer tab</strong>, with your app selected:</p>
-          <ul>
-            <li>Create a webhook subscription for <code>document.created</code> (pick any https:// webhook tester or just a placeholder — the log will still capture it).</li>
-            <li>Go to the main app (or use the SDK demo Create button) and create a new document.</li>
-            <li>Back in the Developer tab, look at the <strong>Delivery Log</strong> section (toggle "DLQ only" off). Refresh if needed.</li>
-          </ul>
-          <div class="proof"><strong>Proof:</strong> You will see a new row for the event. It shows attempt, HTTP status, latency, idempotency key, and whether it was delivered. This is the live, queryable delivery log that every platform developer gets. Replays and DLQ are also right there with buttons.</div>
-          <p style="margin-top:8px;"><strong>Slack reference integration (visual proof):</strong> The separate reference integration (code in the repo) receives the exact same signed webhook and can post a message to a Slack channel. The platform side (signing + delivery) is proven in the log above. If a demo Slack channel is wired up for this reviewer session, you will also see the message appear in Slack.</p>
+          <h3>Prove webhooks + delivery log</h3>
+          <p>Create <code>document.created</code> subscription → create a document → check Delivery Log.</p>
+          <div class="proof"><strong>Proof:</strong> Row shows attempt, status, latency, idempotency key. DLQ filter and Replay are on the same tab.</div>
         </div>
       </div>
 
-      <h2>The Developer Portal — The Real Platform Dashboard</h2>
-      <p>This is not a toy page. It is the self-service experience a third-party developer lives in:</p>
+      <h2>The Developer Portal</h2>
       <div class="dashboard">
-        <strong>What lives here (all proven live):</strong><br>
-        • Create / list / rotate / revoke OAuth apps + one-time secret display<br>
-        • Create webhook subscriptions per event type<br>
-        • Full Delivery Log with status, attempts, latency, DLQ filter, and one-click Replay<br>
-        • Public API Audit log (every call made with your app, scopes used, rate limit info)<br>
-        • Everything talks to the same public /api/v1 surface the SDK uses
+        <strong>What lives here (proven live):</strong><br>
+        • OAuth apps with one-time secret display<br>
+        • Webhook subscriptions per event type<br>
+        • Delivery log, DLQ, replay<br>
+        • Public API audit log<br>
+        • Integration proof panel (six-flow status from committed evidence)
       </div>
-      <p><a class="big-link" href="https://ship-shape-web.onrender.com/settings?tab=developer" target="_blank">Open the live Developer Portal →</a></p>
+      <p><a class="big-link" href="https://ship-shape-web.onrender.com/settings?tab=developer" target="_blank" rel="noopener noreferrer">Open Developer Portal →</a></p>
 
-      <h2>Prove the Public API Contract (OpenAPI + errors + scopes)</h2>
-      <p><a class="big-link" href="https://ship-shape-web.onrender.com/platform-docs.html" target="_blank">Open the Platform Docs viewer →</a> (it loads the live OpenAPI from the deployed API).</p>
-      <p>Switch to the deployed spec. Browse the documents or webhooks paths.</p>
-      <div class="proof"><strong>Proof:</strong> The spec is generated from code (never hand-written). Every route declares its required scope. Errors follow the exact ApiError shape. This proves gates 4, 5, 7.</div>
+      
+      <h2 id="integrations">Path B — Reference integrations (beyond MVP gates)</h2>
+      <p>Spec requires at least five integration flows. This submission ships six. Evidence run <code>matrix-live-mq2kc6wc</code> status <span class="status-pass">passed</span>.</p>
+      <div class="callout"><strong>Ephemeral tunnel URLs in evidence.</strong> Webhook targets below use Cloudflare/ngrok tunnels from the last live drill. Re-run with Render-hosted integration URLs per <code>INTEGRATION_HOSTING_RUNBOOK.md</code> before final submission.</div>
 
-      <h2>Quick Reference: The 10 Hard Gates</h2>
+      <table>
+        <thead><tr><th>Flow</th><th>Status</th><th>Proof class</th></tr></thead>
+        <tbody>
+          <tr><td>CLI + TTFE drill</td><td class="status-measured">measured</td><td>live</td></tr>
+          <tr><td>Slack reference integration</td><td class="status-pass">passed</td><td>live</td></tr>
+          <tr><td>Browser SDK demo (PKCE)</td><td class="status-pass">passed</td><td>live</td></tr>
+          <tr><td>GitLab MR ↔ issue links</td><td class="status-pass">passed</td><td>live</td></tr>
+          <tr><td>Refresh-token theft drill</td><td class="status-pass">passed_in_proof_pack</td><td>n/a</td></tr>
+          <tr><td>Idempotency-Key replay drill</td><td class="status-pass">passed_in_proof_pack</td><td>n/a</td></tr>
+        </tbody>
+      </table>
+
+      <h3>TTFE (signature challenge)</h3>
+      <p><code>pnpm drill ttfe</code> total <strong>10138 ms</strong> (gate &lt; 60 s in CI). Within gate.</p>
+
+      <h3>Slack reference integration</h3>
+      <p>Run <code>slack-live-mq2i7qe0</code>. Signed webhooks delivered with HTTP 200; Slack OAuth completed; two channel posts verified.</p>
+      <ul>
+            <li><strong>document.created</strong> — ts 1780759487.789429 — Document created: PlugForge live Slack slack-live-mq2i7qe0 (/documents/bad4f53c-d3a5-44b9-971d-6b626fb3f40c)</li>
+            <li><strong>issue.assigned</strong> — ts 1780759488.998489 — Issue assigned: PlugForge live Slack issue slack-live-mq2i7qe0 -&gt; c2fc791d-d4fe-4480-93f0-4482a095502c (/documents/44afa793-e818-4c30-bf40-7622c499268c)</li>
+      </ul>
+      <img class="screenshot" src="/plugforge-evidence/slack-proof.png" alt="Slack proof messages for document.created and issue.assigned" />
+      <p>Webhook target: <code>https://darwin-the-arabic-lows.trycloudflare.com/ship/webhooks</code></p>
+
+      <h3>GitLab reference integration</h3>
+      <p><strong>Host:</strong> <code>labs.gauntletai.com</code> (Gauntlet GitLab — not gitlab.com).</p>
+      <p>Run <code>gitlab-live-mq2k4y3z</code>. Merge request <a href="https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof/-/merge_requests/1" target="_blank" rel="noopener noreferrer">!1</a> linked to Ship issue <code>2b7000ba-ef72-4900-ba01-49f27db7956f</code>.</p>
+      <p><a class="big-link" href="https://ship-shape-web.onrender.com/documents/2b7000ba-ef72-4900-ba01-49f27db7956f" target="_blank" rel="noopener noreferrer">Open proof issue in Ship →</a></p>
+      <p>Grader read-only token:</p>
+      <pre class="diagram">curl -s -H &quot;Authorization: Bearer $GRADER_TOKEN&quot; https://ship-shape-api.onrender.com/api/v1/issues/2b7000ba-ef72-4900-ba01-49f27db7956f</pre>
+      <p>Pass if JSON includes <code>external_links</code> with provider <code>gitlab</code> and MR URL.</p>
+
+      <h3>Browser SDK demo (PKCE)</h3>
+      <p>PKCE completed — <a href="https://ship-shape-web.onrender.com/sdk-demo" target="_blank" rel="noopener noreferrer">SDK demo</a>.</p>
+
+      <h3>Event boundary (doc → Slack)</h3>
+      <pre class="diagram">UI write → domain EventBus → webhook signer → delivery log
+  → @ship/sdk subscriber (integrations/slack) → Slack API → channel message
+
+GitLab path: GitLab MR webhook → integrations/gitlab → client.issues.upsertExternalLink()
+  → issue.properties.external_links (visible in Ship issue sidebar)</pre>
+
+
+      <h2>Prove the Public API Contract</h2>
+      <p><a class="big-link" href="https://ship-shape-web.onrender.com/platform-docs.html" target="_blank" rel="noopener noreferrer">Open Platform Docs →</a></p>
+      <div class="proof"><strong>Proof:</strong> Generated OpenAPI 3.1, scoped routes, ApiError shape. Gates 4, 5, 7.</div>
+
+      <h2 id="gates">Quick Reference: The 10 Hard Gates</h2>
       <table>
         <thead>
-          <tr><th>#</th><th>Gate</th><th>Where you prove it (live on deployed)</th></tr>
+          <tr><th>#</th><th>Gate</th><th>Where you prove it</th></tr>
         </thead>
         <tbody>
           <tr><td>1</td><td>OAuth app + secret shown once</td><td>Developer tab → Create app</td></tr>
-          <tr><td>2</td><td>Auth Code + PKCE end-to-end</td><td>SDK demo page</td></tr>
-          <tr><td>3</td><td>Bearer on every /api/v1/*</td><td><code>curl</code> <code>/api/v1/documents</code> with no token or a bad Bearer token (401 JSON)</td></tr>
-          <tr><td>4</td><td>Documents + proper scopes</td><td>Platform docs viewer + create in SDK demo</td></tr>
-          <tr><td>5</td><td>Consistent ApiError shape</td><td>Any 401/403 from above</td></tr>
-          <tr><td>6</td><td>403 names the missing scope</td><td>Create read-only app → try write action in SDK demo</td></tr>
-          <tr><td>7</td><td>OpenAPI 3.1 at /api/v1/openapi.json</td><td>Direct link + viewer</td></tr>
-          <tr><td>8</td><td>SDK .me() + typed calls</td><td>SDK demo after connect</td></tr>
-          <tr><td>9</td><td>Regression + perf within +10%</td><td>Public CI (<a href="https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml">plugforge-submission workflow</a>) — not runnable by hand on deployed</td></tr>
-          <tr><td>10</td><td>Deployed + pre-registered grader OAuth</td><td>Health has <code>plugforge:true</code>; grader read-only app credentials in README / submission channel (spec gate 10)</td></tr>
+          <tr><td>2</td><td>Auth Code + PKCE</td><td>SDK demo</td></tr>
+          <tr><td>3</td><td>Bearer on every /api/v1/*</td><td><code>curl</code> without token → 401 JSON</td></tr>
+          <tr><td>4</td><td>Documents + scopes</td><td>Platform docs + SDK demo</td></tr>
+          <tr><td>5</td><td>ApiError shape</td><td>Any 401/403 body</td></tr>
+          <tr><td>6</td><td>403 names missing scope</td><td>Read-only app → try write</td></tr>
+          <tr><td>7</td><td>OpenAPI 3.1</td><td><a href="https://ship-shape-api.onrender.com/api/v1/openapi.json">https://ship-shape-api.onrender.com/api/v1/openapi.json</a></td></tr>
+          <tr><td>8</td><td>SDK typed calls</td><td>SDK demo after connect</td></tr>
+          <tr><td>9</td><td>Regression + perf +10%</td><td><a href="https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml">plugforge-submission CI</a></td></tr>
+          <tr><td>10</td><td>Deployed + grader OAuth</td><td>Health <code>plugforge:true</code> + submission channel</td></tr>
         </tbody>
       </table>
 
       <div class="callout">
-        <strong>Gates 1–8 above are live on this deployed site.</strong><br>
-        Gates 9–10 are closed in CI and the submission packet: <code>pnpm plugforge:submission</code> runs Playwright regression, the proof pack, TTFE/webhook metric probes, and the +10% baseline comparator (<code>baseline-comparator.mjs</code> vs Part 1). Gate 10 also requires the pre-registered read-only grader OAuth app delivered in the private submission channel.
+        <strong>Gates 1–8 are live on the deployed site.</strong> Gates 9–10 and all six integration flows close in <code>pnpm plugforge:submission</code> (<a href="https://github.com/MichaelHabermas/ship-shape/actions/workflows/plugforge-submission.yml">CI workflow</a>).
       </div>
 
       <div class="footer">
-        Start at this packet → login → Developer tab + SDK demo page. That's the whole human proof.
+        Path A: login → Developer tab + SDK demo. Path B: <a href="#integrations">integrations section</a> above. Generated 2026-06-06T16:24:04.332Z.
       </div>
     </div>
   </body>

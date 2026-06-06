@@ -1,5 +1,7 @@
 # my-docs
 
+`my-docs/` is the public submission evidence archive for ShipShape: assignment specs, proof ledgers, manual proof logs, generated evidence, and cross-week reviewer artifacts. It is intentionally committed for auditability, not personal scratch space.
+
 | Path | Role |
 | --- | --- |
 | [`MEMORY.md`](./MEMORY.md) | Cross-week agent memory (active) |

@@ -89,6 +89,44 @@ describe('document view mapper', () => {
     expect(view?.document_type).toBe('standup');
   });
 
+  it('parses issue external_links from properties via shared schema', () => {
+    const view = mapApiDocumentToUnifiedDocumentView({
+      id: 'issue-2',
+      title: 'Linked issue',
+      document_type: 'issue',
+      properties: {
+        external_links: [
+          {
+            provider: 'gitlab',
+            external_id: 'group/project!1',
+            kind: 'merge_request',
+            url: 'https://gitlab.example.com/group/project/-/merge_requests/1',
+            title: 'Proof MR',
+            created_at: '2026-06-06T00:00:00.000Z',
+            updated_at: '2026-06-06T00:00:00.000Z',
+          },
+          { provider: 'bad', external_id: 'x' },
+        ],
+      },
+    });
+
+    expect(view).not.toBeNull();
+    if (!view || view.document_type !== 'issue' || !('external_links' in view)) {
+      throw new Error('expected issue view with external_links');
+    }
+    expect(view.external_links).toEqual([
+      {
+        provider: 'gitlab',
+        external_id: 'group/project!1',
+        kind: 'merge_request',
+        url: 'https://gitlab.example.com/group/project/-/merge_requests/1',
+        title: 'Proof MR',
+        created_at: '2026-06-06T00:00:00.000Z',
+        updated_at: '2026-06-06T00:00:00.000Z',
+      },
+    ]);
+  });
+
   it('returns null for truly unknown document types', () => {
     const view = mapApiDocumentToUnifiedDocumentView({
       id: 'unknown-1',
