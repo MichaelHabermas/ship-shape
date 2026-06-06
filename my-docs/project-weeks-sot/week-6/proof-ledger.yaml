@@ -2897,13 +2897,13 @@ requirements:
     requirement_class: submission
     testability: manual
     priority: P0
-    status: manual_pending
-    proof_command: none
-    proof_files: none
+    status: proven
+    proof_command: pnpm plugforge:submission
+    proof_files: README.md, my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, my-docs/evidence/plugforge-manual-live.md
     pending_test: none
-    manual_evidence: final submission checklist
+    manual_evidence: my-docs/evidence/plugforge-manual-live.md
     covered_by: none
-    gap: Pre-registered grader OAuth app metadata and one-time secret delivery are not recorded as final evidence.
+    gap: none
   - id: W6-SUBMIT-007
     source: PRD.md:767-818; Plugforge-specs.txt:570-611
     section: Documentation and Submission Evidence

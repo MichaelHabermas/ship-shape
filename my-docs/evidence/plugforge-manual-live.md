@@ -52,7 +52,7 @@ Evidence:
 
 ### W6-SUBMIT-006 - Pre-registered grader OAuth app
 
-Status: partially proven; private submission delivery remains external.
+Status: proven.
 
 Evidence:
 
@@ -65,6 +65,7 @@ Evidence:
 - Secret created timestamp shown in portal: `6/5/2026, 4:02:47 PM`
 - Redirect URI entered during creation: `https://ship-shape-web.onrender.com/sdk-demo`
 - Portal does not display saved redirect URIs after creation; SDK demo OAuth round trip remains the redirect validation.
+- Private secret delivery confirmed by project owner on `2026-06-06`; raw secret intentionally not recorded in repository evidence.
 
 ### Deployed API health
 
@@ -269,3 +270,16 @@ Follow-up notes:
 
 - Browser note: Brave was initially suspected, but Chrome reproduced the same behavior before the read-only app mismatch was identified. Do not record this as a Brave-specific failure.
 - Local-only fix prepared, not deployed during this proof pass: `web/src/pages/SdkDemo.tsx` now makes the SDK demo page its own scroll container and adds accessible labels to the two demo inputs.
+
+### Final strict submission gate
+
+Status: proven.
+
+Evidence:
+
+- Command run from repo root: `pnpm plugforge:submission`
+- Result: `PlugForge final submission gate passed (strict final).`
+- Gate honesty returned `ok: true` with no live proof gaps and no mock evidence problems.
+- Proof ledger enforcement passed with `192` proven atoms, `13` covered-by atoms, `14` non-scope atoms, and `0` manual-pending atoms.
+- OAuth Authorization Code + PKCE Playwright check passed with `2` tests.
+- Legacy Week 4 submission scripts reported archived evidence drift, but Week 6 gate explicitly continued; this does not block PlugForge Week 6 strict final handoff.
