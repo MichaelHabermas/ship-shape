@@ -31,10 +31,12 @@ const probes = [
 ];
 
 const results = [];
+console.error('[metrics] preparing Playwright chromium');
 const browserInstall = await runProcess('pnpm', ['exec', 'playwright', 'install', 'chromium', '--with-deps'], {
   cwd: rootDir,
   forwardOutput: Boolean(args.verbose),
 });
+console.error(`[metrics] playwright-chromium ${browserInstall.exitCode === 0 ? 'ready' : 'failed'} in ${browserInstall.durationMs}ms`);
 results.push({
   name: 'playwright-chromium',
   ok: browserInstall.exitCode === 0,
@@ -50,6 +52,7 @@ results.push({
 });
 
 for (const [name, commandArgs] of probes) {
+  console.error(`[metrics] starting ${name}`);
   const result = await runProcess(process.execPath, [
     path.join(rootDir, 'scripts', 'plugforge-metrics', commandArgs[0]),
     ...commandArgs.slice(1),
@@ -58,9 +61,11 @@ for (const [name, commandArgs] of probes) {
     forwardOutput: Boolean(args.verbose),
   });
   const report = parseTrailingJson(result.stdout);
+  const ok = result.exitCode === 0 && isValidMetricReport(report);
+  console.error(`[metrics] ${name} ${ok ? 'passed' : 'failed'} in ${result.durationMs}ms`);
   results.push({
     name,
-    ok: result.exitCode === 0 && isValidMetricReport(report),
+    ok,
     exitCode: result.exitCode,
     durationMs: result.durationMs,
     metric: report?.metric ?? null,

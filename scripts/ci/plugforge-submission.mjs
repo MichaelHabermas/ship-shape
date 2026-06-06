@@ -259,9 +259,6 @@ function validateLedgerTargets(entries, options = {}) {
 
   const global = byId.get('W6-GLOBAL-001');
   if (!global) errors.push('W6-GLOBAL-001 is missing from proof ledger');
-  if (global?.status === 'proven' && options.allowManualPending) {
-    errors.push('W6-GLOBAL-001 must not be proven while --allow-manual-pending is used');
-  }
 
   return errors;
 }

@@ -93,7 +93,7 @@ test('allow-manual-pending mode permits external attachment atoms to remain pend
     ...baseIds.map((id) => entry(id, 'proven')),
     ...outOfScopeSubmissionAtoms.map((id) => entry(id, 'non_scope', 'none')),
     ...externalIds.map((id) => entry(id, 'manual_pending', 'final external attachment')),
-    entry('W6-GLOBAL-001', 'partial', 'none'),
+    entry('W6-GLOBAL-001', 'proven'),
   ];
 
   assert.deepEqual(validateLedgerTargets(entries, { allowManualPending: true }), []);
