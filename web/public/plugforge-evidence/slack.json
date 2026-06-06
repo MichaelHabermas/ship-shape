@@ -2,74 +2,74 @@
   "flow": "slack",
   "proof_class": "live",
   "status": "passed",
-  "run_id": "slack-live-mq2i7qe0",
-  "generated_at": "2026-06-06T15:24:50.181Z",
+  "run_id": "slack-live-mq2u2npg",
+  "generated_at": "2026-06-06T20:56:43.873Z",
   "api_url": "https://ship-shape-api.onrender.com",
-  "integration_target_url": "https://darwin-the-arabic-lows.trycloudflare.com/ship/webhooks",
+  "integration_target_url": "https://ship-shape-slack-integration.onrender.com/ship/webhooks",
+  "hosted_mode": true,
   "cleanup": {
-    "ship_webhooks_deactivated": [
-      {
-        "id": "38285a22-9d41-4f1b-9714-d0642485153e",
-        "active": false
-      },
-      {
-        "id": "c3cab735-61f0-4006-8521-294d0c97c492",
-        "active": false
-      }
-    ],
-    "kept": false
+    "hosted_mode": true,
+    "kept": true,
+    "ship_webhooks_deactivated": [],
+    "subscription_ids": [
+      "eec23eca-3a17-4348-ba31-3af42ab83129",
+      "1ec23e19-df95-499a-83a1-5c6bca791efc"
+    ]
   },
   "oauth": {
     "provider": "slack",
     "completed": true,
     "live": true,
+    "hosted_mode": true,
     "team_id": "T06DAUEV831",
     "bot_user_id": "U0B8HRQ73QT",
-    "redirect_origin": "http://127.0.0.1:8080"
+    "integration_origin": "https://ship-shape-slack-integration.onrender.com"
   },
   "signed_webhooks": [
     {
       "event": "document.created",
       "signatureVerified": true,
-      "subscription_id": "38285a22-9d41-4f1b-9714-d0642485153e",
-      "delivery_id": "e0acffdd-05b0-4a52-851d-57c497a69d69",
-      "idempotency_key": "document.created:bad4f53c-d3a5-44b9-971d-6b626fb3f40c",
-      "response_status": 200
+      "subscription_id": "eec23eca-3a17-4348-ba31-3af42ab83129",
+      "delivery_id": "f15b7df0-4e37-4575-806b-0bc63ff50a2c",
+      "idempotency_key": "document.created:d36364b4-7ed3-4d49-80ac-9536950c2024",
+      "response_status": 200,
+      "hosted_mode": true
     },
     {
       "event": "issue.assigned",
       "signatureVerified": true,
-      "subscription_id": "c3cab735-61f0-4006-8521-294d0c97c492",
-      "delivery_id": "ea507299-c195-466c-be82-0c7448780853",
-      "idempotency_key": "issue.assigned:44afa793-e818-4c30-bf40-7622c499268c:2026-06-06T15:24:48.852Z",
-      "response_status": 200
+      "subscription_id": "1ec23e19-df95-499a-83a1-5c6bca791efc",
+      "delivery_id": "0c33a2c9-64fa-4a70-973e-1976358dfac9",
+      "idempotency_key": "issue.assigned:64b667cb-7a61-4f2a-92a3-7f7e74d0fe9d:2026-06-06T20:56:42.087Z",
+      "response_status": 200,
+      "hosted_mode": true
     }
   ],
   "messages": [
     {
       "event": "document.created",
+      "live": true,
       "channel": "C0AMVV8UC14",
-      "message_ts": "1780759487.789429",
-      "permalink": null,
-      "text_preview": "Document created: PlugForge live Slack slack-live-mq2i7qe0 (/documents/bad4f53c-d3a5-44b9-971d-6b626fb3f40c)",
-      "live": true
+      "message_ts": "1780779399.471049",
+      "permalink": "https://chazzwazza.slack.com/archives/C0AMVV8UC14/p1780779399471049",
+      "text_preview": "Document created: PlugForge live Slack slack-live-mq2u2npg (/documents/d36364b4-7ed3-4d49-80ac-9536950c2024)"
     },
     {
       "event": "issue.assigned",
+      "live": true,
       "channel": "C0AMVV8UC14",
-      "message_ts": "1780759488.998489",
-      "permalink": null,
-      "text_preview": "Issue assigned: PlugForge live Slack issue slack-live-mq2i7qe0 -> c2fc791d-d4fe-4480-93f0-4482a095502c (/documents/44afa793-e818-4c30-bf40-7622c499268c)",
-      "live": true
+      "message_ts": "1780779402.265859",
+      "permalink": "https://chazzwazza.slack.com/archives/C0AMVV8UC14/p1780779402265859",
+      "text_preview": "Issue assigned: PlugForge live Slack issue slack-live-mq2u2npg -&gt; c2fc791d-d4fe-4480-93f0-4482a095502c (/documents/64b667cb-7a61-4f2a-92a3-7f7e74d0fe9d)"
     }
   ],
   "document": {
-    "id": "bad4f53c-d3a5-44b9-971d-6b626fb3f40c",
-    "title": "PlugForge live Slack slack-live-mq2i7qe0"
+    "id": "d36364b4-7ed3-4d49-80ac-9536950c2024",
+    "title": "PlugForge live Slack slack-live-mq2u2npg"
   },
   "issue": {
-    "id": "44afa793-e818-4c30-bf40-7622c499268c",
-    "title": "PlugForge live Slack issue slack-live-mq2i7qe0",
+    "id": "64b667cb-7a61-4f2a-92a3-7f7e74d0fe9d",
+    "title": "PlugForge live Slack issue slack-live-mq2u2npg",
     "assignee_id": "c2fc791d-d4fe-4480-93f0-4482a095502c"
   }
 }
