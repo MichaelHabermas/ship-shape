@@ -1,5 +1,6 @@
 // FleetGraph proof CLI command parsing and subprocess execution helpers.
-import { spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
+import { runCommandSync } from '../lib/run-command.mjs';
 import { repoRoot } from './proof-repo.mjs';
 
 export function parseArgs(args) {
@@ -44,33 +45,26 @@ Options:
 
 export function proofTestDatabaseUrl() {
   if (process.env.FLEETGRAPH_PROOF_TEST_DATABASE_URL) return process.env.FLEETGRAPH_PROOF_TEST_DATABASE_URL;
-  const defaultUrl = 'postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit';
-  if (postgresReady('localhost', '5432')) return defaultUrl;
-  if (postgresReady('localhost', '5433')) {
-    console.log('FleetGraph proof: local Postgres is listening on 5433; using Docker test database port.');
-    return 'postgresql://ship:ship_dev_password@localhost:5433/ship_test_audit';
-  }
-  return defaultUrl;
+  return execFileSync('bash', ['scripts/resolve-database-url.sh', 'ship_test_audit'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  }).trim();
 }
 
 export function runCommand(name, command, envExtra = {}) {
-  const started = Date.now();
   const [bin, ...args] = command;
   console.log(`FleetGraph proof: starting ${name}...`);
-  const result = spawnSync(bin, args, {
+  const result = runCommandSync(bin, args, {
     cwd: repoRoot,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, ...envExtra },
   });
-  const durationMs = Date.now() - started;
-  const status = result.status === 0 ? 'pass' : 'fail';
-  console.log(`FleetGraph proof: ${name} ${status} in ${formatDuration(durationMs)}.`);
+  const status = result.ok ? 'pass' : 'fail';
+  console.log(`FleetGraph proof: ${name} ${status} in ${formatDuration(result.durationMs)}.`);
   return {
     name,
     command: command.join(' '),
     status,
-    durationMs,
+    durationMs: result.durationMs,
     stdoutTail: tail(result.stdout),
     stderrTail: tail(result.stderr),
   };
@@ -99,10 +93,3 @@ function formatDuration(ms) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function postgresReady(host, port) {
-  const result = spawnSync('pg_isready', ['-h', host, '-p', port], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'ignore', 'ignore'],
-  });
-  return result.status === 0;
-}

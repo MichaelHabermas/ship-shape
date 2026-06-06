@@ -58,7 +58,7 @@ echo ""
 echo "Next steps:"
 echo "1. Run database migrations: pnpm --filter @ship/api db:seed"
 echo "2. Deploy API: ./scripts/deploy-api.sh"
-echo "3. Deploy frontend: ./scripts/deploy-frontend.sh"
+echo "3. Deploy frontend: ./scripts/deploy-web.sh <dev|shadow|prod>"
 echo ""
 echo "Important outputs:"
 terraform output

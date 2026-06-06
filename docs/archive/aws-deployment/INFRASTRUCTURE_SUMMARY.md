@@ -39,7 +39,7 @@ api/
 scripts/
 ├── deploy-infrastructure.sh - Deploy Terraform resources
 ├── deploy-api.sh            - Deploy API to Elastic Beanstalk
-├── deploy-frontend.sh       - Deploy frontend to S3 + CloudFront
+├── deploy-web.sh            - Deploy frontend to S3 + CloudFront
 └── init-database.sh         - Initialize database schema
 
 docs/
@@ -186,7 +186,7 @@ Builds Docker image, uploads to EB, rolling deployment.
 
 ### 5. Frontend (Frequent: 2-3 min)
 ```bash
-./scripts/deploy-frontend.sh
+./scripts/deploy-web.sh dev   # or shadow|prod
 ```
 Builds React app, syncs to S3, invalidates CloudFront.
 

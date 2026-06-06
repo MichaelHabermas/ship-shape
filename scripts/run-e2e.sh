@@ -129,7 +129,7 @@ while kill -0 "${pid}" >/dev/null 2>&1; do
   E2E_RESULTS_DIR="${RESULTS_DIR}" "${ROOT_DIR}/scripts/watch-tests.sh" --once || true
   if [ -f "${RESULTS_DIR}/summary.json" ]; then
     read -r watch_failed watch_passed <<EOF
-$(node -e "const s=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')); console.log(Number(s.failed||0), Number(s.passed||0));" "${RESULTS_DIR}/summary.json" 2>/dev/null || echo "0 0")
+$(node "${ROOT_DIR}/scripts/lib/e2e-summary.mjs" counts "${RESULTS_DIR}/summary.json" 2>/dev/null || echo "0 0")
 EOF
     abort_on_infra_failure "${watch_failed}" "${watch_passed}" || true
   fi
@@ -147,7 +147,7 @@ E2E_RESULTS_DIR="${RESULTS_DIR}" "${ROOT_DIR}/scripts/watch-tests.sh" --once || 
 summary_failed_count=0
 if [ -f "${RESULTS_DIR}/summary.json" ]; then
   summary_failed_count="$(
-    node -e "const fs=require('fs'); const summary=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(String(Number(summary.failed || 0)));" "${RESULTS_DIR}/summary.json" 2>/dev/null || echo 0
+    node "${ROOT_DIR}/scripts/lib/e2e-summary.mjs" failed "${RESULTS_DIR}/summary.json" 2>/dev/null || echo 0
   )"
 fi
 

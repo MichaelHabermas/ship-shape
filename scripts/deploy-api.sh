@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 echo "=========================================="
 echo "Ship - API Deployment"
@@ -128,6 +128,13 @@ ENV_EXISTS=$(aws elasticbeanstalk describe-environments \
 
 if [ "$ENV_EXISTS" = "0" ]; then
     echo "Environment does not exist. Creating new environment..."
+
+    VPC_ID=""
+    PRIVATE_SUBNETS=""
+    PUBLIC_SUBNETS=""
+    INSTANCE_SG=""
+    INSTANCE_PROFILE=""
+    SERVICE_ROLE=""
 
     # Get Terraform outputs for environment creation
     if [ -d "$PROJECT_ROOT/terraform" ]; then

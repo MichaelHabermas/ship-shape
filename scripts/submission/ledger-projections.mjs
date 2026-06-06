@@ -1,3 +1,4 @@
+// View-model projections for submission ledger tabs and grading packet.
 import { repoPathExists, statusLabel } from './ledger-utils.mjs';
 import { week4 } from './week4-paths.mjs';
 
@@ -31,6 +32,12 @@ export function dashboardHref(repoPath) {
   return `../../../../${repoPath}`;
 }
 
+export function projectSecurityTab(ledger) {
+  return {
+    category: (ledger.categories || []).find((item) => item.id === 'cat-8-security-audit') ?? null,
+  };
+}
+
 export function buildLedgerModel(ledger) {
   const categories = [...ledger.categories].sort((a, b) => a.number - b.number);
   const categoryViews = categories.map((category) => buildCategoryView(category));
@@ -39,6 +46,7 @@ export function buildLedgerModel(ledger) {
     categories: categoryViews,
     gateSnapshot: getGateSnapshot(categories),
     failuresAndWarnings: getAcceptanceWarningsAndFailures(categories),
+    securityTab: projectSecurityTab(ledger),
   };
   return {
     ...model,

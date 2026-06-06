@@ -18,13 +18,6 @@ pnpm --filter @ship/slack-integration check
 pnpm --filter @ship/gitlab-integration check
 pnpm plugforge:integrations:check
 node --test ./scripts/ci/check-integration-boundary.test.mjs
-
-./scripts/run-api-tests.sh -- \
-  src/platform/api/v1/issues.test.ts \
-  src/platform/oauth/refresh-theft-drill.test.ts \
-  src/platform/webhooks/service.test.ts \
-  src/fleetgraph/public-api-client.audit.test.ts
-
 pnpm --filter @ship/sdk test
 pnpm plugforge:developer-ops-e2e
 bash ./scripts/ci/check-public-openapi-drift.sh

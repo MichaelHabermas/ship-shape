@@ -1,8 +1,10 @@
 import { enrichFindingsStore } from './enrich-findings.mjs';
 import { securitySeverityRank, securitySurfaceLabel } from './utils.mjs';
 
-export function buildSecurityView(ledger, securityReport = null, securityFindings = null, deliverable = null) {
-  const category = (ledger.categories || []).find((item) => item.id === 'cat-8-security-audit');
+export function buildSecurityView(ledgerOrProjection, securityReport = null, securityFindings = null, deliverable = null) {
+  const category = ledgerOrProjection?.category
+    ?? (ledgerOrProjection?.categories || []).find((item) => item.id === 'cat-8-security-audit')
+    ?? null;
   const enrichedStore = enrichFindingsStore(securityFindings || { findings: [] });
   const findings = [...enrichedStore.findings].sort((a, b) => {
     const activeDelta = (b.activeSortRank ?? 0) - (a.activeSortRank ?? 0);

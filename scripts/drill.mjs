@@ -1,10 +1,12 @@
 // TTFE drill packs SDK/CLI artifacts and proves login, documents, and signed webhooks.
 import crypto from 'node:crypto';
-import { execFile, execFileSync, spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import fs from 'node:fs/promises';
-import net from 'node:net';
 import os from 'node:os';
+import { onceExit, sleep } from './lib/process-utils.mjs';
+import { runCommand as runCommandCore } from './lib/run-command.mjs';
+import { startShipApi } from './lib/ttfe-server.mjs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -63,11 +65,6 @@ try {
 async function runTtfeDrill() {
   // Always resolve ship_test_audit so shell DATABASE_URL cannot seed one DB and start the API on another.
   databaseUrl = process.env.TTFE_DATABASE_URL ?? resolveDatabaseUrl('ship_test_audit');
-  const apiPort = await freePort();
-  const webPort = await freePort();
-  const apiUrl = `http://127.0.0.1:${apiPort}`;
-  const webUrl = `http://127.0.0.1:${webPort}`;
-  proof.origins = { apiUrl, webUrl };
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ship-ttfe-'));
   const tokenPath = path.join(tempDir, 'tokens.json');
 
@@ -88,46 +85,15 @@ async function runTtfeDrill() {
     await run('pnpm', ['add', sharedTarball, sdkTarball, cliTarball, '--ignore-scripts'], { cwd: tempDir });
   });
 
-  apiProcess = spawn('pnpm', ['--filter', '@ship/api', 'exec', 'tsx', 'src/index.ts'], {
-    cwd: rootDir,
-    env: {
-      ...process.env,
-      NODE_ENV: 'test',
-      DATABASE_URL: databaseUrl,
-      PORT: String(apiPort),
-      HOST: '127.0.0.1',
-      CORS_ORIGIN: webUrl,
-      FRONTEND_URL: webUrl,
-      WEB_URL: webUrl,
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  apiProcess.stdout.on('data', chunk => process.stderr.write(`[api] ${chunk}`));
-  apiProcess.stderr.on('data', chunk => process.stderr.write(`[api] ${chunk}`));
-  await debugTimed('api-ready', () => waitForHttp(`${apiUrl}/api/v1/openapi.json`, 30_000));
-
-  webProcess = spawn('pnpm', [
-    '--filter',
-    '@ship/web',
-    'exec',
-    'vite',
-    '--host',
-    '127.0.0.1',
-    '--port',
-    String(webPort),
-  ], {
-    cwd: rootDir,
-    env: {
-      ...process.env,
-      API_PORT: String(apiPort),
-      VITE_PORT: String(webPort),
-      VITE_API_URL: '',
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  webProcess.stdout.on('data', chunk => process.stderr.write(`[web] ${chunk}`));
-  webProcess.stderr.on('data', chunk => process.stderr.write(`[web] ${chunk}`));
-  await debugTimed('web-ready', () => waitForHttp(`${webUrl}/oauth/device`, 30_000));
+  const stack = await debugTimed('stack-ready', () => startShipApi({
+    rootDir,
+    databaseUrl,
+    includeWeb: true,
+  }));
+  apiProcess = stack.apiProcess;
+  webProcess = stack.webProcess;
+  const { apiUrl, webUrl } = stack;
+  proof.origins = { apiUrl, webUrl };
 
   const shipBin = path.join(tempDir, 'node_modules', '.bin', 'ship');
   await timed('login', () => runLoginAndApprove({
@@ -407,23 +373,17 @@ function resolveDatabaseUrl(name) {
   }).trim();
 }
 
-function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = execFile(command, args, {
-      cwd: options.cwd ?? rootDir,
-      env: options.env ?? process.env,
-      maxBuffer: 10 * 1024 * 1024,
-    }, (error, stdout, stderr) => {
-      if (stdout) process.stderr.write(stdout);
-      if (stderr) process.stderr.write(stderr);
-      if (error) {
-        reject(new Error(`${command} ${args.join(' ')} failed: ${stderr || error.message}`));
-        return;
-      }
-      resolve(stdout);
-    });
-    child.stdin?.end();
+async function run(command, args, options = {}) {
+  const result = await runCommandCore(command, args, {
+    cwd: options.cwd ?? rootDir,
+    env: options.env ?? process.env,
+    throwOnFail: true,
+    tailChars: null,
+    timeoutMs: options.timeoutMs ?? 120_000,
   });
+  if (result.stdout) process.stderr.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  return result.stdout;
 }
 
 async function timed(name, fn) {
@@ -450,28 +410,6 @@ function debugStage(name, start) {
   const ms = Date.now() - start;
   debugTimings.push({ stage: name, ms });
   console.error(`[ttfe:debug] ${name}: ${ms}ms`);
-}
-
-function freePort() {
-  return new Promise(resolve => {
-    const server = net.createServer();
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      server.close(() => resolve(address.port));
-    });
-  });
-}
-
-async function waitForHttp(url, timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-    } catch {}
-    await sleep(250);
-  }
-  throw new Error(`Timed out waiting for ${url}`);
 }
 
 function waitForOutput(stream, pattern, timeoutMs) {
@@ -503,34 +441,6 @@ function collectOutput(stream) {
     });
     stream.on('end', () => resolve(buffer));
   });
-}
-
-function onceExit(child, timeoutMs) {
-  return new Promise((resolve, reject) => {
-    if (child.exitCode !== null || child.signalCode !== null) {
-      if (child.exitCode && child.exitCode !== 0) {
-        reject(new Error(`Process ${child.pid} exited with ${child.exitCode}`));
-        return;
-      }
-      resolve();
-      return;
-    }
-    const timeout = setTimeout(() => {
-      reject(new Error(`Timed out waiting for process ${child.pid} to exit`));
-    }, timeoutMs);
-    child.once('exit', code => {
-      clearTimeout(timeout);
-      if (code && code !== 0) {
-        reject(new Error(`Process ${child.pid} exited with ${code}`));
-        return;
-      }
-      resolve();
-    });
-  });
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function parseJson(value) {

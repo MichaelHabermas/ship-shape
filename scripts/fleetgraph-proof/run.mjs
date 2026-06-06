@@ -18,11 +18,9 @@ import {
 } from './proof-git.mjs';
 import {
   artifactPlan,
-  applyTraceUrlOverrides,
-  deployedDatabaseEvidence,
-  environmentChecks,
   shouldPublishPublicProof,
 } from './proof-deployed-evidence.mjs';
+import { collectDeployedProof } from './proof-collect.mjs';
 import { outputRoot, publicProofRoot, repoRoot, runsRoot } from './proof-repo.mjs';
 
 const apiRequire = createRequire(path.join(repoRoot, 'api/package.json'));
@@ -97,14 +95,8 @@ async function main() {
   const e2ePassed = commandResults.some((result) =>
     result.name === 'FleetGraph attention loop E2E' && result.status === 'pass'
   );
-  console.log('FleetGraph proof: checking target environments...');
-  const environments = await environmentChecks(options);
-  console.log('FleetGraph proof: target environment checks complete.');
-  console.log('FleetGraph proof: collecting deployed database evidence...');
-  const deployedEvidence = applyTraceUrlOverrides(
-    await deployedDatabaseEvidence(options),
-    traceUrlOverridesFromEnv()
-  );
+  console.log('FleetGraph proof: collecting deployed proof evidence...');
+  const { environments, deployedEvidence } = await collectDeployedProof(options, traceUrlOverridesFromEnv());
   console.log('FleetGraph proof: deployed evidence collection complete.');
 
   console.log('FleetGraph proof: building reviewer proof packet...');

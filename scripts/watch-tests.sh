@@ -32,14 +32,7 @@ show_status() {
     fi
 
     local summary_json
-    summary_json=$(node -e "
-const fs = require('fs');
-const file = process.argv[1];
-const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-const values = ['total', 'passed', 'failed', 'skipped', 'pending', 'ts']
-  .map((key) => Number(data[key] ?? 0));
-console.log(values.join(' '));
-" "$SUMMARY_FILE" 2>/dev/null) || {
+    summary_json=$(node "${ROOT_DIR}/scripts/lib/e2e-summary.mjs" status-line "$SUMMARY_FILE" 2>/dev/null) || {
         echo -e "${YELLOW}Waiting for valid test summary...${NC}"
         return 1
     }

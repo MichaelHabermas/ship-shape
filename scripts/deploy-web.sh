@@ -1,19 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
-# Ship Frontend Deployment Script
-# Deploys the frontend to S3 + CloudFront with automatic cache invalidation
+# Ship frontend deploy: S3 + CloudFront for dev, shadow, or prod (canonical AWS web path).
 #
 # Usage: ./scripts/deploy-web.sh <dev|shadow|prod>
 #
 # Prerequisites:
 #   - AWS CLI configured with appropriate credentials
-#   - Terraform outputs available
+#   - Terraform outputs available (or DEPLOY_S3_BUCKET / DEPLOY_CF_DISTRIBUTION)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Parse environment argument
 ENV="${1:-}"
 if [[ ! "$ENV" =~ ^(dev|shadow|prod)$ ]]; then
   echo "Usage: $0 <dev|shadow|prod>"
@@ -25,23 +23,25 @@ if [[ ! "$ENV" =~ ^(dev|shadow|prod)$ ]]; then
   exit 1
 fi
 
-# Environment-specific configuration
 if [ "$ENV" = "prod" ]; then
   TF_DIR="$PROJECT_ROOT/terraform"
 else
   TF_DIR="$PROJECT_ROOT/terraform/environments/$ENV"
 fi
 
-# Sync terraform config from SSM (source of truth)
 "$SCRIPT_DIR/sync-terraform-config.sh" "$ENV"
 
 echo "=== Ship Frontend Deploy ==="
 echo "Environment: $ENV"
 
-# Get config from Terraform outputs
+S3_BUCKET=""
+CF_DISTRIBUTION=""
+FRONTEND_URL=""
+
 if [ -d "$TF_DIR" ] && command -v terraform &> /dev/null; then
   S3_BUCKET=$(cd "$TF_DIR" && terraform output -raw s3_bucket_name 2>/dev/null || echo "")
   CF_DISTRIBUTION=$(cd "$TF_DIR" && terraform output -raw cloudfront_distribution_id 2>/dev/null || echo "")
+  FRONTEND_URL=$(cd "$TF_DIR" && terraform output -raw frontend_url 2>/dev/null || echo "")
 fi
 
 S3_BUCKET="${S3_BUCKET:-${DEPLOY_S3_BUCKET:-}}"
@@ -57,13 +57,23 @@ if [ -z "$CF_DISTRIBUTION" ]; then
   exit 1
 fi
 
-# Always build fresh to ensure we deploy latest code
-echo "Building frontend..."
 cd "$PROJECT_ROOT"
-pnpm build:web
 
-echo "Syncing to S3: $S3_BUCKET"
-aws s3 sync web/dist/ "s3://${S3_BUCKET}/" --delete
+echo "Building shared package..."
+pnpm build:shared
+
+echo "Building frontend..."
+VITE_APP_ENV=production pnpm build:web
+
+echo "Syncing assets to S3: $S3_BUCKET"
+aws s3 sync web/dist/ "s3://${S3_BUCKET}/" \
+  --delete \
+  --exclude "index.html" \
+  --cache-control "public,max-age=31536000,immutable"
+
+echo "Uploading index.html with short cache for SPA routing..."
+aws s3 cp web/dist/index.html "s3://${S3_BUCKET}/index.html" \
+  --cache-control "public,max-age=300"
 
 echo "Invalidating CloudFront cache..."
 INVALIDATION_ID=$(aws cloudfront create-invalidation \
@@ -74,7 +84,6 @@ INVALIDATION_ID=$(aws cloudfront create-invalidation \
 
 echo "Invalidation started: $INVALIDATION_ID"
 
-# Wait for invalidation to complete (optional but recommended)
 echo "Waiting for invalidation to complete..."
 aws cloudfront wait invalidation-completed \
   --distribution-id "$CF_DISTRIBUTION" \
@@ -82,3 +91,6 @@ aws cloudfront wait invalidation-completed \
 
 echo ""
 echo "Frontend deployed to $ENV successfully!"
+if [ -n "$FRONTEND_URL" ]; then
+  echo "Frontend URL: $FRONTEND_URL"
+fi

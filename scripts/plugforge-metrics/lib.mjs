@@ -1,6 +1,7 @@
 // Shared PlugForge metric helpers centralize subprocess execution and JSON evidence writing.
-import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
+import { parseArgsFlat } from '../lib/parse-args.mjs';
+import { runCommand } from '../lib/run-command.mjs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -10,24 +11,7 @@ export const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 export const evidenceDir = path.join(rootDir, 'my-docs', 'evidence', 'plugforge-metrics');
 
 export function parseArgs(argv) {
-  const args = {};
-  for (let index = 0; index < argv.length; index++) {
-    const value = argv[index];
-    if (!value.startsWith('--')) {
-      args._ ||= [];
-      args._.push(value);
-      continue;
-    }
-    const key = value.slice(2);
-    const next = argv[index + 1];
-    if (!next || next.startsWith('--')) {
-      args[key] = true;
-      continue;
-    }
-    args[key] = next;
-    index++;
-  }
-  return args;
+  return parseArgsFlat(argv);
 }
 
 export function nowIso() {
@@ -49,69 +33,26 @@ export async function writeJsonReport(defaultName, report, args = {}) {
 }
 
 export function runProcess(command, args, options = {}) {
-  const startedAt = Date.now();
-  return new Promise((resolve) => {
-    const timeoutMs = requireNumber(options.timeoutMs, 15 * 60_000);
-    let timedOut = false;
-    let forceKillTimer = null;
-    const child = spawn(command, args, {
-      cwd: options.cwd ?? rootDir,
-      env: options.env ?? process.env,
-      shell: false,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    const timeoutTimer = timeoutMs > 0
-      ? setTimeout(() => {
-        timedOut = true;
-        child.kill('SIGTERM');
-        forceKillTimer = setTimeout(() => child.kill('SIGKILL'), 5_000);
-        forceKillTimer.unref?.();
-      }, timeoutMs)
-      : null;
-    timeoutTimer?.unref?.();
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', chunk => {
-      stdout += chunk.toString();
-      if (options.forwardOutput) process.stdout.write(chunk);
-    });
-    child.stderr.on('data', chunk => {
-      stderr += chunk.toString();
-      if (options.forwardOutput) process.stderr.write(chunk);
-    });
-    child.on('error', error => {
-      if (timeoutTimer) clearTimeout(timeoutTimer);
-      if (forceKillTimer) clearTimeout(forceKillTimer);
-      resolve({
-        command,
-        args,
-        exitCode: timedOut ? 124 : null,
-        signal: null,
-        stdout,
-        stderr,
-        error: timedOut ? `Process timed out after ${timeoutMs}ms` : error instanceof Error ? error.message : String(error),
-        timedOut,
-        timeoutMs,
-        durationMs: Date.now() - startedAt,
-      });
-    });
-    child.on('close', (exitCode, signal) => {
-      if (timeoutTimer) clearTimeout(timeoutTimer);
-      if (forceKillTimer) clearTimeout(forceKillTimer);
-      resolve({
-        command,
-        args,
-        exitCode: timedOut ? 124 : exitCode,
-        signal,
-        stdout,
-        stderr,
-        error: timedOut ? `Process timed out after ${timeoutMs}ms` : null,
-        timedOut,
-        timeoutMs,
-        durationMs: Date.now() - startedAt,
-      });
-    });
-  });
+  const timeoutMs = requireNumber(options.timeoutMs, 15 * 60_000);
+  return runCommand(command, args, {
+    cwd: options.cwd ?? rootDir,
+    env: options.env ?? process.env,
+    timeoutMs,
+    forwardOutput: options.forwardOutput,
+    throwOnFail: false,
+    tailChars: null,
+  }).then((result) => ({
+    command: result.command,
+    args: result.args,
+    exitCode: result.code,
+    signal: result.signal,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    error: result.error,
+    timedOut: result.timedOut,
+    timeoutMs: result.timeoutMs,
+    durationMs: result.durationMs,
+  }));
 }
 
 export function parseTrailingJson(text) {

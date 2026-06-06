@@ -126,7 +126,6 @@ Local dev uses `.env.local` for DB connection.
 ```bash
 ./scripts/deploy.sh prod           # API → Elastic Beanstalk (dev|shadow|prod)
 ./scripts/deploy-web.sh prod       # Frontend → S3/CloudFront (dev|shadow|prod)
-./scripts/deploy-frontend.sh dev   # Legacy frontend script (dev|prod only)
 ```
 
 **After deploy, verify with browser** (curl can't catch JS errors). Health checks:

@@ -34,7 +34,7 @@ cd ..
 
 # 6. Deploy application (frequent, 5-8 min)
 ./scripts/deploy-api.sh
-./scripts/deploy-frontend.sh dev   # or prod
+./scripts/deploy-web.sh dev   # or shadow|prod
 ```
 
 ## Documentation
@@ -85,7 +85,7 @@ api/
 scripts/
 ├── deploy-infrastructure.sh - Deploy Terraform resources
 ├── deploy-api.sh            - Deploy API to Elastic Beanstalk
-├── deploy-frontend.sh       - Deploy frontend to S3 + CloudFront
+├── deploy-web.sh            - Deploy frontend to S3 + CloudFront
 └── init-database.sh         - Initialize database schema
 ```
 
@@ -170,7 +170,7 @@ Note: Dev environment can disable NAT Gateway if using VPC endpoints for ECR/S3/
 
 ### Regular Deployments (Frequent)
 - **API changes** (3-5 min): `./scripts/deploy-api.sh`
-- **Frontend changes** (2-3 min): `./scripts/deploy-frontend.sh`
+- **Frontend changes** (2-3 min): `./scripts/deploy-web.sh <dev|shadow|prod>`
 - **Both** (5-8 min): Run both scripts
 
 ## Configuration

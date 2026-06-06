@@ -1,34 +1,34 @@
 {
   "flow": "slack",
-  "run_id": "plugforge-1780677631182-e45b4084",
-  "generated_at": "2026-06-05T16:40:36.437Z",
+  "run_id": "plugforge-1780770737913-aa8596b0",
+  "generated_at": "2026-06-06T18:32:22.072Z",
   "proof_class": "dev_shortcut",
   "status": "mock_only_not_proof",
-  "api_url": "http://127.0.0.1:62878",
+  "api_url": "http://127.0.0.1:63226",
   "oauth_callback": true,
   "slack_oauth_calls": 1,
   "subscriptions": [
     {
-      "id": "738dc3e5-d51b-47ef-a0cb-d7f0e674c955",
+      "id": "366d97b9-db82-43df-8837-961bcc301d04",
       "event": "document.created"
     },
     {
-      "id": "ce878590-abfa-47dc-a6c4-68becca21009",
+      "id": "8b70847b-0e98-477a-82c1-f958ef488eb0",
       "event": "issue.assigned"
     }
   ],
   "posts": [
     {
       "channel": "CPLUGFORGE",
-      "text": "Document created: PlugForge Slack Document 658cb16ed003 (/documents/a9b0b4cd-eea9-4ca3-992e-72af6a8c69ef)"
+      "text": "Document created: PlugForge Slack Document a2ea7c93860d (/documents/cd8be80b-420c-4d96-b55d-c9da465947a4)"
     },
     {
       "channel": "CPLUGFORGE",
-      "text": "Issue assigned: PlugForge Slack Issue 658cb16ed003 -> 79398a36-5104-444d-bace-35ed4535952c (/documents/67fd34e8-343f-4c20-85be-d26a73a7a80b)"
+      "text": "Issue assigned: PlugForge Slack Issue a2ea7c93860d -> fdf573c2-5a03-40cc-b386-2490e28cbed6 (/documents/cd0d6b10-743d-4773-8e96-f1df6cb0a578)"
     }
   ],
   "replay": {
-    "idempotency_key": "document.created:a9b0b4cd-eea9-4ca3-992e-72af6a8c69ef",
+    "idempotency_key": "document.created:cd8be80b-420c-4d96-b55d-c9da465947a4",
     "post_count_before": 2,
     "post_count_after": 2
   }

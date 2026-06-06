@@ -414,3 +414,16 @@ The transferable rules:
 - Fail before writing passed evidence when a live proof is missing the exact external artifact the claim requires.
 
 ShipShape example (2026-06): PlugForge live INT review found that live evidence validators needed stronger secret detection, exact matrix proof allowlists, canonical path containment, and opt-in browser screenshots before they could safely validate deployed browser, Slack, and GitLab proof artifacts.
+
+## 33. Orchestration Duplication Hides Bugs At Boundaries
+
+When every script reimplements subprocess helpers, port discovery, and ledger parsers locally, the interface complexity equals the implementation complexity. Tests cover the pure validation pieces, but env/cwd/timing failures show up only in full manual runs.
+
+The transferable rules:
+
+- Put shared orchestration primitives behind one small module with contract tests.
+- Keep shell wrappers thin; extract inline `node -e` snippets into named libraries.
+- Use one SSOT for inventories that gates depend on (test manifests, database URL resolution).
+- Defer merging unrelated traceability schemas; document which ledger owns which week instead.
+
+ShipShape example (2026-06): `scripts/` had five incompatible `runCommand` implementations, three `parseLedger` copies, and hand-listed PlugForge verify tests that drifted from the YAML ledger. Consolidating `scripts/lib/run-command.mjs`, `plugforge-gate-lib.mjs` parsing, and `plugforge-api-tests.manifest.json` reduced seam risk without collapsing Week 4 and Week 6 ledgers.

@@ -77,7 +77,7 @@ ship/
 └── scripts/
     ├── deploy-infrastructure.sh  # Terraform deployment
     ├── deploy-api.sh             # EB CLI deployment
-    └── deploy-frontend.sh        # S3 + CloudFront deployment
+    └── deploy-web.sh             # S3 + CloudFront deployment
 ```
 
 ## Deployment Order

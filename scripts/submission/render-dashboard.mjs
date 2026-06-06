@@ -345,7 +345,7 @@ function discoverySummary(discoveries) {
     .join(' ');
 }
 
-function securityTab(ledger, securityReport, securityFindings, deliverable) {
+function securityTab(securityProjection, securityReport, securityFindings, deliverable) {
   const helpers = {
     escapeHtml,
     badge,
@@ -355,7 +355,7 @@ function securityTab(ledger, securityReport, securityFindings, deliverable) {
     humanizeId,
     shortPath,
   };
-  return buildSecurityTabHtml(ledger, securityReport, securityFindings, deliverable, helpers);
+  return buildSecurityTabHtml(securityProjection, securityReport, securityFindings, deliverable, helpers);
 }
 
 function targetRows(categories) {
@@ -1134,7 +1134,7 @@ export function renderDashboard(
         <div class="section-grid">${evidencePacketSections(categories, packet)}</div>
       </section>
 
-      ${securityTab(ledger, securityReport, securityFindings, securityDeliverable)}
+      ${securityTab(model.securityTab, securityReport, securityFindings, securityDeliverable)}
 
       ${appendixPanel(categories, discoveries)}
 

@@ -15,11 +15,7 @@ e2e_require_docker() {
 e2e_require_browsers() {
   if ! (
     cd "${ROOT_DIR}"
-    node --input-type=module -e "
-      import { chromium } from '@playwright/test';
-      const browser = await chromium.launch({ headless: true });
-      await browser.close();
-    " >/dev/null 2>&1
+    node ./scripts/lib/e2e-preflight.mjs >/dev/null 2>&1
   ); then
     echo "Playwright could not launch Chromium (browser binaries missing or sandbox blocked)."
     echo "Run: pnpm test:e2e:setup"

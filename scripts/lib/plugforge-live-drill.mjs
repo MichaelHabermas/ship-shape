@@ -1,36 +1,22 @@
 // Shared helpers for PlugForge live external integration proof drills.
-import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
-import net from 'node:net';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { freePort } from './net.mjs';
+import { parseArgsMap } from './parse-args.mjs';
+import { runCommand as runCommandCore } from './run-command.mjs';
+import { sleep } from './process-utils.mjs';
 
 export const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const evidenceDir = path.join(rootDir, 'my-docs/evidence/plugforge-integrations');
 export const liveEvidenceDir = path.join(evidenceDir, 'live');
 
 export function parseArgs(argv = process.argv.slice(2)) {
-  const args = new Map();
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-    if (!arg.startsWith('--')) continue;
-    const inline = arg.indexOf('=');
-    if (inline !== -1) {
-      args.set(arg.slice(2, inline), arg.slice(inline + 1));
-      continue;
-    }
-    const key = arg.slice(2);
-    const next = argv[index + 1];
-    if (next && !next.startsWith('--')) {
-      args.set(key, next);
-      index += 1;
-    } else {
-      args.set(key, 'true');
-    }
-  }
-  return args;
+  return parseArgsMap(argv);
 }
+
+export { freePort };
 
 export function requireEnv(names, env = process.env) {
   const missing = names.filter((name) => !env[name]);
@@ -71,30 +57,13 @@ export function importBuiltSdk() {
 }
 
 export async function runCommand(command, args, options = {}) {
-  const child = spawn(command, args, {
-    cwd: rootDir,
-    env: options.env ?? process.env,
-    stdio: options.stdio ?? ['ignore', 'pipe', 'pipe'],
+  const result = await runCommandCore(command, args, {
+    ...options,
+    cwd: options.cwd ?? rootDir,
+    tailChars: options.tailChars ?? 6_000,
+    throwOnFail: true,
   });
-  const stdout = createTailCollector();
-  const stderr = createTailCollector();
-  let killTimeout = null;
-  const timeout = setTimeout(() => {
-    child.kill('SIGTERM');
-    killTimeout = setTimeout(() => child.kill('SIGKILL'), 5_000);
-  }, options.timeoutMs ?? 120_000);
-  child.stdout?.on('data', (chunk) => stdout.push(chunk));
-  child.stderr?.on('data', (chunk) => stderr.push(chunk));
-  const code = await new Promise((resolve, reject) => {
-    child.once('error', reject);
-    child.once('exit', resolve);
-  });
-  clearTimeout(timeout);
-  if (killTimeout) clearTimeout(killTimeout);
-  if (code !== 0) {
-    throw new Error(`${command} ${args.join(' ')} failed with exit ${code}\n${stderr.text() || stdout.text()}`);
-  }
-  return { stdout: stdout.text(), stderr: stderr.text() };
+  return { stdout: result.stdout, stderr: result.stderr };
 }
 
 export async function waitFor(predicate, label, timeoutMs = 60_000, intervalMs = 500) {
@@ -161,16 +130,6 @@ export function closeServer(server) {
   });
 }
 
-export function freePort() {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      server.close(() => resolve(address.port));
-    });
-  });
-}
-
 export function isLocalUrl(value) {
   try {
     const host = new URL(value).hostname;
@@ -209,9 +168,7 @@ export function truncate(value, max = 240) {
   return text.length > max ? `${text.slice(0, max - 3)}...` : text;
 }
 
-export function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+export { sleep };
 
 export async function openUrl(url) {
   const command = process.platform === 'darwin'
@@ -227,15 +184,3 @@ export async function openUrl(url) {
   }
 }
 
-function createTailCollector(maxChars = 6_000) {
-  let value = '';
-  return {
-    push(chunk) {
-      value += chunk.toString();
-      if (value.length > maxChars) value = value.slice(-maxChars);
-    },
-    text() {
-      return value;
-    },
-  };
-}

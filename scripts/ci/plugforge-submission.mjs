@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { parseLedger } from './plugforge-gate-lib.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const ledgerPath = path.join(rootDir, 'my-docs/project-weeks-sot/week-6/proof-ledger.yaml');
@@ -320,33 +321,6 @@ async function validateUrls(urls) {
     }
   }
   return errors;
-}
-
-function parseLedger(text) {
-  const entries = [];
-  let current = null;
-
-  for (const rawLine of text.split(/\r?\n/)) {
-    const idMatch = rawLine.match(/^  - id:\s*(.+)$/);
-    if (idMatch) {
-      current = { id: parseScalar(idMatch[1]) };
-      entries.push(current);
-      continue;
-    }
-    if (!current) continue;
-    const fieldMatch = rawLine.match(/^    ([A-Za-z0-9_]+):\s*(.*)$/);
-    if (fieldMatch) current[fieldMatch[1]] = parseScalar(fieldMatch[2]);
-  }
-
-  return entries;
-}
-
-function parseScalar(value) {
-  const trimmed = value.trim();
-  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-    return trimmed.slice(1, -1);
-  }
-  return trimmed;
 }
 
 function splitList(value) {
