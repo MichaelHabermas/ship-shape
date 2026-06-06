@@ -1,0 +1,67 @@
+{
+  "flow": "browser",
+  "proof_class": "live",
+  "status": "passed",
+  "generated_at": "2026-06-05T22:00:13.000Z",
+  "environment": "deployed",
+  "sdk_demo_url": "https://ship-shape-web.onrender.com/sdk-demo",
+  "api_url": "https://ship-shape-api.onrender.com",
+  "mocked": false,
+  "oauth_app": {
+    "name": "SDK Demo Read Write",
+    "client_id": "ship_app_8816909ca14c69e578bf0d2079ab9541",
+    "redirect_uri": "https://ship-shape-web.onrender.com/sdk-demo",
+    "scopes": [
+      "documents:read",
+      "documents:write",
+      "issues:read",
+      "sprints:read"
+    ]
+  },
+  "pkce": {
+    "completed": true,
+    "consent_screen_observed": true,
+    "loaded_after_authorize": true
+  },
+  "document_list": {
+    "ok": true,
+    "listed": true,
+    "source": "SDK demo loaded authenticated document cards after OAuth callback"
+  },
+  "document_create": {
+    "ok": true,
+    "title": "hello",
+    "document_id": "1bfcfaa4-dc50-45fd-b4f3-e68a25ddac63",
+    "source": "Create via SDK inserted a visible hello document card and /docs showed hello"
+  },
+  "public_api_audit": [
+    {
+      "route": "POST /api/v1/documents",
+      "status": 201,
+      "request_id": "32142c77-7d24-42e6-bb86-51ad96e986fb",
+      "scope": "documents:write",
+      "latency_ms": 58,
+      "rate_limited": false,
+      "observed_at": "2026-06-05T22:00:13.000Z"
+    },
+    {
+      "route": "GET /api/v1/documents",
+      "status": 200,
+      "request_id": "39070749-1de5-439b-af40-05593b7fc766",
+      "scope": "documents:read",
+      "latency_ms": 154,
+      "rate_limited": false,
+      "observed_at": "2026-06-05T21:57:22.000Z"
+    },
+    {
+      "route": "GET /api/v1/issues",
+      "status": 200,
+      "request_id": "eeb092fa-46b8-405b-8093-b1d8d308650e",
+      "scope": "issues:read",
+      "latency_ms": 16,
+      "rate_limited": false,
+      "observed_at": "2026-06-05T21:57:22.000Z"
+    }
+  ],
+  "manual_evidence": "my-docs/evidence/plugforge-manual-live.md"
+}

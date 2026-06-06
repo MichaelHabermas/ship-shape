@@ -2126,14 +2126,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: missing
+    status: proven
     proof_tier: live_required
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
-    manual_evidence: none
+    proof_command: pnpm plugforge:live:slack
+    proof_files: my-docs/evidence/plugforge-integrations/live/slack.json, scripts/drill-live-slack.mjs, integrations/slack/src/index.mjs
+    pending_test: none
+    manual_evidence: my-docs/evidence/plugforge-manual-live.md
     covered_by: none
-    gap: Prior proof used DB-seeded Ship token and mocked Slack; no live signed webhook to real integration subscriber.
+    gap: none
   - id: W6-INT-004
     source: PRD.md:558-565; Plugforge-specs.txt:360-361
     section: Selected Integrations and Drills
@@ -2141,14 +2141,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: missing
+    status: proven
     proof_tier: live_required
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
-    manual_evidence: none
+    proof_command: pnpm plugforge:live:slack
+    proof_files: my-docs/evidence/plugforge-integrations/live/slack.json, scripts/drill-live-slack.mjs, integrations/slack/src/index.mjs
+    pending_test: none
+    manual_evidence: my-docs/evidence/plugforge-manual-live.md
     covered_by: none
-    gap: chat.postMessage was mocked; no message in a real Slack channel.
+    gap: none
   - id: W6-INT-005
     source: PRD.md:558-565; Plugforge-specs.txt:360-361
     section: Selected Integrations and Drills
@@ -2156,14 +2156,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: missing
+    status: proven
     proof_tier: live_required
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
-    manual_evidence: none
+    proof_command: pnpm plugforge:live:slack
+    proof_files: my-docs/evidence/plugforge-integrations/live/slack.json, scripts/drill-live-slack.mjs, integrations/slack/src/index.mjs
+    pending_test: none
+    manual_evidence: my-docs/evidence/plugforge-manual-live.md
     covered_by: none
-    gap: issue.assigned Slack post was mocked; no real Slack delivery.
+    gap: none
   - id: W6-INT-006
     source: PRD.md:558-565; Plugforge-specs.txt:360-361
     section: Selected Integrations and Drills
@@ -2171,14 +2171,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: missing
+    status: proven
     proof_tier: live_required
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
-    manual_evidence: none
+    proof_command: pnpm plugforge:live:slack
+    proof_files: my-docs/evidence/plugforge-integrations/live/slack.json, scripts/drill-live-slack.mjs, integrations/slack/src/index.mjs
+    pending_test: none
+    manual_evidence: my-docs/evidence/plugforge-manual-live.md
     covered_by: none
-    gap: Slack OAuth callback was faked with code=oauth-code and mocked token exchange.
+    gap: none
   - id: W6-INT-007
     source: PRD.md:600-603; Plugforge-specs.txt:518-520
     section: Selected Integrations and Drills
@@ -2201,14 +2201,14 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: partial
+    status: proven
     proof_tier: live_required
-    proof_command: pnpm test:e2e:run e2e/plugforge-acceptance.spec.ts
-    proof_files: web/src/pages/SdkDemo.tsx, e2e/plugforge-acceptance.spec.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
-    manual_evidence: none
+    proof_command: manual live check of https://ship-shape-web.onrender.com/sdk-demo
+    proof_files: my-docs/evidence/plugforge-integrations/live/browser-sdk.json, web/src/pages/SdkDemo.tsx, e2e/plugforge-acceptance.spec.ts, my-docs/evidence/plugforge-manual-live.md
+    pending_test: none
+    manual_evidence: my-docs/evidence/plugforge-integrations/live/browser-sdk.json, my-docs/evidence/plugforge-manual-live.md
     covered_by: none
-    gap: Local Playwright PKCE passes; deployed https://ship-shape-web.onrender.com/sdk-demo not CI-gated as live proof.
+    gap: none
   - id: W6-INT-009
     source: PRD.md:567-572; Plugforge-specs.txt:362
     section: Selected Integrations and Drills
@@ -2216,14 +2216,14 @@ requirements:
     requirement_class: functional
     testability: e2e
     priority: P1
-    status: partial
+    status: proven
     proof_tier: live_required
-    proof_command: pnpm test:e2e:run e2e/plugforge-acceptance.spec.ts
-    proof_files: web/src/pages/SdkDemo.tsx, e2e/plugforge-acceptance.spec.ts
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
-    manual_evidence: none
+    proof_command: manual live check of https://ship-shape-web.onrender.com/sdk-demo
+    proof_files: my-docs/evidence/plugforge-integrations/live/browser-sdk.json, web/src/pages/SdkDemo.tsx, e2e/plugforge-acceptance.spec.ts, my-docs/evidence/plugforge-manual-live.md
+    pending_test: none
+    manual_evidence: my-docs/evidence/plugforge-integrations/live/browser-sdk.json, my-docs/evidence/plugforge-manual-live.md
     covered_by: none
-    gap: Document list proven in local E2E only; live deployed sdk-demo listing not gated.
+    gap: none
   - id: W6-INT-010
     source: PRD.md:574-579; Plugforge-specs.txt:363
     section: Selected Integrations and Drills

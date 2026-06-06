@@ -97,7 +97,7 @@ Evidence:
 
 ### W6-INT-003 through W6-INT-006 - Slack live proof drill
 
-Status: blocked; no live Slack evidence was written.
+Status: proven.
 
 Evidence:
 
@@ -119,6 +119,26 @@ Evidence:
 - Local tunnel was restarted with fresh URL `https://vast-windows-beg.loca.lt`.
 - Fresh-tunnel rerun completed Slack OAuth but again timed out waiting for the real Slack `document.created` message. Delivery log rows for idempotency key `document.created:be363275-3224-4c77-8fa1-f0fb2f2aa3cd` show initial attempts timing out after about `5000ms`, then `503 - Tunnel Unavailable`, then DLQ. This indicates the deployed Ship webhook dispatcher could not reliably reach the local receiver through localtunnel.
 - Local-vs-public tunnel check isolated the latest failure: a temporary local receiver on `http://127.0.0.1:8080/health` returned `200`, while `https://vast-windows-beg.loca.lt/health` returned `503 - Tunnel Unavailable`. This confirms localtunnel transport failed independently of Slack OAuth, Slack channel membership, and Ship OAuth token setup.
+- Cloudflare tunnel replacement was started at `https://darwin-the-arabic-lows.trycloudflare.com`.
+- Successful drill command: `PLUGFORGE_LIVE_TIMEOUT_MS=240000 PLUGFORGE_OPEN_BROWSER=1 pnpm plugforge:live:slack`
+- Successful drill stages:
+  - Local receiver health passed at `http://127.0.0.1:8080/health`.
+  - Public webhook target health passed at `https://darwin-the-arabic-lows.trycloudflare.com/health`.
+  - Slack OAuth completed for team `T06DAUEV831`, bot user `U0B8HRQ73QT`.
+  - Ship OAuth token was accepted for user `c2fc791d-d4fe-4480-93f0-4482a095502c`.
+  - Webhook subscriptions were created for `document.created` and `issue.assigned`.
+  - Drill wrote live evidence JSON to `my-docs/evidence/plugforge-integrations/live/slack.json`.
+- Live evidence JSON details:
+  - Run id: `slack-live-mq2i7qe0`
+  - Generated at: `2026-06-06T15:24:50.181Z`
+  - Integration target: `https://darwin-the-arabic-lows.trycloudflare.com/ship/webhooks`
+  - `document.created` delivery id `e0acffdd-05b0-4a52-851d-57c497a69d69`, idempotency key `document.created:bad4f53c-d3a5-44b9-971d-6b626fb3f40c`, response status `200`, signature verified.
+  - `issue.assigned` delivery id `ea507299-c195-466c-be82-0c7448780853`, idempotency key `issue.assigned:44afa793-e818-4c30-bf40-7622c499268c:2026-06-06T15:24:48.852Z`, response status `200`, signature verified.
+  - Slack channel id `C0AMVV8UC14`.
+  - Slack message timestamps `1780759487.789429` and `1780759488.998489`.
+- User screenshot shows `PlugForge Live Proof` posting both messages in Slack channel `sb-inbox`:
+  - `Document created: PlugForge live Slack slack-live-mq2i7qe0 (/documents/bad4f53c-d3a5-44b9-971d-6b626fb3f40c)`
+  - `Issue assigned: PlugForge live Slack issue slack-live-mq2i7qe0 -> c2fc791d-d4fe-4480-93f0-4482a095502c (/documents/44afa793-e818-4c30-bf40-7622c499268c)`
 - Slack target channel selected from `https://chazzwazza.slack.com/archives/C0AMVV8UC14`; channel name observed as `sb-inbox`, channel id `C0AMVV8UC14`.
 - Slack workspace shows `PlugForge Live Proof` app was added to private channel `sb-inbox` by Michael Habermas.
 - Dedicated Ship OAuth app created for live integration drills: `PlugForge Slack Live Proof`, client id `ship_app_653999d0a9745ee4e4007f374ec5d15a`, secret prefix `25fa3efd`, created `6/5/2026, 6:01:14 PM`.
@@ -126,7 +146,7 @@ Evidence:
 - Ship device-code OAuth login completed for `ship_app_653999d0a9745ee4e4007f374ec5d15a` with scopes `documents:read documents:write issues:read issues:write webhooks:manage`; user code `UPGL-6V5X`; terminal reported `Logged in as dev@ship.local`. Token stored locally at `/tmp/plugforge-live-ship-token.json` and not recorded.
 - Local tunnel established for Slack proof server: `https://common-sites-kneel.loca.lt`, forwarding to local port `8080`.
 - Script explicitly reported: `Nothing was run. No evidence was written.`
-- Ledger implication: Slack live proof atoms remain unproven until real Ship OAuth token and Slack app/channel credentials are supplied.
+- Ledger implication: `W6-INT-003`, `W6-INT-004`, `W6-INT-005`, and `W6-INT-006` can be marked proven with `behavior_live` evidence from `my-docs/evidence/plugforge-integrations/live/slack.json`.
 
 ### Public API reference UI
 

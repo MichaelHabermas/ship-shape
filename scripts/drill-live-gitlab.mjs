@@ -4,6 +4,7 @@ import process from 'node:process';
 import {
   absoluteUrl,
   assert,
+  assertHttpReachable,
   closeServer,
   ensureSdkBuild,
   importBuiltSdk,
@@ -52,6 +53,7 @@ const REQUIRED_ENV = [
 const args = parseArgs();
 const id = runId('gitlab-live');
 const timeoutMs = Number(args.get('timeout-ms') ?? process.env.PLUGFORGE_LIVE_TIMEOUT_MS ?? 180_000);
+const healthTimeoutMs = Number(args.get('health-timeout-ms') ?? process.env.PLUGFORGE_HEALTH_TIMEOUT_MS ?? 5_000);
 let server = null;
 
 try {
@@ -77,7 +79,15 @@ try {
   });
 
   await listen(server, localPort);
+  const localHealthUrl = `http://127.0.0.1:${localPort}/health`;
+  const publicHealthUrl = absoluteUrl(new URL(webhookPublicUrl).origin, '/health');
+  console.error(`[1/7] Local GitLab receiver listening: ${localHealthUrl}`);
+  await assertHttpReachable(localHealthUrl, 'Local GitLab receiver health', { timeoutMs: healthTimeoutMs });
+  console.error(`[2/7] Public GitLab webhook target health: ${publicHealthUrl}`);
+  await assertHttpReachable(publicHealthUrl, 'Public GitLab webhook target health', { timeoutMs: healthTimeoutMs });
+
   const client = new ShipClient({ baseUrl: env.SHIP_API_URL, token: env.SHIP_ACCESS_TOKEN });
+  console.error('[3/7] Creating Ship proof issue');
   const issue = await client.issues.create({ title: `PlugForge live GitLab ${id}` });
 
   let hook = null;
@@ -86,6 +96,7 @@ try {
   const filePath = `.plugforge-live-proof/${id}.txt`;
 
   try {
+    console.error('[4/7] Reading GitLab project and installing project webhook');
     const project = await gitlabJson(apiBaseUrl, env.GITLAB_TOKEN, 'GET', `/projects/${projectPath}`);
     hook = await gitlabJson(apiBaseUrl, env.GITLAB_TOKEN, 'POST', `/projects/${projectPath}/hooks`, {
       url: webhookPublicUrl,
@@ -94,6 +105,7 @@ try {
       push_events: false,
       enable_ssl_verification: true,
     });
+    console.error(`[5/7] Creating proof branch, file, and merge request in ${project.web_url}`);
     await gitlabJson(apiBaseUrl, env.GITLAB_TOKEN, 'POST', `/projects/${projectPath}/repository/branches`, {
       branch,
       ref: project.default_branch,
@@ -111,6 +123,7 @@ try {
       remove_source_branch: true,
     });
 
+    console.error(`[6/7] Waiting for Ship issue ${issue.id} to receive GitLab external link`);
     const link = await waitFor(async () => {
       const fetched = await client.issues.get(issue.id);
       return fetched.external_links?.find((candidate) => (
@@ -120,6 +133,7 @@ try {
       )) ?? null;
     }, 'Ship issue GitLab external link created by real project webhook', timeoutMs, 2000);
 
+    console.error(`[7/7] Waiting for local receiver to observe GitLab MR webhook !${mergeRequest.iid}`);
     const observedWebhook = await waitFor(
       () => observedWebhooks.find((event) => event.merge_request_iid === mergeRequest.iid && event.linked >= 1),
       'local GitLab integration observed live MR webhook',

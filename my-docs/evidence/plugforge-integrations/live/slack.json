@@ -1,0 +1,75 @@
+{
+  "flow": "slack",
+  "proof_class": "live",
+  "status": "passed",
+  "run_id": "slack-live-mq2i7qe0",
+  "generated_at": "2026-06-06T15:24:50.181Z",
+  "api_url": "https://ship-shape-api.onrender.com",
+  "integration_target_url": "https://darwin-the-arabic-lows.trycloudflare.com/ship/webhooks",
+  "cleanup": {
+    "ship_webhooks_deactivated": [
+      {
+        "id": "38285a22-9d41-4f1b-9714-d0642485153e",
+        "active": false
+      },
+      {
+        "id": "c3cab735-61f0-4006-8521-294d0c97c492",
+        "active": false
+      }
+    ],
+    "kept": false
+  },
+  "oauth": {
+    "provider": "slack",
+    "completed": true,
+    "live": true,
+    "team_id": "T06DAUEV831",
+    "bot_user_id": "U0B8HRQ73QT",
+    "redirect_origin": "http://127.0.0.1:8080"
+  },
+  "signed_webhooks": [
+    {
+      "event": "document.created",
+      "signatureVerified": true,
+      "subscription_id": "38285a22-9d41-4f1b-9714-d0642485153e",
+      "delivery_id": "e0acffdd-05b0-4a52-851d-57c497a69d69",
+      "idempotency_key": "document.created:bad4f53c-d3a5-44b9-971d-6b626fb3f40c",
+      "response_status": 200
+    },
+    {
+      "event": "issue.assigned",
+      "signatureVerified": true,
+      "subscription_id": "c3cab735-61f0-4006-8521-294d0c97c492",
+      "delivery_id": "ea507299-c195-466c-be82-0c7448780853",
+      "idempotency_key": "issue.assigned:44afa793-e818-4c30-bf40-7622c499268c:2026-06-06T15:24:48.852Z",
+      "response_status": 200
+    }
+  ],
+  "messages": [
+    {
+      "event": "document.created",
+      "channel": "C0AMVV8UC14",
+      "message_ts": "1780759487.789429",
+      "permalink": null,
+      "text_preview": "Document created: PlugForge live Slack slack-live-mq2i7qe0 (/documents/bad4f53c-d3a5-44b9-971d-6b626fb3f40c)",
+      "live": true
+    },
+    {
+      "event": "issue.assigned",
+      "channel": "C0AMVV8UC14",
+      "message_ts": "1780759488.998489",
+      "permalink": null,
+      "text_preview": "Issue assigned: PlugForge live Slack issue slack-live-mq2i7qe0 -> c2fc791d-d4fe-4480-93f0-4482a095502c (/documents/44afa793-e818-4c30-bf40-7622c499268c)",
+      "live": true
+    }
+  ],
+  "document": {
+    "id": "bad4f53c-d3a5-44b9-971d-6b626fb3f40c",
+    "title": "PlugForge live Slack slack-live-mq2i7qe0"
+  },
+  "issue": {
+    "id": "44afa793-e818-4c30-bf40-7622c499268c",
+    "title": "PlugForge live Slack issue slack-live-mq2i7qe0",
+    "assignee_id": "c2fc791d-d4fe-4480-93f0-4482a095502c"
+  }
+}
