@@ -111,7 +111,40 @@ test('signed issue.assigned webhooks post to Slack with env bot token', async ()
   }
 });
 
+test('failed Slack post responses include Slack error reason', async () => {
+  const server = createSlackIntegrationServer({
+    env: {
+      SLACK_BOT_TOKEN: 'xoxb-env',
+      SLACK_CHANNEL_ID: 'C999',
+      SHIP_WEBHOOK_SECRET: webhookSecret,
+    },
+    fetch: async () => jsonResponse({ ok: false, error: 'not_in_channel' }),
+  });
+  await listen(server);
+  try {
+    const response = await postSignedWebhookResponse(serverBaseUrl(server), {
+      type: 'document.created',
+      data: {
+        document: { id: 'doc-1', title: 'Demo Doc' },
+      },
+    }, 'document.created:doc-1');
+
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {
+      ok: false,
+      error: 'SLACK_POST_MESSAGE_FAILED: not_in_channel',
+    });
+  } finally {
+    await close(server);
+  }
+});
+
 function postSignedWebhook(baseUrl, event, idempotencyKey) {
+  return postSignedWebhookResponse(baseUrl, event, idempotencyKey)
+    .then((response) => response.json());
+}
+
+function postSignedWebhookResponse(baseUrl, event, idempotencyKey) {
   const body = JSON.stringify(event);
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = crypto
@@ -126,7 +159,7 @@ function postSignedWebhook(baseUrl, event, idempotencyKey) {
       'ship-signature': `t=${timestamp},v1=${signature}`,
     },
     body,
-  }).then((response) => response.json());
+  });
 }
 
 function jsonResponse(body, status = 200) {

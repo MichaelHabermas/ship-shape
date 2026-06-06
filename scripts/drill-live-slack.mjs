@@ -3,6 +3,7 @@
 import process from 'node:process';
 import {
   absoluteUrl,
+  assertHttpReachable,
   assert,
   closeServer,
   ensureSdkBuild,
@@ -53,6 +54,7 @@ const REQUIRED_ENV = [
 const args = parseArgs();
 const id = runId('slack-live');
 const timeoutMs = Number(args.get('timeout-ms') ?? process.env.PLUGFORGE_LIVE_TIMEOUT_MS ?? 180_000);
+const healthTimeoutMs = Number(args.get('health-timeout-ms') ?? process.env.PLUGFORGE_HEALTH_TIMEOUT_MS ?? 5_000);
 let server = null;
 let shipClient = null;
 let cleanupAttempted = false;
@@ -99,8 +101,15 @@ try {
   });
 
   await listen(server, Number(redirectUri.port), redirectUri.hostname);
+  const localHealthUrl = absoluteUrl(redirectUri.origin, '/health');
+  const publicHealthUrl = absoluteUrl(targetBase, '/health');
+  console.error(`[1/8] Local Slack receiver listening: ${localHealthUrl}`);
+  await assertHttpReachable(localHealthUrl, 'Local Slack receiver health', { timeoutMs: healthTimeoutMs });
+  console.error(`[2/8] Public webhook target health: ${publicHealthUrl}`);
+  await assertHttpReachable(publicHealthUrl, 'Public Slack webhook target health', { timeoutMs: healthTimeoutMs });
+
   const installUrl = `${redirectUri.origin}/slack/install`;
-  console.error(`Slack install URL: ${installUrl}`);
+  console.error(`[3/8] Slack install URL: ${installUrl}`);
   if (args.get('open') === 'true' || process.env.PLUGFORGE_OPEN_BROWSER === '1') {
     await openUrl(installUrl);
   }
@@ -111,9 +120,11 @@ try {
     timeoutMs,
     1000
   );
+  console.error(`[4/8] Slack OAuth completed: team=${installation.teamId ?? 'unknown'} bot=${installation.botUserId ?? 'unknown'}`);
 
   shipClient = new ShipClient({ baseUrl: env.SHIP_API_URL, token: env.SHIP_ACCESS_TOKEN });
   const me = await shipClient.me();
+  console.error(`[5/8] Ship OAuth token accepted: user=${me.user.id}`);
   const assigneeId = args.get('assignee-id') ?? process.env.SHIP_ISSUE_ASSIGNEE_ID ?? me.user.id;
   const webhookTarget = absoluteUrl(targetBase, '/ship/webhooks');
 
@@ -129,14 +140,16 @@ try {
   });
   createdSubscriptionIds.push(issueSubscription.id);
   webhookSecrets.push(documentSubscription.signing_secret, issueSubscription.signing_secret);
+  console.error(`[6/8] Webhook subscriptions created: document=${documentSubscription.id} issue=${issueSubscription.id} target=${webhookTarget}`);
 
   const documentTitle = `PlugForge live Slack ${id}`;
   const document = await shipClient.documents.create({ title: documentTitle });
-  const documentMessage = await waitFor(
+  console.error(`[7/8] Created document ${document.id}; waiting for Slack document.created message`);
+  const documentMessage = await waitForSlackMessage(
+    messages,
     () => messages.find((message) => message.event === 'document.created' && message.text_preview.includes(documentTitle)),
     'real Slack document.created message',
-    timeoutMs,
-    1000
+    timeoutMs
   );
   assert(Boolean(documentMessage.message_ts || documentMessage.permalink), 'Slack document.created message did not include message_ts or permalink');
   const documentDelivery = await waitForDelivery(shipClient, {
@@ -148,11 +161,12 @@ try {
   const issueTitle = `PlugForge live Slack issue ${id}`;
   const issue = await shipClient.issues.create({ title: issueTitle });
   const assignedIssue = await shipClient.issues.update(issue.id, { assignee_id: assigneeId });
-  const issueMessage = await waitFor(
+  console.error(`[8/8] Assigned issue ${assignedIssue.id}; waiting for Slack issue.assigned message`);
+  const issueMessage = await waitForSlackMessage(
+    messages,
     () => messages.find((message) => message.event === 'issue.assigned' && message.text_preview.includes(issueTitle)),
     'real Slack issue.assigned message',
-    timeoutMs,
-    1000
+    timeoutMs
   );
   assert(Boolean(issueMessage.message_ts || issueMessage.permalink), 'Slack issue.assigned message did not include message_ts or permalink');
   const issueDelivery = await waitForDelivery(shipClient, {
@@ -259,15 +273,50 @@ Nothing was run. No evidence was written.`;
 }
 
 async function waitForDelivery(client, input, timeoutMs) {
-  return waitFor(async () => {
-    const page = await client.webhooks.listDeliveries({ limit: 100 });
-    return page.data.find((delivery) => (
-      delivery.event_type === input.eventType &&
-      delivery.subscription_id === input.subscriptionId &&
-      delivery.status === 'succeeded' &&
-      delivery.created_at >= input.createdAfter
-    )) ?? null;
-  }, `${input.eventType} webhook delivery`, timeoutMs, 1000);
+  let recentDeliveries = [];
+  try {
+    return await waitFor(async () => {
+      const page = await client.webhooks.listDeliveries({ limit: 100 });
+      recentDeliveries = page.data
+        .filter((delivery) => (
+          delivery.event_type === input.eventType &&
+          delivery.subscription_id === input.subscriptionId &&
+          delivery.created_at >= input.createdAfter
+        ))
+        .slice(0, 5)
+        .map((delivery) => ({
+          id: delivery.id,
+          status: delivery.status,
+          attempt: delivery.attempt_count,
+          response_status: delivery.response_status,
+          response_excerpt: truncate(delivery.response_body ?? ''),
+          latency_ms: delivery.latency_ms,
+          idempotency_key: delivery.idempotency_key,
+        }));
+      return page.data.find((delivery) => (
+        delivery.event_type === input.eventType &&
+        delivery.subscription_id === input.subscriptionId &&
+        delivery.status === 'succeeded' &&
+        delivery.created_at >= input.createdAfter
+      )) ?? null;
+    }, `${input.eventType} webhook delivery`, timeoutMs, 1000);
+  } catch (error) {
+    const details = recentDeliveries.length > 0 ? JSON.stringify(recentDeliveries, null, 2) : 'none';
+    throw new Error(`${error instanceof Error ? error.message : String(error)}
+Recent ${input.eventType} deliveries:
+${details}`);
+  }
+}
+
+async function waitForSlackMessage(messages, predicate, label, timeoutMs) {
+  try {
+    return await waitFor(predicate, label, timeoutMs, 1000);
+  } catch (error) {
+    const details = messages.length > 0 ? JSON.stringify(messages.slice(-5), null, 2) : 'none';
+    throw new Error(`${error instanceof Error ? error.message : String(error)}
+Observed Slack messages in local receiver:
+${details}`);
+  }
 }
 
 async function cleanupShipWebhookSubscriptions(client, subscriptionIds) {

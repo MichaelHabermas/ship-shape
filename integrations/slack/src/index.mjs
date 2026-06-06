@@ -163,7 +163,8 @@ async function postSlackMessage(text, deps) {
   });
   const payload = await response.json();
   if (!response.ok || payload.ok === false) {
-    throw new Error('SLACK_POST_MESSAGE_FAILED');
+    const reason = payload.error ?? `${response.status} ${response.statusText}`;
+    throw new Error(`SLACK_POST_MESSAGE_FAILED: ${reason}`);
   }
   return {
     ...payload,

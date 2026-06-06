@@ -109,6 +109,45 @@ export async function waitFor(predicate, label, timeoutMs = 60_000, intervalMs =
   throw new Error(`Timed out waiting for ${label}; last=${JSON.stringify(lastValue)}`);
 }
 
+export async function probeHttpUrl(url, options = {}) {
+  const fetchImpl = options.fetch ?? globalThis.fetch;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 5_000);
+  try {
+    const response = await fetchImpl(url, {
+      method: 'GET',
+      headers: { accept: 'application/json' },
+      signal: controller.signal,
+    });
+    const body = await response.text();
+    return {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      body: truncate(body, 500),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function assertHttpReachable(url, label, options = {}) {
+  const result = await probeHttpUrl(url, options);
+  if (result.ok) return result;
+  const status = result.status ? `${result.status} ${result.statusText ?? ''}`.trim() : 'request failed';
+  const detail = result.body || result.error || 'no response body';
+  throw new Error(`${label} is not reachable: ${url}
+Result: ${status}
+Detail: ${detail}
+
+Nothing was run. Fix the tunnel or deployed integration URL, then retry.`);
+}
+
 export function listen(server, port, host = '127.0.0.1') {
   return new Promise((resolve, reject) => {
     server.once('error', reject);

@@ -2,6 +2,8 @@
 
 Manual checks performed against the deployed Week 6 PlugForge surfaces.
 
+This file is a raw evidence artifact for `my-docs/project-weeks-sot/week-6/proof-ledger.yaml`, not a second source of truth. The ledger remains authoritative for status; this file preserves manual screenshots, pasted command output, and reviewer-observable facts that YAML should only reference.
+
 Do not record raw OAuth `client_secret` values in this file.
 
 ## 2026-06-05
@@ -92,6 +94,39 @@ Evidence:
 
 - URL: `https://ship-shape-api.onrender.com/api/v1/documents`
 - Response: `{"code":"unauthorized","message":"Missing bearer token","request_id":"42573688-2a77-4f7d-8da3-23e5a6323155"}`
+
+### W6-INT-003 through W6-INT-006 - Slack live proof drill
+
+Status: blocked; no live Slack evidence was written.
+
+Evidence:
+
+- Command run from repo root: `pnpm plugforge:live:slack`
+- Result: command exited `1` before running the drill.
+- Script reported missing required env vars: `SHIP_API_URL`, `SHIP_ACCESS_TOKEN`, `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_REDIRECT_URI`, `SLACK_CHANNEL_ID`.
+- Follow-up repo-side env check found none of those variable names in `web/.env`, `web/.env.example`, `api/.env.local`, `api/.env`, or `api/.env.example`.
+- Slack app admin page `https://api.slack.com/apps` shows an existing app named `Hermes` in workspace `Chazzwazza`, app id `A0APAPQUP4P`, app type `Modern`, distribution status `Not distributed`.
+- Dedicated Slack app created for this proof: `PlugForge Live Proof`, app id `A0B8T4QDH9S`, created `June 5, 2026`, with client id visible and client/signing secrets present but intentionally not recorded.
+- Dedicated Slack app OAuth redirect URL configured: `http://127.0.0.1:8080/slack/oauth/callback`.
+- Dedicated Slack app Bot Token Scope configured: `chat:write`, described by Slack as sending messages as `@PlugForge Live Proof`.
+- First live Slack OAuth install attempt failed in Slack before callback with `redirect_uri did not match any configured URIs`; passed URI was `http://127.0.0.1:8080/slack/oauth/callback`. This is setup mismatch evidence, not live integration proof.
+- After redirect URL correction, Slack OAuth callback succeeded with response `{"ok":true,"team_id":"T06DAUEV831"}`.
+- Same drill run then failed on Ship API access with `Bearer token expired`; no signed webhook or Slack message evidence was written by that run.
+- Ship OAuth token was refreshed locally, but rerun only had `SHIP_ACCESS_TOKEN` in the shell environment; drill exited before running and reported missing `SHIP_API_URL`, `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_REDIRECT_URI`, and `SLACK_CHANNEL_ID`.
+- Full-env rerun completed Slack OAuth install, then timed out waiting for `real Slack document.created message`; no live Slack evidence JSON was written.
+- Public API delivery log for that run shows Ship reached the Slack integration target for `document.created` but the integration returned `SLACK_POST_MESSAGE_FAILED`; delivery id `6fe89f77-ec72-452f-93ee-c30828fc279f` ended `dlq` after attempts with response statuses `500` then `408`.
+- Follow-up rerun after channel invite still timed out. Latest delivery log row `7212c402-093f-43ba-9969-8c08a49072a8` for `document.created` went `dlq` on attempt 1 with `response_status` `408` and empty response. Direct check of `https://common-sites-kneel.loca.lt/health` also returned `HTTP/1.1 408 Request Timeout`, indicating the tunnel/receiver path was stale or unavailable.
+- Local tunnel was restarted with fresh URL `https://vast-windows-beg.loca.lt`.
+- Fresh-tunnel rerun completed Slack OAuth but again timed out waiting for the real Slack `document.created` message. Delivery log rows for idempotency key `document.created:be363275-3224-4c77-8fa1-f0fb2f2aa3cd` show initial attempts timing out after about `5000ms`, then `503 - Tunnel Unavailable`, then DLQ. This indicates the deployed Ship webhook dispatcher could not reliably reach the local receiver through localtunnel.
+- Local-vs-public tunnel check isolated the latest failure: a temporary local receiver on `http://127.0.0.1:8080/health` returned `200`, while `https://vast-windows-beg.loca.lt/health` returned `503 - Tunnel Unavailable`. This confirms localtunnel transport failed independently of Slack OAuth, Slack channel membership, and Ship OAuth token setup.
+- Slack target channel selected from `https://chazzwazza.slack.com/archives/C0AMVV8UC14`; channel name observed as `sb-inbox`, channel id `C0AMVV8UC14`.
+- Slack workspace shows `PlugForge Live Proof` app was added to private channel `sb-inbox` by Michael Habermas.
+- Dedicated Ship OAuth app created for live integration drills: `PlugForge Slack Live Proof`, client id `ship_app_653999d0a9745ee4e4007f374ec5d15a`, secret prefix `25fa3efd`, created `6/5/2026, 6:01:14 PM`.
+- Ship app scopes shown: `documents:read`, `documents:write`, `issues:read`, `issues:write`, `sprints:read`, `sprints:write`, `webhooks:manage`.
+- Ship device-code OAuth login completed for `ship_app_653999d0a9745ee4e4007f374ec5d15a` with scopes `documents:read documents:write issues:read issues:write webhooks:manage`; user code `UPGL-6V5X`; terminal reported `Logged in as dev@ship.local`. Token stored locally at `/tmp/plugforge-live-ship-token.json` and not recorded.
+- Local tunnel established for Slack proof server: `https://common-sites-kneel.loca.lt`, forwarding to local port `8080`.
+- Script explicitly reported: `Nothing was run. No evidence was written.`
+- Ledger implication: Slack live proof atoms remain unproven until real Ship OAuth token and Slack app/channel credentials are supplied.
 
 ### Public API reference UI
 
