@@ -4,7 +4,7 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadReviewerEvidence } from './reviewer-evidence.mjs';
-import { buildReviewerModel, normalizeHtml } from './reviewer-model.mjs';
+import { buildReviewerModel, normalizeHtml, openExternalLinksInNewTab } from './reviewer-model.mjs';
 import { renderReviewerPacketHtml } from './render-html.mjs';
 import { packetOutputs, repoRoot } from './paths.mjs';
 
@@ -13,7 +13,7 @@ export async function buildReviewerPacketHtml(options = {}) {
     requireScreenshot: options.requireScreenshot ?? true,
   });
   const model = buildReviewerModel(evidence);
-  const html = normalizeHtml(renderReviewerPacketHtml(model));
+  const html = openExternalLinksInNewTab(normalizeHtml(renderReviewerPacketHtml(model)));
   return { model, html };
 }
 

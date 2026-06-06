@@ -57,6 +57,7 @@
     "plugforge:live:matrix": "node ./scripts/drill-live-matrix.mjs",
     "plugforge:live:int": "pnpm plugforge:metrics:ttfe && pnpm plugforge:live:browser && pnpm plugforge:live:slack && pnpm plugforge:live:gitlab && pnpm plugforge:live:matrix",
     "plugforge:refresh-proof": "node ./scripts/plugforge/refresh-live-proof.mjs",
+    "plugforge:reset-slack-webhooks": "node ./scripts/plugforge/reset-render-slack-webhooks.mjs",
     "plugforge:copy-evidence": "node ./scripts/plugforge/copy-evidence.mjs",
     "plugforge:render-reviewer": "node ./scripts/plugforge/copy-evidence.mjs && node ./scripts/plugforge/reviewer/render-reviewer-packet.mjs",
     "plugforge:render-reviewer:check": "node ./scripts/plugforge/reviewer/check-reviewer-packet.mjs --require-screenshot",

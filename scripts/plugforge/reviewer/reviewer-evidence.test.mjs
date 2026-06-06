@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadReviewerEvidence } from './reviewer-evidence.mjs';
-import { buildReviewerModel, flowStatusClass, usesEphemeralTunnel } from './reviewer-model.mjs';
+import { renderReviewerPacketHtml } from './render-html.mjs';
+import { buildReviewerModel, flowStatusClass, openExternalLinksInNewTab, usesEphemeralTunnel } from './reviewer-model.mjs';
 
 test('loadReviewerEvidence accepts committed live evidence files', async () => {
   const evidence = await loadReviewerEvidence();
@@ -32,4 +33,18 @@ test('usesEphemeralTunnel flags cloudflare webhook targets in live evidence', as
   const evidence = await loadReviewerEvidence();
   const model = buildReviewerModel(evidence);
   assert.equal(usesEphemeralTunnel(model), true);
+});
+
+test('openExternalLinksInNewTab adds target to external anchors only', async () => {
+  const evidence = await loadReviewerEvidence();
+  const model = buildReviewerModel(evidence);
+  const html = openExternalLinksInNewTab(renderReviewerPacketHtml(model));
+
+  for (const match of html.matchAll(/<a\b[^>]*>/gi)) {
+    const tag = match[0];
+    const href = tag.match(/\bhref\s*=\s*"([^"]*)"/i)?.[1];
+    if (!href || href.startsWith('#')) continue;
+    assert.match(tag, /\btarget="_blank"/, `missing target="_blank" on ${tag}`);
+    assert.match(tag, /\brel="noopener noreferrer"/, `missing rel on ${tag}`);
+  }
 });

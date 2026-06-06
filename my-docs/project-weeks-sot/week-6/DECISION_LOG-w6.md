@@ -144,7 +144,7 @@ This document records Week 6 decisions that are not directly dictated by the Plu
 - Week 6 reviewer materials use one generated HTML packet (`pnpm plugforge:render-reviewer`) dual-written to `web/public/` and `my-docs/project-weeks-sot/week-6/`. Evidence JSON under `my-docs/evidence/plugforge-integrations/live/` and `ttfe-timing.json` is the source of truth for the integrations section; hand-editing generated HTML is forbidden.
 - Path A in the packet covers MVP gates 1–8 on the deployed site. Path B covers the six integration flows, TTFE timing, Slack/GitLab deep links, grader curl for `external_links`, and a static event-boundary diagram.
 - GitLab proof is surfaced via live MR on `labs.gauntletai.com`, public API readback, and `external_links` chips in the issue properties sidebar.
-- Always-on reference integrations deploy as separate Render web services (`ship-shape-slack-integration`, `ship-shape-gitlab-integration`) with secrets documented in `INTEGRATION_HOSTING_RUNBOOK.md`. Developer tab includes a read-only integration proof panel fed from committed evidence copied to `web/public/plugforge-evidence/`.
+- Always-on reference integrations deploy as separate Render web services (`ship-shape-slack-integration`, `ship-shape-gitlab-integration`) with secrets documented in `INTEGRATION_HOSTING_RUNBOOK.md`. Reviewer integration proof lives only in `plugforge-reviewer-packet.html` and `web/public/plugforge-evidence/` — not on the Developer tab.
 
 ## 2026-06-04 — Final Submission Evidence Decisions
 

@@ -71,6 +71,16 @@ export function normalizeHtml(text) {
   return text.replace(/\r\n/g, '\n').trimEnd() + '\n';
 }
 
+/** Ensure external anchors open in a new tab; leave in-page hash links unchanged. */
+export function openExternalLinksInNewTab(html) {
+  return html.replace(/<a\b([^>]*)>/gi, (match, attrs) => {
+    if (/\btarget\s*=/.test(attrs)) return match;
+    const hrefMatch = attrs.match(/\bhref\s*=\s*"([^"]*)"/i);
+    if (!hrefMatch || hrefMatch[1].startsWith('#')) return match;
+    return `<a${attrs} target="_blank" rel="noopener noreferrer">`;
+  });
+}
+
 export function escapeHtml(value) {
   return String(value)
     .replaceAll('&', '&amp;')

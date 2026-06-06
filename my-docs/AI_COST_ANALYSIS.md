@@ -1,80 +1,57 @@
 # AI Cost Analysis
 
+This report separates four cost lanes that are easy to conflate:
+
+- Development AI usage: local coding-agent sessions used to build, audit, test, and document Ship.
+- FleetGraph runtime usage: model calls made by the Ship agent itself.
+- PlugForge platform usage: OAuth, public API, SDK, CLI, webhooks, portal, and integrations. These are not LLM paths.
+- Production projections: monthly model spend estimates at reviewer-requested scale points.
+
+The important conclusion is not "AI was free." It is narrower: the FleetGraph product runtime has spent about six cents of estimated model cost in local evidence, while development used a very large amount of coding-agent context under subscription-style tooling whose exact token-billed invoice is not available locally.
+
 ## Reviewer Summary
 
-This is the Week 5 FleetGraph cost report. It separates development AI usage from FleetGraph runtime usage because they answer different questions:
-
-- Development usage shows how much coding-agent work went into understanding, auditing, and building the submission.
-- FleetGraph runtime usage shows what the agent itself costs when it runs.
-- Production projections estimate monthly FleetGraph model spend at reviewer-requested scale points.
-
-| Metric | Value |
+| Metric | Current value |
 | --- | ---: |
-| Codex local project threads | 806 |
-| Codex local project tokens | 3,858,049,072 |
-| Codex measurement window | 2026-05-18 14:51:52 to 2026-05-31 09:31:03 America/Chicago |
-| Codex high-water mark | `1780237863533` |
-| Canonical public FleetGraph proof packet | 2026-05-31T01:25:14.492Z |
-| Latest local-only FleetGraph proof packet | 2026-06-01T16:03:40.433Z |
-| Public reviewer chain latency | 5,060 ms |
-| Public reviewer proof model calls | 0 |
-| Public reviewer proof runtime model spend | $0.00 |
-| Local FleetGraph run ledger | 1,701 runs; 12 model calls; 2,655 model tokens; $0.031541 corrected estimated model spend |
+| Report refresh date | 2026-06-06 |
+| Codex local project threads | 920 |
+| Codex local project tokens | 4,765,728,721 |
+| Codex measurement window | 2026-05-18 14:51:52 to 2026-06-06 15:11:14 America/Chicago |
+| Codex high-water mark | `1780776674825` |
+| New Codex threads since prior report timestamp | 114 |
+| New Codex-thread tokens since prior report timestamp | 904,606,570 |
+| Net Codex token increase vs prior report total | 907,679,649 |
+| Local FleetGraph run ledger | 12,885 runs |
+| FleetGraph deterministic runs | 12,870 |
+| FleetGraph model calls | 15 |
+| FleetGraph model tokens | 2,518 input; 2,346 output; 4,864 total |
+| FleetGraph persisted estimated model spend | $0.0510714 |
+| FleetGraph corrected estimated model spend | $0.0617114 |
+| Latest published FleetGraph proof packet | 2026-06-01T16:03:40.433Z; `target: local`; 0 model calls |
+| Latest published reviewer chain latency | 865 ms |
+| Week 6 PlugForge platform model calls | 0 by design boundary |
+| Week 6 PlugForge metrics aggregate | 219,286 ms local command runtime |
+| Week 6 strict submission gate | Passed per `my-docs/evidence/plugforge-manual-live.md` |
 
-Exact OpenAI, Claude, or Codex billable invoice data is not available from local project records. The Codex token totals below are local usage evidence, not a provider bill. The canonical public proof packet is deterministic and shows zero model calls, but the broader local FleetGraph run ledger includes real model calls and nonzero estimated model spend.
+Exact OpenAI, Claude, Cursor, or Codex billable invoice data is not available from local project records. The Codex token totals are local usage evidence, not provider billing. Do not multiply the 4.765B local Codex tokens by API pricing and call that spend.
 
-The adversarial read: the measured FleetGraph model spend is a floor. It used tiny demo payloads, only 12 real-model calls, and two `gpt-5.5` calls with token usage but no persisted cost. A production user asking real questions from rich project context will cost more.
+The FleetGraph runtime cost is measurable because FleetGraph writes token and cost metadata to `fleetgraph_runs`. That ledger is still a floor: the 15 model calls were tiny demo/reviewer/chat payloads, not rich production workspaces.
 
-## Week 6 PlugForge Addendum
+## What Changed Since The Prior Cost Report
 
-The external-client proof pack adds platform and integration traffic, not new AI behavior. OAuth, `/api/v1`, OpenAPI generation, SDK calls, CLI/TTFE, portal operations, webhooks, Slack, GitLab, and issue external-link upserts do not invoke a model. FleetGraph remains the only agent lane; with `FLEETGRAPH_USE_PUBLIC_API=true`, user-initiated source reads go through `@ship/sdk` and `/api/v1` and write public audit rows, but the public API hop itself adds zero token usage.
+The prior report froze most numbers at 2026-05-31 and treated Week 6 as a short addendum. That is stale now.
 
-Week 6 non-AI cost assumptions:
+Since then, the repo added and proved:
 
-| Assumption | Value |
-| --- | ---: |
-| Demo webhook fanout | 10 subscriptions per `document.created` load probe target; normal demo 1-2 matching subscriptions |
-| Webhook attempts per failed delivery | 6 maximum before DLQ |
-| Delivery-log retention | 30 days; target cap 10,000 delivery rows per app |
-| Public audit-log retention | 90 days for reviewer/demo analysis, then archive/prune policy required before production |
-| Agent active rate for cost projection | 20% monthly active users ask FleetGraph questions |
-| Average agent turns per active user | 6 turns/month |
-| Platform/integration model calls | 0 |
+- FleetGraph PM chat as model-primary conversation when `OPENAI_API_KEY` and `FLEETGRAPH_MODEL` are configured.
+- User-initiated FleetGraph source reads through `@ship/sdk` and `/api/v1` when `FLEETGRAPH_USE_PUBLIC_API=true`.
+- PlugForge OAuth app registration, shown-once hashed secrets, Authorization Code + PKCE, Device Grant, refresh-token rotation, and refresh-token theft invalidation.
+- Public `/api/v1` documents, issues, sprints, webhooks, FleetGraph attention contexts, public audit rows, generated OpenAPI 3.1, and SDK/OpenAPI parity.
+- `@ship/sdk`, `@ship/cli`, packed TTFE drill, browser SDK demo, Developer portal, webhook delivery/retry/DLQ/replay, and public delivery/audit evidence.
+- Slack, GitLab, browser SDK, CLI TTFE, refresh-token theft, and idempotency replay integration matrix proof.
+- PlugForge reviewer packet generation, live proof evidence copying, and final `pnpm plugforge:submission` closure.
 
-Budget pressure from this pack is database rows and outbound HTTP, not LLM spend. The final gate (`pnpm plugforge:final`) proves this boundary by running refresh-token, webhook replay/idempotency, SDK/OpenAPI parity, integration boundary, Slack/GitLab, and FleetGraph public-audit checks without adding platform-layer model calls.
-
-### Week 6 Development And CI Cost Tracking
-
-The Week 6 build added platform proof commands and evidence JSON rather than new model-calling product paths. Local timing evidence is current-run command cost, not cloud invoice data.
-
-| Cost lane | Evidence | Measured runtime / volume | Cost conclusion |
-| --- | --- | ---: | --- |
-| TTFE drill | `my-docs/evidence/plugforge-metrics/ttfe-timing.json` | 11,226 ms total | CI compute only; zero platform LLM calls |
-| 20-run TTFE flake/P95 loop | `my-docs/evidence/plugforge-metrics/ttfe-flake-loop.json` | 233,713 ms child runtime in metrics summary | CI compute only; catches packed install and webhook regressions |
-| OAuth P95 probe | `my-docs/evidence/plugforge-metrics/oauth-p95.json` | 2,045 ms child runtime in metrics summary | CI compute only; no model boundary |
-| Webhook P95 probe | `my-docs/evidence/plugforge-metrics/webhook-p95.json` | 1,990 ms child runtime in metrics summary | DB rows and local HTTP delivery only |
-| SDK package size probe | `my-docs/evidence/plugforge-metrics/sdk-size.json` | 102 ms child runtime in metrics summary | Build/check overhead only |
-| Webhook verifier speed probe | `my-docs/evidence/plugforge-metrics/verify-webhook-speed.json` | 228 ms child runtime in metrics summary | CPU-only HMAC verification |
-| Baseline comparator | `my-docs/evidence/plugforge-metrics/baseline-comparator.json` | 1,926 ms child runtime in metrics summary | CI compute only |
-| Full metrics aggregate | `my-docs/evidence/plugforge-metrics/summary.json` | 251,685 ms | About 4.2 local CI minutes for the calibrated metrics gate |
-| Integration acceptance aggregate | `my-docs/evidence/plugforge-integrations/all-runner.json` | 87,930 ms | About 1.5 local CI minutes for Slack/GitLab/browser/matrix proof |
-| OpenAPI generation/drift check | `bash scripts/ci/check-public-openapi-drift.sh` | 643 ms measured locally on 2026-06-04 | Build/check overhead only; source of truth remains generated route metadata |
-
-### Week 6 Production Projection
-
-The production model cost projection does not change for OAuth, public API, SDK, CLI, webhooks, portal, Slack, or GitLab because those paths do not call a model. The incremental production costs are ordinary platform costs:
-
-| Assumption | Value | Monthly pressure at demo/reviewer scale |
-| --- | ---: | --- |
-| Public API calls | 5 concurrent reviewers, 2 req/sec sustained, 10 req/sec bursts | Existing API/DB tier; rate limits protect abuse before audit writes |
-| Webhook fanout | Normal 1-2 matching subscriptions; proof/load target 10 matching subscriptions | Delivery rows and outbound HTTP; no LLM spend |
-| Delivery retention | 30 days, target cap 10,000 delivery rows per app | Storage grows with attempts and replay, then prunes/archive policy before production |
-| Public audit retention | 90 days for reviewer/demo analysis | Storage grows with `/api/v1` calls; useful for agent-as-citizen proof |
-| Agent active rate | 20% monthly active users ask FleetGraph questions | Only user-initiated FleetGraph turns can cross the LLM boundary |
-| Agent turns | 6 turns per active user per month | Reuses FleetGraph projection tables below |
-| Platform model calls | 0 for OAuth/API/webhooks/SDK/CLI/portal/integrations | Enforced by `pnpm plugforge:llm-boundary` and architecture boundary |
-
-The budget rule for Week 6 is therefore: size database retention and outbound webhook egress separately from FleetGraph LLM spend. If future platform features want model-backed scope suggestions, webhook summaries, or portal copilots, they are new product scope and must update this cost analysis before shipping.
+Cost implication: Week 6 added a lot of engineering and proof-surface work, but it did not add a new product LLM lane. The only model-spend lanes remain FleetGraph proactive create and FleetGraph context chat.
 
 ## Assignment Criteria
 
@@ -86,43 +63,60 @@ Week 5 asks for:
 - Production monthly cost projections at 100, 1,000, and 10,000 users.
 - Assumptions: proactive runs per project per day, on-demand invocations per user per day, and average tokens per invocation.
 
-This report uses the best available local evidence. When exact billing fields are unavailable, it says so instead of inventing numbers.
+This report uses local evidence where the repo records it. When exact billing fields are unavailable, it says so instead of inventing numbers.
+
+## Workstream Cost Map
+
+| Workstream | What shipped | Model-spend lane |
+| --- | --- | --- |
+| Week 4 quality/security/type-safety work | Type-safety cleanup, authorization hardening, evidence ledger, route/test tightening | Development AI only; no product model path |
+| Week 5 FleetGraph | SQL-first detection, worker, graph runtime, findings/runs, proof packets, reviewer control room, traces, notifications, human gate | Product runtime model path exists, but most runs are deterministic |
+| Week 5/6 FleetGraph PM chat | Page/finding/document context chat, authorized source loading, bounded context, LLM conversation when configured | Product runtime model path; measured in `fleetgraph_runs` |
+| Week 6 PlugForge OAuth/API | OAuth apps, PKCE, Device Grant, refresh tokens, `/api/v1`, OpenAPI, public audit rows | Zero platform model calls |
+| Week 6 webhooks/portal | Event registry, HMAC signatures, retry, DLQ, replay, Developer portal ops | Zero model calls; DB rows and outbound HTTP |
+| Week 6 SDK/CLI/TTFE | `@ship/sdk`, `@ship/cli`, packed install, Device Grant login, signed webhook tail | Zero model calls; local/CI compute |
+| Week 6 integrations | Slack, GitLab, browser SDK, six-flow matrix, always-on integration runbook | Zero model calls; external APIs, webhooks, hosting |
+| Week 6 reviewer proof | Generated packet, live evidence JSON, strict final gate | Zero model calls; docs/build/CI work |
 
 ## Development And Testing Costs
 
-Development was performed mostly through Codex Desktop/local coding-agent sessions, with additional Cursor session history visible locally. Codex local records include model labels and aggregate local token accounting. Cursor transcripts are useful qualitative evidence of related work, but the local Cursor records inspected here do not expose reliable billable token or cost fields.
+Development was performed mostly through Codex Desktop/local coding-agent sessions, with additional non-Codex tooling and manual browser/provider work. Codex local records include model labels and aggregate local token accounting. They do not expose reliable input/output token splits or invoice prices. Cursor/Claude-style transcripts are qualitative evidence only unless an export with usage/cost fields is provided.
 
 | Cost basis | Value |
 | --- | --- |
-| Cash spend basis | $200/month Codex plan |
-| Render hosting tier | $7/month |
+| Cash spend basis currently documented | $200/month Codex plan |
+| Render hosting tier currently documented | $7/month |
 | OpenAI API credits purchased | $10 prepaid; not necessarily consumed |
-| Total development/platform cash committed | $217 |
-| Exact token-metered bill | Not available from local Codex records |
-| Claude/API billable split | Not available from local records |
+| Total committed cash basis currently documented | $217 |
+| Exact token-metered development invoice | Not available from local Codex records |
+| Claude/API development input/output split | Not available from local records |
 | Local Codex evidence source | `/Users/michaelhabermas/.codex/state_5.sqlite`, `threads` table |
-| Cursor evidence treatment | Qualitative session-history evidence only |
+| Cursor/other assistant evidence treatment | Qualitative unless owner supplies usage export |
+
+The $217 figure should be treated as the currently documented cash basis, not a final invoice. It excludes any unreported ChatGPT/Cursor/Claude subscription charges, Render add-ons, always-on integration services, paid Slack/GitLab costs, and OpenAI dashboard usage outside the local FleetGraph ledger.
 
 ### Codex Local Usage
 
 | Metric | Value |
 | --- | ---: |
-| Threads | 806 |
-| Tokens | 3,858,049,072 |
+| Threads | 920 |
+| Tokens | 4,765,728,721 |
 | First recorded thread | 2026-05-18 14:51:52 America/Chicago |
-| Last recorded update | 2026-05-31 09:31:03 America/Chicago |
-| Next high-water mark | `1780237863533` |
+| Last recorded update | 2026-06-06 15:11:14 America/Chicago |
+| Next high-water mark | `1780776674825` |
 
 ### Codex Usage By Model
 
 | Model | Reasoning effort | Threads | Tokens |
 | --- | --- | ---: | ---: |
-| `gpt-5.5` | low | 505 | 3,301,594,728 |
-| `gpt-5.5` | medium | 118 | 202,899,698 |
+| `gpt-5.5` | low | 513 | 3,337,088,087 |
+| `gpt-5.5` | xhigh | 97 | 829,935,694 |
+| `gpt-5.5` | medium | 120 | 242,877,273 |
 | `codex-auto-review` | low | 115 | 178,703,854 |
-| `gpt-5.5` | high | 64 | 153,394,436 |
-| `gpt-5.5` | xhigh | 2 | 21,456,356 |
-| unknown | unknown | 2 | 0 |
+| `gpt-5.5` | high | 69 | 166,700,238 |
+| `gpt-5.4` | medium | 2 | 9,695,860 |
+| `gpt-5.4-mini` | medium | 1 | 727,715 |
+| unknown | unknown | 3 | 0 |
 
 ### Codex Usage By Day
 
@@ -141,13 +135,41 @@ Development was performed mostly through Codex Desktop/local coding-agent sessio
 | 2026-05-28 | 67 | 405,583,625 | 6,053,487 | 109,914,248 |
 | 2026-05-29 | 45 | 389,868,900 | 8,663,753 | 151,671,960 |
 | 2026-05-30 | 37 | 188,930,049 | 5,106,218 | 47,194,196 |
-| 2026-05-31 | 11 | 50,033,565 | 4,548,506 | 17,532,230 |
+| 2026-05-31 | 16 | 86,353,419 | 5,397,089 | 18,069,692 |
+| 2026-06-01 | 12 | 110,079,652 | 9,173,304 | 25,927,579 |
+| 2026-06-02 | 45 | 338,324,639 | 7,518,325 | 47,898,111 |
+| 2026-06-03 | 20 | 199,979,677 | 9,998,984 | 50,349,638 |
+| 2026-06-04 | 11 | 123,018,767 | 11,183,524 | 88,728,865 |
+| 2026-06-05 | 15 | 68,636,355 | 4,575,757 | 50,683,945 |
+| 2026-06-06 | 6 | 31,031,349 | 5,171,892 | 11,271,564 |
+
+### New Codex Usage Since Prior Report Timestamp
+
+The prior report measured through 2026-05-31 09:31:03 America/Chicago. New threads created after that timestamp:
+
+| Local day | Threads | Tokens |
+| --- | ---: | ---: |
+| 2026-05-31 | 5 | 33,536,131 |
+| 2026-06-01 | 12 | 110,079,652 |
+| 2026-06-02 | 45 | 338,324,639 |
+| 2026-06-03 | 20 | 199,979,677 |
+| 2026-06-04 | 11 | 123,018,767 |
+| 2026-06-05 | 15 | 68,636,355 |
+| 2026-06-06 | 6 | 31,031,349 |
+| Total | 114 | 904,606,570 |
 
 ### What Drove Development Usage
 
-The high token count came from evidence-heavy work: reading the Week 5 source of truth, mapping existing ShipShape architecture, building reviewer proof surfaces, running code reviews, tracing FleetGraph execution, and repeatedly scanning changed files. Subagent and auto-review threads increased coverage but also multiplied context.
+The high local token count came from evidence-heavy work, not just code generation:
 
-The cash-cost conclusion is narrower than the token total: local Codex records show scale of AI use, not marginal invoice cost. The defensible project spend statement is $217 committed: $200 Codex plan, $7 Render tier, and $10 OpenAI API credits purchased. The OpenAI credits are prepaid capacity, not proof that $10 of FleetGraph runtime tokens were consumed.
+- Reading source-of-truth Week 4, Week 5, and Week 6 materials.
+- Auditing existing Ship architecture, authorization, document model, routes, and tests.
+- Building FleetGraph graph boundaries, ledgers, proof packets, reviewer surfaces, traces, and cost metadata.
+- Building PlugForge's OAuth/public API/webhook/SDK/CLI/portal/integration surface.
+- Running repeated code reviews, type/lint cleanup, OpenAPI drift checks, proof ledger checks, and browser/integration drills.
+- Compressing many artifact and proof files into reviewer-readable docs.
+
+The 10x lesson is that proof work gets expensive when every pass reloads the world. Future AI work should anchor to one proof gap, one executable gate, and one source-of-truth file at a time.
 
 ## FleetGraph Runtime Costs
 
@@ -155,92 +177,119 @@ FleetGraph runtime cost is the cost of the agent running inside Ship, not the co
 
 Current runtime evidence comes from:
 
-- `FLEETGRAPH.md` cost section.
-- `shared/src/types/fleetgraph.ts` usage/cost fields.
+- `fleetgraph_runs.token_metadata` and `fleetgraph_runs.cost_metadata` in local `ship_dev`.
+- `web/public/fleetgraph-observability/proof/latest.json`.
 - `my-docs/evidence/fleetgraph-proof/latest.json`.
-- FleetGraph proof-run JSON files under `my-docs/evidence/fleetgraph-proof/runs/`.
-- Local Postgres `fleetgraph_runs` rows in `ship_dev`.
+- FleetGraph model/cost code in `api/src/fleetgraph/model.ts`, `api/src/fleetgraph/usage-metadata.ts`, and `api/src/config/fleetgraph-models.ts`.
+- Week 6 decisions around `FLEETGRAPH_USE_PUBLIC_API=true` and PM context chat.
 
-Live refresh note: on 2026-05-31 09:31 America/Chicago, local Postgres on `localhost:5433` was not running, so the `fleetgraph_runs` ledger below remains the last measured ledger captured in this report rather than a fresh DB query.
+### Model Boundary
+
+FleetGraph model spend is restricted to two paths:
+
+- Proactive blocked-create copy can call a model only when `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL` is configured, and `OPENAI_API_KEY` exists.
+- PM context chat calls a model when `OPENAI_API_KEY` and `FLEETGRAPH_MODEL` are set. Without them, the API returns an honest unavailable response.
+
+These paths stay deterministic or zero-token unless separately re-decided:
+
+- SQL candidate detection.
+- No-candidate scheduled worker ticks.
+- Attention-event enqueue and claim.
+- Dedupe/update/resolve/suppress finding paths.
+- Explain/refine/dismiss structure, except where context chat is invoked.
+- PlugForge OAuth, API, SDK, CLI, portal, webhook, Slack, and GitLab flows.
 
 ### Local Run Ledger
 
-The latest proof packet alone is not enough for cost analysis because it can be generated from deterministic reviewer proof paths. The full local `fleetgraph_runs` ledger captures the development and testing runs that did use a model.
+The local run ledger is the best current source for measured FleetGraph runtime spend.
 
 | Metric | Value |
 | --- | ---: |
-| Local run window | 2026-05-26 20:44:43 UTC to 2026-05-31 00:19:50 UTC |
-| Total FleetGraph runs | 1,701 |
-| Deterministic runs | 1,689 |
-| Real-model runs | 12 |
-| Model calls | 12 |
-| Input tokens | 1,074 |
-| Output tokens | 1,581 |
-| Total model tokens | 2,655 |
-| Persisted estimated model spend | $0.020901 |
-| Corrected estimated model spend | $0.031541 |
-| Persisted blended cost per FleetGraph run | $0.0000123 |
-| Corrected blended cost per FleetGraph run | $0.0000185 |
-| Corrected average cost per real-model run | $0.002628 |
-| Average tokens per real-model run | 221.25 |
+| Local run window | 2026-05-26 20:44:43 UTC to 2026-06-06 20:11:12 UTC |
+| Total FleetGraph runs | 12,885 |
+| Deterministic runs | 12,870 |
+| Real-model runs | 15 |
+| Model calls | 15 |
+| Input tokens | 2,518 |
+| Cached input tokens | 0 |
+| Persisted billable input tokens | 1,711 |
+| Output tokens | 2,346 |
+| Total model tokens | 4,864 |
+| Persisted estimated model spend | $0.0510714 |
+| Missing persisted cost rows | 2 `gpt-5.5` rows; 178 input tokens; 325 output tokens |
+| Added correction at `gpt-5.5` catalog rates | $0.0106400 |
+| Corrected estimated model spend | $0.0617114 |
+| Persisted blended cost per FleetGraph run | $0.000003964 |
+| Corrected blended cost per FleetGraph run | $0.000004789 |
+| Corrected average cost per real-model run | $0.004114 |
+| Average tokens per real-model run | 324.27 |
 
-| Model | Runs | Model calls | Input tokens | Output tokens | Total tokens | Estimated spend |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| retired legacy mini model | 6 | 6 | 540 | 634 | 1,174 | $0.000461 |
-| `gpt-5.5` | 6 | 6 | 534 | 947 | 1,481 | $0.031080 corrected |
-| deterministic / none | 1,689 | 0 | 0 | 0 | 0 | $0.000000 |
+### Runtime Usage By Model
 
-| Local day | Runs | Model calls | Total tokens | Estimated spend |
+| Model | Runs | Model calls | Input tokens | Output tokens | Total tokens | Persisted spend | Corrected spend |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `gpt-5.5` | 9 | 9 | 1,978 | 1,712 | 3,690 | $0.0506100 | $0.0612500 |
+| `gpt-4.1-mini` legacy mini-priced rows | 6 | 6 | 540 | 634 | 1,174 | $0.0004614 | $0.0004614 |
+| deterministic / none | 12,870 | 0 | 0 | 0 | 0 | $0.0000000 | $0.0000000 |
+
+The two missing persisted-cost rows are both `gpt-5.5` demo-proactive-create runs from 2026-05-29. They recorded token usage but `costSource: none`. The correction uses the current local catalog and official model pricing: $5.00 / 1M input tokens and $30.00 / 1M output tokens.
+
+### Runtime Usage By Trigger
+
+| Trigger reason | Runs | Model calls | Total tokens | Persisted spend | Notes |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `scheduled-worker` | 12,438 | 0 | 0 | $0.0000000 | The dominant path; zero model spend |
+| `explain_finding` | 116 | 0 | 0 | $0.0000000 | Deterministic explain path |
+| `context-chat` | 68 | 2 | 1,629 | $0.0195950 | Model-backed PM chat when configured |
+| `attention-event` | 58 | 0 | 0 | $0.0000000 | Event processing, no model |
+| `demo-refine-draft` | 40 | 0 | 0 | $0.0000000 | Deterministic proof path |
+| `demo-why-flagged` | 40 | 0 | 0 | $0.0000000 | Deterministic proof path |
+| `demo-proactive-create` | 37 | 12 | 2,655 | $0.0209014 | Corrected spend is $0.0315414 |
+| `manual-run` | 35 | 0 | 0 | $0.0000000 | Manual graph execution, no model |
+| `reviewer-source-mutation-proof` | 31 | 1 | 580 | $0.0105750 | Reviewer chat mutation proof |
+| `refine_draft` | 11 | 0 | 0 | $0.0000000 | Deterministic refine path |
+| `local-notification-truth-run` | 9 | 0 | 0 | $0.0000000 | Local proof support |
+| `summarize_changes` | 2 | 0 | 0 | $0.0000000 | No model in current ledger |
+
+### Runtime Usage By Day
+
+| UTC day | Runs | Model calls | Total tokens | Persisted spend |
 | --- | ---: | ---: | ---: | ---: |
-| 2026-05-26 | 108 | 0 | 0 | $0.000000 |
-| 2026-05-27 | 56 | 0 | 0 | $0.000000 |
-| 2026-05-28 | 77 | 6 | 1,174 | $0.000461 |
-| 2026-05-29 | 776 | 6 | 1,481 | $0.031080 corrected |
-| 2026-05-30 | 684 | 0 | 0 | $0.000000 |
+| 2026-05-26 | 37 | 0 | 0 | $0.0000000 |
+| 2026-05-27 | 99 | 0 | 0 | $0.0000000 |
+| 2026-05-28 | 77 | 6 | 1,174 | $0.0004614 |
+| 2026-05-29 | 341 | 6 | 1,481 | $0.0204400 |
+| 2026-05-30 | 1,090 | 0 | 0 | $0.0000000 |
+| 2026-05-31 | 1,692 | 0 | 0 | $0.0000000 |
+| 2026-06-01 | 1,349 | 3 | 2,209 | $0.0301700 |
+| 2026-06-02 | 1,535 | 0 | 0 | $0.0000000 |
+| 2026-06-03 | 1,190 | 0 | 0 | $0.0000000 |
+| 2026-06-04 | 1,840 | 0 | 0 | $0.0000000 |
+| 2026-06-05 | 2,030 | 0 | 0 | $0.0000000 |
+| 2026-06-06 | 1,605 | 0 | 0 | $0.0000000 |
 
-Corrections:
+### Latest Published Proof Packet
 
-- Two `gpt-5.5` runs had `model_response` token usage but `costSource: none`. At the observed `gpt-5.5` catalog rate of $5.00 / 1M input tokens and $30.00 / 1M output tokens, those two runs add about $0.010640.
-- The corrected ledger total is therefore about $0.031541, not $0.020901.
-- This is still a floor because the measured real-model calls were `demo-proactive-create` runs with only 89-90 input tokens each.
-
-### Latest Proof Packet
+The currently published FleetGraph proof URL returns a local-target packet:
 
 | Metric | Value |
 | --- | ---: |
-| Generated at | 2026-05-31T01:25:14.492Z |
+| URL | `https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.json` |
+| Generated at | 2026-06-01T16:03:40.433Z |
+| Target | `local` |
+| Deployed configured | false |
 | Required scenarios | 9 |
-| Proven scenarios | 9 |
+| Proven scenarios in latest packet | 0 |
 | Current surface pass/fail | 8 / 0 |
-| Deployed configured | true |
-| Deployed signals | `blocked`, `stale`, `at_risk` |
-| Deployed completed worker ticks | 5 |
-| Proof summary graph invocations | 100 |
-| Proof summary model calls | 0 |
-| Proof summary real-model runs | 0 |
+| Proof packet graph invocations | 0 |
+| Proof packet model calls | 0 |
+| Proof packet estimated model spend | $0.00 |
+| Reviewer chain status | complete |
+| Reviewer chain latency | 865 ms |
+| Reviewer chain model calls | 0 |
+| Reviewer chain cost source | `none` |
 
-### Latest Reviewer Chain
-
-| Step | Latency |
-| --- | ---: |
-| Ship source to attention event | 6 ms |
-| Attention event to worker tick | 2 ms |
-| Worker tick to graph run | 5,055 ms |
-| Graph run to finding | 0 ms |
-| Finding to notification projection | 0 ms |
-| Total | 5,060 ms |
-
-| Usage field | Value |
-| --- | --- |
-| Model calls | 0 |
-| Input tokens | Not present because no model call ran |
-| Output tokens | Not present because no model call ran |
-| Estimated cost | $0.00 |
-| Currency | USD |
-| Usage source | `none` |
-| Cost source | `none` |
-
-The trace-quality proof passed and required the `create_finding` decision path. This proves graph execution and reviewer-safe usage metadata, but the latest packet does not prove a real-model call. The full run ledger above is the better source for development/testing model spend.
+This is not the same evidentiary posture as the earlier Week 5 deployed proof packet. For cost analysis, it still proves the latest published packet adds zero model spend. For final deployed FleetGraph proof claims, regenerate deployed/both proof if that claim needs to be current again.
 
 ### Runtime Cost Controls
 
@@ -249,18 +298,90 @@ FleetGraph avoids model spend by design:
 - SQL and deterministic candidate policy select candidates before any model boundary.
 - No-candidate worker ticks spend zero model tokens.
 - Open findings use dedupe/update/quiet paths instead of repeated model-backed creation.
-- Context chat is scoped to the current page or finding, not the full workspace.
-- Real-model blocked-create behavior is gated behind `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL`, and `OPENAI_API_KEY`.
+- Context chat is bounded to authorized page/finding/document context, not the full workspace.
+- Page context carries capped hints: up to 25 visible item summaries and up to 8 selected IDs.
+- Server-side context loading re-authorizes source documents before sending text to the model.
+- `usageMetadataFromResult` omits usage metadata entirely when `modelCalls === 0`, making zero-token paths explicit.
 
-Configured estimate rates now come from `api/src/config/fleetgraph-models.ts`; `FLEETGRAPH.md` mirrors that catalog instead of hardcoding a retired model assumption.
+## Pricing Assumptions
 
-| Model | Input | Cached input | Output |
-| --- | ---: | ---: | ---: |
-| `gpt-5.5` | $5.00 / 1M tokens | $0.50 / 1M tokens | $30.00 / 1M tokens |
-| `gpt-5.4` | $2.50 / 1M tokens | $0.25 / 1M tokens | $15.00 / 1M tokens |
-| `gpt-4o-mini` | $0.15 / 1M tokens | $0.075 / 1M tokens | $0.60 / 1M tokens |
+Pricing was checked on 2026-06-06 against the local FleetGraph catalog and official OpenAI model documentation.
 
-The default and Render-configured FleetGraph model is `gpt-5.5`. The conservative projections below use that model rather than a cheaper retired fallback.
+| Model | Input | Cached input | Output | Source |
+| --- | ---: | ---: | ---: | --- |
+| `gpt-5.5` | $5.00 / 1M tokens | $0.50 / 1M tokens | $30.00 / 1M tokens | `api/src/config/fleetgraph-models.ts`; `https://developers.openai.com/api/docs/models/gpt-5.5` |
+| `gpt-5.4` | $2.50 / 1M tokens | $0.25 / 1M tokens | $15.00 / 1M tokens | `api/src/config/fleetgraph-models.ts`; `https://developers.openai.com/api/docs/models/gpt-5.4` |
+| `gpt-4o-mini` | $0.15 / 1M tokens | $0.075 / 1M tokens | $0.60 / 1M tokens | `api/src/config/fleetgraph-models.ts`; `https://developers.openai.com/api/docs/models/gpt-4o-mini` |
+
+Important pricing caveats:
+
+- Current projections use standard processing, not Batch, Flex, Priority, or regional/data-residency uplift pricing.
+- For `gpt-5.5`, prompts over 272K input tokens are priced higher for the full session. The measured FleetGraph calls are far below that threshold.
+- FleetGraph supports env overrides: `FLEETGRAPH_MODEL_INPUT_COST_PER_1M`, `FLEETGRAPH_MODEL_CACHED_INPUT_COST_PER_1M`, and `FLEETGRAPH_MODEL_OUTPUT_COST_PER_1M`.
+- Official API pricing can change; this report should be refreshed before any production budget commitment.
+
+## Week 6 PlugForge Cost Analysis
+
+PlugForge turned Ship into a public developer platform. It did not add platform-layer model calls.
+
+### Zero-LLM Boundary
+
+The script `scripts/ci/check-plugforge-no-llm-boundary.mjs` scans these targets:
+
+- `api/src/platform`
+- `api/src/fleetgraph/public-api-client.ts`
+- `api/src/fleetgraph/attention-context-factory.ts`
+- `api/src/fleetgraph/attention-context-reader.ts`
+- `sdk/src`
+- `integrations`
+- selected Developer portal and OAuth web pages
+
+It fails if those files reference model-provider imports, `ChatOpenAI`, `generateContextChatText`, `generateProactiveCreateText`, `OPENAI_API_KEY`, `FLEETGRAPH_MODEL`, or FleetGraph model internals. `pnpm plugforge:verify` and `pnpm plugforge:final` run this guard.
+
+Cost implication: OAuth, `/api/v1`, public OpenAPI, SDK calls, CLI TTFE, webhook delivery, portal operations, Slack, GitLab, and issue external-link upserts do not spend model tokens. With `FLEETGRAPH_USE_PUBLIC_API=true`, user-initiated FleetGraph source reads can go through `@ship/sdk` and `/api/v1`, but that public API hop itself is zero-token. The model boundary remains FleetGraph chat/proactive copy.
+
+### Week 6 Metrics And CI Cost Tracking
+
+Local timing evidence is command/CI cost, not cloud invoice data.
+
+| Cost lane | Evidence | Measured runtime | Cost conclusion |
+| --- | --- | ---: | --- |
+| Full metrics aggregate | `my-docs/evidence/plugforge-metrics/summary.json` | 219,286 ms | About 3.65 local CI minutes for the metrics gate |
+| TTFE drill | `my-docs/evidence/plugforge-metrics/ttfe-timing.json` | 10,412 ms | Packed install/auth/webhook compute only |
+| 20-run TTFE flake/P95 loop | `my-docs/evidence/plugforge-metrics/ttfe-flake-loop.json` | 203,262 ms | Local CI compute; catches install/webhook regressions |
+| OAuth P95 probe | `my-docs/evidence/plugforge-metrics/oauth-p95.json` | 1,670 ms | API/browser compute only |
+| Webhook P95 probe | `my-docs/evidence/plugforge-metrics/webhook-p95.json` | 1,458 ms | DB rows and local HTTP delivery only |
+| SDK package size probe | `my-docs/evidence/plugforge-metrics/sdk-size.json` | 19 ms | Build/check overhead only |
+| Webhook verifier speed probe | `my-docs/evidence/plugforge-metrics/verify-webhook-speed.json` | 123 ms | CPU-only HMAC verification |
+| Baseline comparator | `my-docs/evidence/plugforge-metrics/baseline-comparator.json` | 1,503 ms | CI compute only |
+
+### Week 6 Live Integration Evidence
+
+| Flow | Evidence | Status | Cost conclusion |
+| --- | --- | --- | --- |
+| Browser SDK demo | `my-docs/evidence/plugforge-integrations/live/browser-sdk.json` | passed; generated 2026-06-05T22:00:13.000Z | OAuth + public API + SDK; zero model calls |
+| Slack live proof | `my-docs/evidence/plugforge-integrations/live/slack.json` | passed; generated 2026-06-06T15:24:50.181Z | Slack OAuth + signed Ship webhooks + Slack posts; zero model calls |
+| GitLab live proof | `my-docs/evidence/plugforge-integrations/live/gitlab.json` | passed; generated 2026-06-06T16:18:31.874Z | GitLab MR webhook + public issue external link; zero model calls |
+| Six-flow matrix | `my-docs/evidence/plugforge-integrations/live/matrix.json` | passed; generated 2026-06-06T16:24:04.332Z | Rolls up CLI TTFE, Slack, browser, GitLab, refresh-token theft, idempotency replay |
+| Strict final gate | `my-docs/evidence/plugforge-manual-live.md` | passed | `pnpm plugforge:submission` passed strict final |
+
+The budget pressure from PlugForge is database storage, public API traffic, webhook retries, outbound HTTP, CI time, and hosting for always-on integration receivers. It is not LLM spend.
+
+### Week 6 Non-AI Cost Assumptions
+
+| Assumption | Value |
+| --- | ---: |
+| Webhook attempts per failed delivery | 6 maximum before DLQ |
+| Delivery-log retention | 30 days; target cap 10,000 delivery rows per app |
+| Public audit-log retention | 90 days for reviewer/demo analysis, then archive/prune policy required before production |
+| Normal demo webhook fanout | 1-2 matching subscriptions |
+| Load/proof target fanout | 10 matching subscriptions per `document.created` load-probe target |
+| Agent active rate used in prior projection | 20% monthly active users ask FleetGraph questions |
+| Average agent turns used in prior projection | 6 turns/month per active user |
+| Assignment normalized graph invocations | 30 graph invocations per user per 30-day month |
+| Platform/integration model calls | 0 |
+
+If future PlugForge scope adds model-backed scope suggestions, webhook summaries, app-review copilots, portal copilots, or integration-debug assistants, that is new product scope and this report must be updated before shipping.
 
 ## Production Cost Projections
 
@@ -274,27 +395,40 @@ For projection purposes, this report interprets that as:
 | Proactive graph invocations | 0.8 per project per day |
 | On-demand graph invocations | 0.2 per user per day |
 | Total normalized invocations | 30 per user per 30-day month |
-| Average measured tokens per real-model invocation | 89.5 input / 131.75 output |
-| Average measured model cost per real-model invocation | $0.002628 corrected |
-| Blended measured model cost per FleetGraph run | $0.0000185 corrected |
+| Average measured tokens per real-model invocation | 167.87 input / 156.40 output |
+| Average measured model tokens per real-model invocation | 324.27 |
+| Corrected average cost per real-model invocation | $0.004114 |
+| Corrected blended cost per FleetGraph run | $0.000004789 |
 
-The latest reviewer proof packet has zero real-model runs, but the local development/testing ledger does not. The first projection below uses the corrected blended measured model cost across all 1,701 local FleetGraph runs. Treat it as the absolute floor, not the forecast. It excludes hosting, database, observability, storage, staff time, and the Codex development subscription.
+The measured blended floor is lower than the previous report because thousands of scheduled worker/update runs were deterministic. That is useful architectural evidence, but it is not a production budget.
 
-| Scale | Assumed graph invocations/month | Blended measured model cost/invocation | Projected monthly model spend |
+### Measured Blended Floor
+
+This table assumes production preserves the same deterministic/model-call mix as the local run ledger.
+
+| Scale | Assumed graph invocations/month | Corrected blended cost/invocation | Projected monthly model spend |
 | --- | ---: | ---: | ---: |
-| 100 users | 3,000 | $0.0000185 | $0.06 |
-| 1,000 users | 30,000 | $0.0000185 | $0.56 |
-| 10,000 users | 300,000 | $0.0000185 | $5.56 |
+| 100 users | 3,000 | $0.000004789 | $0.01 |
+| 1,000 users | 30,000 | $0.000004789 | $0.14 |
+| 10,000 users | 300,000 | $0.000004789 | $1.44 |
 
-Worst-case sensitivity if every graph invocation crossed the same model boundary as the 12 measured real-model runs:
+This is an absolute floor. It depends on most work staying deterministic and most scheduled ticks finding no model-worthy candidate.
 
-| Scale | Assumed graph invocations/month | Real-model cost/invocation | Projected monthly model spend |
+### All-Model Sensitivity
+
+This table assumes every graph invocation crossed the same average model boundary as the 15 measured real-model runs.
+
+| Scale | Assumed graph invocations/month | Corrected real-model cost/invocation | Projected monthly model spend |
 | --- | ---: | ---: | ---: |
-| 100 users | 3,000 | $0.002628 | $7.89 |
-| 1,000 users | 30,000 | $0.002628 | $78.85 |
-| 10,000 users | 300,000 | $0.002628 | $788.54 |
+| 100 users | 3,000 | $0.004114 | $12.34 |
+| 1,000 users | 30,000 | $0.004114 | $123.42 |
+| 10,000 users | 300,000 | $0.004114 | $1,234.23 |
 
-The measured real-model calls are too small to trust as production averages. A more skeptical production view should assume larger context windows and some model use on chat/refinement paths. Using `gpt-5.5` pricing:
+This is still probably low for production chat because the measured real-model calls used tiny context payloads.
+
+### Skeptical Production Scenarios
+
+Using `gpt-5.5` standard pricing:
 
 | Scenario | Model-call share | Avg input/output per model call | Effective cost per graph invocation | 100 users | 1,000 users | 10,000 users |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -302,7 +436,7 @@ The measured real-model calls are too small to trust as production averages. A m
 | Realistic reviewer-risk | 30% | 5,000 / 1,000 tokens | $0.016500 | $49.50 | $495.00 | $4,950.00 |
 | Bad product policy | 100% | 10,000 / 2,000 tokens | $0.110000 | $330.00 | $3,300.00 | $33,000.00 |
 
-The middle row is the number to budget against unless production proves otherwise. It assumes the deterministic policy holds most of the time, but context-aware chat, refinement, explanation, and proactive create paths regularly cross a model boundary with real project context.
+Budget against the middle row until production telemetry proves lower. The measured blended floor is architecture evidence; the skeptical table is the budget.
 
 If real-model mode is enabled later, use this formula:
 
@@ -311,15 +445,39 @@ monthly model cost =
   users
   * 30 graph invocations per user per month
   * model-call share
-  * ((average input tokens / 1,000,000) * input price per 1M
+  * ((average billable input tokens / 1,000,000) * input price per 1M
+     + (average cached input tokens / 1,000,000) * cached input price per 1M
      + (average output tokens / 1,000,000) * output price per 1M)
 ```
 
-The blended projection is lower because most local FleetGraph paths were deterministic. That is useful evidence about the architecture, but optimistic as a budget. The adversarial budget should use the scenario table, not the measured blended floor.
+## Cost Cliffs And Controls
+
+The main product cost cliffs:
+
+- Full-workspace reasoning instead of SQL candidate selection.
+- Page chat that blindly sends every visible object, document body, and history turn.
+- Program-wide rollups without summarization and hard caps.
+- Reprocessing unchanged findings every worker tick.
+- Webhook fanout without retention and retry caps.
+- Treating public API audit logs as permanent hot storage.
+- Enabling model-backed portal/copilot features without a separate budget.
+- Running `gpt-5.5` sessions above the 272K input-token pricing threshold.
+
+Current controls:
+
+- SQL-first detection and no-candidate zero-token ticks.
+- Dedupe keys, suppression, update, and quiet-exit paths.
+- Context chat caps and server-side authorization before source text enters the model prompt.
+- PlugForge zero-LLM boundary checker.
+- Webhook max-attempt DLQ.
+- Delivery-log and audit-log retention targets.
+- Reviewer evidence that separates deterministic proof from real-model proof.
+
+The simplest 10x cost move is to default FleetGraph production chat to a cheaper model such as `gpt-5.4` or `gpt-4o-mini` for routine explanations, reserving `gpt-5.5` for high-stakes reasoning. That is not implemented as routing today; it is the obvious future control if chat usage grows.
 
 ## Evidence And Methodology
 
-### Codex Usage Query
+### Codex Usage Queries
 
 ```bash
 sqlite3 -header -csv /Users/michaelhabermas/.codex/state_5.sqlite \
@@ -357,26 +515,31 @@ sqlite3 -header -csv /Users/michaelhabermas/.codex/state_5.sqlite \
    order by local_day;"
 ```
 
-### FleetGraph Proof Query
+### FleetGraph Run Ledger Queries
+
+The current database URL was resolved with:
 
 ```bash
-jq '.generatedAt,
-    .summary,
-    .reviewerChain.latencyMs,
-    .reviewerChain.usageSummary,
-    .reviewerChain.traceQuality' \
-  /Users/michaelhabermas/repos/GAI/ship-shape/web/public/fleetgraph-observability/proof/latest.json
+/Users/michaelhabermas/repos/GAI/ship-shape/scripts/resolve-database-url.sh ship_dev
 ```
 
-### FleetGraph Run Ledger Query
+Current result:
+
+```text
+postgresql://ship:ship_dev_password@localhost:5432/ship_dev
+```
+
+Ledger summary:
 
 ```bash
-psql 'postgresql://ship:ship_dev_password@localhost:5433/ship_dev' -P pager=off \
+psql 'postgresql://ship:ship_dev_password@localhost:5432/ship_dev' -P pager=off \
   -c "select count(*) as runs,
              min(created_at) as first_run,
              max(created_at) as last_run,
              sum(coalesce((token_metadata->>'modelCalls')::int,0)) as model_calls,
              sum(coalesce((token_metadata->>'inputTokens')::int,0)) as input_tokens,
+             sum(coalesce((token_metadata->>'cachedInputTokens')::int,0)) as cached_input_tokens,
+             sum(coalesce((token_metadata->>'billableInputTokens')::int,0)) as billable_input_tokens,
              sum(coalesce((token_metadata->>'outputTokens')::int,0)) as output_tokens,
              sum(coalesce((token_metadata->>'totalTokens')::int,0)) as total_tokens,
              sum(coalesce((cost_metadata->>'estimatedCostUsd')::numeric,
@@ -384,46 +547,71 @@ psql 'postgresql://ship:ship_dev_password@localhost:5433/ship_dev' -P pager=off 
       from fleetgraph_runs;"
 ```
 
+Missing-cost correction query:
+
 ```bash
-psql 'postgresql://ship:ship_dev_password@localhost:5433/ship_dev' -P pager=off \
-  -c "select coalesce(token_metadata->>'model','none') as model,
-             count(*) as runs,
-             sum(coalesce((token_metadata->>'modelCalls')::int,0)) as model_calls,
+psql 'postgresql://ship:ship_dev_password@localhost:5432/ship_dev' -P pager=off \
+  -c "select count(*) as model_runs_missing_persisted_cost,
              sum(coalesce((token_metadata->>'inputTokens')::int,0)) as input_tokens,
              sum(coalesce((token_metadata->>'outputTokens')::int,0)) as output_tokens,
-             sum(coalesce((token_metadata->>'totalTokens')::int,0)) as total_tokens,
-             sum(coalesce((cost_metadata->>'estimatedCostUsd')::numeric,
-                          coalesce((cost_metadata->>'modelCostUsd')::numeric,0))) as estimated_cost_usd
+             sum(coalesce((token_metadata->>'totalTokens')::int,0)) as total_tokens
       from fleetgraph_runs
-      group by coalesce(token_metadata->>'model','none')
-      order by model_calls desc, runs desc;"
+      where coalesce((token_metadata->>'modelCalls')::int,0) > 0
+        and coalesce((cost_metadata->>'estimatedCostUsd')::numeric,
+                     coalesce((cost_metadata->>'modelCostUsd')::numeric,0)) = 0;"
+```
+
+### FleetGraph Proof Query
+
+```bash
+curl -fsSL https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.json \
+  | jq '{generatedAt, target, summary, costs, reviewerChain:
+        {chainId: .reviewerChain.chainId,
+         status: .reviewerChain.status,
+         latencyMs: .reviewerChain.latencyMs,
+         usageSummary: .reviewerChain.usageSummary}}'
+```
+
+### PlugForge Evidence Queries
+
+```bash
+jq '{generatedAt, durationMs, ok, status,
+     probes: [.probes[] | {name, status, ok, durationMs, metric, outputPath}]}'
+  /Users/michaelhabermas/repos/GAI/ship-shape/my-docs/evidence/plugforge-metrics/summary.json
+```
+
+```bash
+jq '{flow, run_id, generated_at, proof_class, status, flows}'
+  /Users/michaelhabermas/repos/GAI/ship-shape/my-docs/evidence/plugforge-integrations/live/matrix.json
+```
+
+```bash
+node ./scripts/ci/check-plugforge-no-llm-boundary.mjs
 ```
 
 ### Pricing Sources
 
-Current pricing was checked against the FleetGraph catalog in `api/src/config/fleetgraph-models.ts`:
-
-- `gpt-5.5`: $5.00 / 1M input tokens, $30.00 / 1M output tokens: https://developers.openai.com/api/docs/models/gpt-5.5/
-- General pricing page cross-check: https://platform.openai.com/docs/pricing/
-
-### Cost Field Search
-
-```bash
-rg -n "FLEETGRAPH_MODEL|FLEETGRAPH_REAL_MODEL|modelCalls|estimatedCostUsd|inputTokens|outputTokens|usageSource|costSource|0\\.15|0\\.60|30 graph invocations" \
-  /Users/michaelhabermas/repos/GAI/ship-shape/FLEETGRAPH.md \
-  /Users/michaelhabermas/repos/GAI/ship-shape/shared/src/types/fleetgraph.ts \
-  /Users/michaelhabermas/repos/GAI/ship-shape/api/src/fleetgraph \
-  /Users/michaelhabermas/repos/GAI/ship-shape/scripts/fleetgraph-proof
-```
-
-### Session History Discovery
-
-Session history was inspected with the `ce-sessions` discovery scripts, using keyword filtering for FleetGraph, cost, tokens, traces, and model usage. Raw transcript contents were not copied into this report. The useful conclusion is qualitative: Cursor and prior agent transcripts show related FleetGraph work, but the reliable numeric token totals came from Codex local SQLite records.
+- OpenAI GPT-5.5 model pricing: `https://developers.openai.com/api/docs/models/gpt-5.5`
+- OpenAI GPT-5.4 model pricing: `https://developers.openai.com/api/docs/models/gpt-5.4`
+- OpenAI GPT-4o mini model pricing: `https://developers.openai.com/api/docs/models/gpt-4o-mini`
+- General OpenAI pricing page: `https://openai.com/api/pricing/`
+- Local FleetGraph catalog: `api/src/config/fleetgraph-models.ts`
 
 ## Reflection On AI Tool Effectiveness
 
-AI was most useful as a codebase-comprehension and reviewer-evidence accelerator. The valuable work was not generic code generation; it was fast orientation across ShipShape, repeated audit passes, proof-surface construction, trace instrumentation, cost metadata verification, and compression of many repository facts into reviewer-readable evidence.
+AI was most useful as a comprehension and proof accelerator. The valuable work was not generic code generation; it was fast orientation across a mature codebase, repeated audit passes, trace/proof construction, route-contract consistency, and compressing many repository facts into reviewer-readable artifacts.
 
-The main development cost driver was broad repeated context. Large source-of-truth documents, generated OpenAPI files, proof packets, diffs, test output, and subagent fan-out all increase local token usage. That was useful for coverage, but expensive. Future work should start from the high-water mark above and narrow each AI session to one deliverable or one proof gap.
+The largest development cost driver was broad repeated context. Source-of-truth docs, proof packets, OpenAPI files, generated types, test output, diffs, and review passes are all context-heavy. That was sometimes worth it because the assignment rewarded proof, but it is the expensive way to work.
 
-The main runtime cost control is simpler: do not ask a model to discover what SQL and deterministic policy can already detect. Worker/detection stays SQL-first. PM context chat is model-primary when configured; measure chat spend from `fleetgraph_runs` with nonzero `token_metadata.modelCalls`.
+The runtime story is better: FleetGraph spends almost nothing when it can answer with SQL, dedupe state, and bounded deterministic policy. PM chat changes that. If users like chat and use it heavily, chat becomes the real production model budget, not the background worker.
+
+## Open Questions For Owner
+
+I need these to make the report invoice-grade rather than evidence-grade:
+
+1. Actual paid invoices or dashboard totals for Codex, ChatGPT, Cursor, Claude, OpenAI API, Render, Slack, and GitLab for 2026-05-18 through 2026-06-06.
+2. Whether the $200 Codex plan, $7 Render tier, and $10 OpenAI prepaid credit are still the complete cash basis.
+3. Whether the always-on `ship-shape-slack-integration` and `ship-shape-gitlab-integration` Render services are on paid instances, free instances, or not yet provisioned.
+4. Whether to regenerate FleetGraph deployed proof with `pnpm fleetgraph:proof -- --mode both --with-e2e`; the current public proof URL serves a `target: local` packet.
+5. The production assumption you actually want: all users get 30 graph invocations/month, or only 20% of monthly active users get 6 turns/month.
+6. Any Cursor/Claude session export with token/cost fields if you want non-Codex development AI costs represented numerically.

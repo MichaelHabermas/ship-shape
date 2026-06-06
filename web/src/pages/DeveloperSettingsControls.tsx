@@ -8,6 +8,7 @@ export type OneTimeSecret = {
   secretId: string;
   value: string;
   previousExpiresAt: string | null;
+  label?: string;
 };
 
 export function OneTimeSecretPanel({
@@ -25,7 +26,7 @@ export function OneTimeSecretPanel({
     <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-medium text-foreground">{secret.appName} client secret</div>
+          <div className="text-sm font-medium text-foreground">{secret.label ?? `${secret.appName} client secret`}</div>
           <div className="mt-1 text-xs text-muted">
             ID {secret.secretId.slice(0, 8)}
             {secret.previousExpiresAt ? ` · previous expires ${formatDate(secret.previousExpiresAt)}` : ''}

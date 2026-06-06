@@ -9,7 +9,6 @@ import type {
   WebhookDelivery,
   WebhookSubscription,
 } from '@/lib/platform-apps-api';
-import { IntegrationProofPanel } from '@/components/developer/IntegrationProofPanel';
 import {
   AppSelector,
   CreateAppForm,
@@ -39,7 +38,9 @@ export function DeveloperSettingsTab() {
   const [createRedirectUri, setCreateRedirectUri] = useState('');
   const [createScopes, setCreateScopes] = useState<string[]>(['documents:read', 'webhooks:manage']);
   const [newSecret, setNewSecret] = useState<OneTimeSecret | null>(null);
+  const [newWebhookSecret, setNewWebhookSecret] = useState<OneTimeSecret | null>(null);
   const [copiedSecret, setCopiedSecret] = useState(false);
+  const [copiedWebhookSecret, setCopiedWebhookSecret] = useState(false);
   const [revokeImmediately, setRevokeImmediately] = useState(false);
   const [subscriptionEvent, setSubscriptionEvent] = useState<string>(eventOptions[0]);
   const [subscriptionTargetUrl, setSubscriptionTargetUrl] = useState('');
@@ -187,8 +188,16 @@ export function DeveloperSettingsTab() {
       event: subscriptionEvent,
       target_url: subscriptionTargetUrl.trim(),
     });
-    if (response.success) {
+    if (response.success && response.data) {
       setSubscriptionTargetUrl('');
+      setNewWebhookSecret({
+        appName: selectedApp.name,
+        secretId: response.data.id,
+        value: response.data.signing_secret,
+        previousExpiresAt: null,
+        label: `${response.data.event} webhook signing secret (subscription ${response.data.id})`,
+      });
+      setCopiedWebhookSecret(false);
       await loadOperations(selectedApp.id);
     } else {
       setError(response.error?.message ?? 'Failed to create webhook subscription');
@@ -242,6 +251,12 @@ export function DeveloperSettingsTab() {
     setCopiedSecret(true);
   }
 
+  async function handleCopyWebhookSecret() {
+    if (!newWebhookSecret) return;
+    await navigator.clipboard?.writeText(newWebhookSecret.value);
+    setCopiedWebhookSecret(true);
+  }
+
   function toggleScope(scope: string) {
     setCreateScopes(prev => (
       prev.includes(scope)
@@ -256,8 +271,6 @@ export function DeveloperSettingsTab() {
 
   return (
     <div className="space-y-5">
-      <IntegrationProofPanel />
-
       {error && (
         <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
           {error}
@@ -270,6 +283,15 @@ export function DeveloperSettingsTab() {
           copied={copiedSecret}
           onCopy={handleCopySecret}
           onDismiss={() => setNewSecret(null)}
+        />
+      )}
+
+      {newWebhookSecret && (
+        <OneTimeSecretPanel
+          secret={newWebhookSecret}
+          copied={copiedWebhookSecret}
+          onCopy={handleCopyWebhookSecret}
+          onDismiss={() => setNewWebhookSecret(null)}
         />
       )}
 
@@ -422,10 +444,11 @@ export function DeveloperSettingsTab() {
                 </form>
               </div>
               <SimpleTable
-                headers={['Event', 'Target', 'Active', 'Created']}
+                headers={['Event', 'Subscription ID', 'Target', 'Active', 'Created']}
                 empty="No subscriptions"
                 rows={subscriptions.map(subscription => [
                   subscription.event,
+                  <span className="break-all font-mono text-[10px] text-muted">{subscription.id}</span>,
                   <span className="break-all font-mono text-xs">{subscription.target_url}</span>,
                   subscription.active ? 'Yes' : 'No',
                   formatDate(subscription.created_at),
