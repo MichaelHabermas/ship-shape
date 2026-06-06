@@ -227,11 +227,18 @@
       <p><code>pnpm drill ttfe</code> total <strong>10138 ms</strong> (gate &lt; 60 s in CI). Within gate.</p>
 
       <h3>Slack reference integration</h3>
-      <p>Run <code>slack-live-mq2u2npg</code>. Signed webhooks delivered with HTTP 200; Slack OAuth completed; two channel posts verified.</p>
-      <ul>
-            <li><strong>document.created</strong> — <a href="https://chazzwazza.slack.com/archives/C0AMVV8UC14/p1780779399471049" target="_blank" rel="noopener noreferrer">permalink</a> — Document created: PlugForge live Slack slack-live-mq2u2npg (/documents/d36364b4-7ed3-4d49-80ac-9536950c2024)</li>
-            <li><strong>issue.assigned</strong> — <a href="https://chazzwazza.slack.com/archives/C0AMVV8UC14/p1780779402265859" target="_blank" rel="noopener noreferrer">permalink</a> — Issue assigned: PlugForge live Slack issue slack-live-mq2u2npg -&amp;gt; c2fc791d-d4fe-4480-93f0-4482a095502c (/documents/64b667cb-7a61-4f2a-92a3-7f7e74d0fe9d)</li>
-      </ul>
+      <p>Run <code>slack-live-mq2u2npg</code>. Reviewers do <strong>not</strong> need access to the submitter&apos;s private Slack workspace.</p>
+      <p><strong>Verify Slack proof (3 steps):</strong></p>
+      <ol>
+        <li><strong>Screenshot</strong> — below, two posts for <code>slack-live-mq2u2npg</code> (<code>document.created</code> + <code>issue.assigned</code>).</li>
+        <li><strong>Ship delivery log</strong> — <a href="https://ship-shape-web.onrender.com/settings?tab=developer" target="_blank" rel="noopener noreferrer">Developer tab → Delivery log</a> (login above). Pass if these rows are <strong>HTTP 200</strong>:
+          <ul>
+            <li><strong>document.created</strong> — delivery <code>f15b7df0-4e37-4575-806b-0bc63ff50a2c</code> — Document created: PlugForge live Slack slack-live-mq2u2npg (/documents/d36364b4-7ed3-4d49-80ac-9536950c2024)</li>
+            <li><strong>issue.assigned</strong> — delivery <code>0c33a2c9-64fa-4a70-973e-1976358dfac9</code> — Issue assigned: PlugForge live Slack issue slack-live-mq2u2npg -&amp;gt; c2fc791d-d4fe-4480-93f0-4482a095502c (/documents/64b667cb-7a61-4f2a-92a3-7f7e74d0fe9d)</li>
+          </ul>
+        </li>
+        <li><strong>Integration health</strong> — <a href="https://ship-shape-slack-integration.onrender.com/health" target="_blank" rel="noopener noreferrer">https://ship-shape-slack-integration.onrender.com/health</a> returns <code>{"ok":true}</code>.</li>
+      </ol>
       <img class="screenshot" src="/plugforge-evidence/slack-proof.png" alt="Slack proof messages for document.created and issue.assigned" />
       <p>Webhook target: <code>https://ship-shape-slack-integration.onrender.com/ship/webhooks</code></p>
 

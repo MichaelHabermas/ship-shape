@@ -35,6 +35,16 @@ test('usesEphemeralTunnel flags cloudflare webhook targets in live evidence', as
   assert.equal(usesEphemeralTunnel(model), true);
 });
 
+test('Slack section uses delivery log proof, not private Slack permalinks', async () => {
+  const evidence = await loadReviewerEvidence();
+  const model = buildReviewerModel(evidence);
+  const html = renderReviewerPacketHtml(model);
+  assert.match(html, /Verify Slack proof \(3 steps\)/);
+  assert.match(html, /Developer tab → Delivery log/);
+  assert.doesNotMatch(html, /chazzwazza\.slack\.com/);
+  assert.doesNotMatch(html, />permalink</);
+});
+
 test('openExternalLinksInNewTab adds target to external anchors only', async () => {
   const evidence = await loadReviewerEvidence();
   const model = buildReviewerModel(evidence);

@@ -248,6 +248,21 @@ export function renderReviewerPacketHtml(model) {
 </html>`;
 }
 
+function slackIntegrationHealthUrl(webhookTargetUrl) {
+  if (typeof webhookTargetUrl !== 'string' || !webhookTargetUrl.includes('://')) {
+    return 'https://ship-shape-slack-integration.onrender.com/health';
+  }
+  try {
+    const url = new URL(webhookTargetUrl);
+    url.pathname = '/health';
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return 'https://ship-shape-slack-integration.onrender.com/health';
+  }
+}
+
 function renderIntegrationsSection(model) {
   const tunnelNote = usesEphemeralTunnel(model)
     ? '<div class="callout"><strong>Ephemeral tunnel URLs in evidence.</strong> Webhook targets below use Cloudflare/ngrok tunnels from the last live drill. Re-run with Render-hosted integration URLs per <code>INTEGRATION_HOSTING_RUNBOOK.md</code> before final submission.</div>'
@@ -257,11 +272,14 @@ function renderIntegrationsSection(model) {
     `<tr><td>${escapeHtml(flow.label)}</td><td class="${flowStatusClass(flow.status)}">${escapeHtml(flow.status)}</td><td>${escapeHtml(flow.proofClass)}</td></tr>`
   )).join('\n          ');
 
-  const slackMessages = model.slack.messages.map((message) => {
-    const link = message.permalink
-      ? `<a href="${escapeHtml(message.permalink)}" target="_blank" rel="noopener noreferrer">permalink</a>`
-      : `ts ${escapeHtml(message.messageTs ?? 'n/a')}`;
-    return `<li><strong>${escapeHtml(message.event)}</strong> — ${link} — ${escapeHtml(message.textPreview ?? '')}</li>`;
+  const slackHealthUrl = slackIntegrationHealthUrl(model.slack.targetUrl);
+  const developerDeliveryLogUrl = `${deployedWebBase}/settings?tab=developer`;
+
+  const slackDeliveryRows = model.slack.messages.map((message) => {
+    const deliveryId = message.event === 'document.created'
+      ? model.slack.documentDeliveryId
+      : model.slack.issueDeliveryId;
+    return `<li><strong>${escapeHtml(message.event)}</strong> — delivery <code>${escapeHtml(deliveryId ?? 'n/a')}</code> — ${escapeHtml(message.textPreview ?? '')}</li>`;
   }).join('\n            ');
 
   const screenshotBlock = model.slack.hasScreenshot
@@ -284,10 +302,17 @@ function renderIntegrationsSection(model) {
       <p><code>${escapeHtml(model.ttfe.command)}</code> total <strong>${escapeHtml(String(model.ttfe.totalMs))} ms</strong> (gate &lt; 60 s in CI). ${model.ttfe.withinGate ? 'Within gate.' : 'Check CI evidence.'}</p>
 
       <h3>Slack reference integration</h3>
-      <p>Run <code>${escapeHtml(model.slack.runId)}</code>. Signed webhooks delivered with HTTP 200; Slack OAuth completed; two channel posts verified.</p>
-      <ul>
-            ${slackMessages}
-      </ul>
+      <p>Run <code>${escapeHtml(model.slack.runId)}</code>. Reviewers do <strong>not</strong> need access to the submitter&apos;s private Slack workspace.</p>
+      <p><strong>Verify Slack proof (3 steps):</strong></p>
+      <ol>
+        <li><strong>Screenshot</strong> — below, two posts for <code>${escapeHtml(model.slack.runId)}</code> (<code>document.created</code> + <code>issue.assigned</code>).</li>
+        <li><strong>Ship delivery log</strong> — <a href="${escapeHtml(developerDeliveryLogUrl)}" target="_blank" rel="noopener noreferrer">Developer tab → Delivery log</a> (login above). Pass if these rows are <strong>HTTP 200</strong>:
+          <ul>
+            ${slackDeliveryRows}
+          </ul>
+        </li>
+        <li><strong>Integration health</strong> — <a href="${escapeHtml(slackHealthUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(slackHealthUrl)}</a> returns <code>{"ok":true}</code>.</li>
+      </ol>
       ${screenshotBlock}
       <p>Webhook target: <code>${escapeHtml(model.slack.targetUrl ?? 'n/a')}</code></p>
 
