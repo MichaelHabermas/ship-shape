@@ -2574,7 +2574,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/AI_COST_ANALYSIS.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/AI_COST_ANALYSIS.md
@@ -2588,7 +2588,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/AI_COST_ANALYSIS.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/AI_COST_ANALYSIS.md
@@ -2602,7 +2602,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/AI_COST_ANALYSIS.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/AI_COST_ANALYSIS.md
@@ -2616,7 +2616,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/AI_COST_ANALYSIS.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/AI_COST_ANALYSIS.md
@@ -2630,7 +2630,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/AI_COST_ANALYSIS.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/AI_COST_ANALYSIS.md
@@ -2644,7 +2644,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/AI_COST_ANALYSIS.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/AI_COST_ANALYSIS.md
@@ -2673,7 +2673,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: docs/architecture.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: docs/architecture.md
@@ -2687,7 +2687,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: docs/architecture.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: docs/architecture.md
@@ -2701,7 +2701,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: docs/architecture.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: docs/architecture.md
@@ -2715,7 +2715,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: docs/architecture.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: docs/architecture.md
@@ -2729,7 +2729,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: docs/architecture.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: docs/architecture.md
@@ -2743,7 +2743,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: docs/architecture.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: docs/architecture.md
@@ -2757,7 +2757,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: docs/architecture.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: docs/architecture.md
@@ -2771,7 +2771,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: docs/architecture.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: docs/architecture.md
@@ -2785,7 +2785,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: docs/architecture.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: docs/architecture.md
@@ -2799,7 +2799,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/EPIC_PROOF_WRITEUPS.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/EPIC_PROOF_WRITEUPS.md
@@ -2813,7 +2813,7 @@ requirements:
     testability: manual
     priority: P1
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/DISCOVERIES.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/DISCOVERIES.md
@@ -2828,7 +2828,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, README.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md
@@ -2842,7 +2842,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, README.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md
@@ -2856,7 +2856,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, README.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md
@@ -2870,7 +2870,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, docs/openapi.json, scripts/ci/plugforge-submission.mjs, scripts/ci/check-public-openapi-drift.sh
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md
@@ -2884,7 +2884,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: docs/openapi.json, scripts/ci/check-public-openapi-drift.sh, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: docs/openapi.json
@@ -2912,7 +2912,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: README.md, my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: README.md
@@ -2926,7 +2926,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, README.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md
@@ -3024,7 +3024,7 @@ requirements:
     testability: manual
     priority: P0
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/EPIC_PROOF_WRITEUPS.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/EPIC_PROOF_WRITEUPS.md
@@ -3052,7 +3052,7 @@ requirements:
     testability: manual
     priority: P2
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/DECISION_LOG-w6.md, my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/DECISION_LOG-w6.md, my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md
@@ -3066,7 +3066,7 @@ requirements:
     testability: manual
     priority: P2
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/DECISION_LOG-w6.md, my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, README.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/DECISION_LOG-w6.md, my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, README.md
@@ -3080,7 +3080,7 @@ requirements:
     testability: manual
     priority: P2
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/DECISION_LOG-w6.md, my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/DECISION_LOG-w6.md, my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md
@@ -3094,7 +3094,7 @@ requirements:
     testability: manual
     priority: P2
     status: proven
-    proof_command: pnpm plugforge:submission -- --allow-manual-pending
+    proof_command: pnpm plugforge:submission
     proof_files: my-docs/project-weeks-sot/week-6/DECISION_LOG-w6.md, my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, my-docs/AI_COST_ANALYSIS.md, scripts/ci/plugforge-submission.mjs
     pending_test: none
     manual_evidence: my-docs/project-weeks-sot/week-6/DECISION_LOG-w6.md, my-docs/project-weeks-sot/week-6/FINAL_SUBMISSION_CHECKLIST.md, my-docs/AI_COST_ANALYSIS.md
