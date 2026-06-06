@@ -209,7 +209,7 @@
   </head>
   <body>
     <div class="page">
-      <p class="meta">Week 6 • PlugForge Final Submission • Human Reviewer Edition • evidence run matrix-live-mq2kc6wc</p>
+      <p class="meta">Week 6 • PlugForge Final Submission • Human Reviewer Edition • evidence run matrix-live-mq2vrki8</p>
       <h1>PlugForge Reviewer Walkthrough</h1>
       <p class="lede">Two paths on the <strong>live deployed site</strong>: <strong>Path A</strong> proves the 10 MVP gates (~8–12 min). <strong>Path B</strong> proves the six reference integrations and TTFE (~5 min read, optional clicks). No repo required.</p>
 
@@ -282,8 +282,8 @@
 
       
       <h2 id="integrations">Path B — Reference integrations (beyond MVP gates)</h2>
-      <p>Spec requires at least five integration flows. This submission ships six. Evidence run <code>matrix-live-mq2kc6wc</code> status <span class="status-pass">passed</span>.</p>
-      <div class="callout"><strong>Ephemeral tunnel URLs in evidence.</strong> Webhook targets below use Cloudflare/ngrok tunnels from the last live drill. Re-run with Render-hosted integration URLs per <code>INTEGRATION_HOSTING_RUNBOOK.md</code> before final submission.</div>
+      <p>Spec requires at least five integration flows. This submission ships six. Evidence run <code>matrix-live-mq2vrki8</code> status <span class="status-pass">passed</span>.</p>
+      
 
       <table>
         <thead><tr><th>Flow</th><th>Status</th><th>Proof class</th></tr></thead>
@@ -358,16 +358,16 @@
         <div class="proof-card-head">
           <div>
             <span class="title">GitLab reference integration</span>
-            <span class="run-id">gitlab-live-mq2k4y3z</span>
+            <span class="run-id">gitlab-live-mq2vqxuz</span>
           </div>
           <span class="badge badge-pass">passed</span>
         </div>
         <div class="proof-card-body">
           <p><strong>Host:</strong> <code>labs.gauntletai.com</code> (Gauntlet GitLab — not gitlab.com).</p>
-          <p>MR <a href="https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof/-/merge_requests/1" target="_blank" rel="noopener noreferrer">!1</a> linked to Ship issue <code>2b7000ba-ef72-4900-ba01-49f27db7956f</code>.</p>
-          <p><a class="big-link" href="https://ship-shape-web.onrender.com/documents/2b7000ba-ef72-4900-ba01-49f27db7956f" target="_blank" rel="noopener noreferrer">Open proof issue in Ship →</a></p>
+          <p>MR <a href="https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof/-/merge_requests/3" target="_blank" rel="noopener noreferrer">!3</a> linked to Ship issue <code>f725314d-0744-40e5-8bc8-3be6408c4ea6</code>.</p>
+          <p><a class="big-link" href="https://ship-shape-web.onrender.com/documents/f725314d-0744-40e5-8bc8-3be6408c4ea6" target="_blank" rel="noopener noreferrer">Open proof issue in Ship →</a></p>
           <p class="small" style="margin:6px 0 4px;">Grader read-only token (expect <code>external_links</code> with provider <code>gitlab</code>):</p>
-          <pre class="diagram" style="margin:0 0 8px;">curl -s -H &quot;Authorization: Bearer $GRADER_TOKEN&quot; https://ship-shape-api.onrender.com/api/v1/issues/2b7000ba-ef72-4900-ba01-49f27db7956f</pre>
+          <pre class="diagram" style="margin:0 0 8px;">curl -s -H &quot;Authorization: Bearer $GRADER_TOKEN&quot; https://ship-shape-api.onrender.com/api/v1/issues/f725314d-0744-40e5-8bc8-3be6408c4ea6</pre>
           <p class="small">The GitLab webhook flows through <code>integrations/gitlab</code> and writes to <code>issue.properties.external_links</code> (visible in the issue sidebar on Ship).</p>
         </div>
       </div>
@@ -429,7 +429,7 @@ GitLab path: GitLab MR webhook → integrations/gitlab → client.issues.upsertE
       </div>
 
       <div class="footer">
-        Path A: login → Developer tab + SDK demo. Path B: <a href="#integrations">integrations section</a> above. Generated 2026-06-06T16:24:04.332Z.
+        Path A: login → Developer tab + SDK demo. Path B: <a href="#integrations">integrations section</a> above. Generated 2026-06-06T21:43:57.584Z.
       </div>
     </div>
   </body>

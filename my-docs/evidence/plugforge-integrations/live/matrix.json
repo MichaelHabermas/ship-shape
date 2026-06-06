@@ -2,8 +2,8 @@
   "flow": "matrix",
   "proof_class": "live",
   "status": "passed",
-  "run_id": "matrix-live-mq2kc6wc",
-  "generated_at": "2026-06-06T16:24:04.332Z",
+  "run_id": "matrix-live-mq2vrki8",
+  "generated_at": "2026-06-06T21:43:57.584Z",
   "flows": [
     {
       "id": "cli_ttfe",
