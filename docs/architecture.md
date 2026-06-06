@@ -47,19 +47,19 @@ flowchart LR
 
 ## SOLID Rationale
 
-Single Responsibility: HTTP adapters stay thin. `api/src/platform/oauth/http-routes.ts` parses protocol requests, while `api/src/platform/oauth/provider.ts` owns authorization requests, grants, codes, device polling, token exchange, and refresh rotation. Public resource routes such as `api/src/platform/api/v1/documents.ts` delegate document writes to domain mutation services instead of reimplementing document behavior.
+Single Responsibility: HTTP adapters stay thin. `api/src/platform/oauth/http-routes.ts` parses protocol requests, while `authorization-code.ts`, `device-grant.ts`, and `refresh-rotation.ts` own authorization requests, grants, codes, device polling, token exchange, and refresh rotation. `api/src/platform/oauth/provider.ts` is a facade for those modules. Public resource routes such as `api/src/platform/api/v1/documents.ts` delegate document writes to domain mutation services instead of reimplementing document behavior.
 
 Open/Closed: `api/src/platform/api/v1/route-metadata.ts` and `api/src/platform/scopes/registry.ts` make routes and scopes executable data. Adding a public operation means adding metadata and schemas that the OpenAPI generator and fitness tests can walk; existing auth middleware does not need a special branch per route.
 
-Liskov Substitution: `api/src/platform/webhooks/deliverer.ts` defines `IWebhookDeliverer`, and `api/src/platform/webhooks/service.ts` accepts injected clock, database, deliverer, timeout, and URL validator dependencies. Production uses `FetchWebhookDeliverer`; tests substitute deterministic transport and time without changing webhook behavior.
+Liskov Substitution: `api/src/platform/webhooks/deliverer.ts` defines `IWebhookDeliverer`, and `api/src/platform/webhooks/webhook-service-deps.ts` holds injected clock, database, deliverer, timeout, and URL validator dependencies. Production uses `FetchWebhookDeliverer`; tests substitute deterministic transport and time without changing webhook behavior.
 
 Interface Segregation: `sdk/src/resources.ts` exposes separate `DocumentsClient`, `IssuesClient`, `SprintsClient`, `WebhooksClient`, and FleetGraph context clients. Consumers depend on the resource surface they use instead of one large untyped client.
 
-Dependency Inversion: Domain writes publish through `IEventBus` in `api/src/platform/webhooks/event-bus.ts`, and webhook delivery depends on `IWebhookDeliverer`, not `fetch` directly. The platform service owns durable event/delivery persistence; transport is a plug-in dependency.
+Dependency Inversion: Domain writes publish through `IEventBus` in `api/src/platform/webhooks/event-bus.ts`, and webhook delivery depends on `IWebhookDeliverer`, not `fetch` directly. The webhook fanout and delivery modules own durable event/delivery persistence; transport is a plug-in dependency.
 
 ## Composition Root
 
-`api/src/app.ts` is the composition root. It mounts internal Ship routes with session/CSRF protection, then mounts the public platform boundary and OAuth protocol endpoints.
+`api/src/app.ts` is the primary Express composition root. It bootstraps webhooks, mounts most internal Ship routes with session/CSRF protection, then mounts the public platform boundary and OAuth protocol endpoints. Process-level workers and webhook delivery startup live in `api/src/index.ts`.
 
 ```mermaid
 flowchart TB
@@ -69,15 +69,15 @@ flowchart TB
   App --> Apps["/api/platform/apps\nsession admin control plane"]
   App --> Public["/api/v1\npublicApiV1Router"]
   App --> OAuth["/oauth/*\nauthorize, token, device, consent"]
-  Public --> PreRate["pre-auth IP bucket"]
   Public --> Audit["response-end audit insert"]
-  Public --> Bearer["OAuth bearer validation"]
+  Audit --> PreRate["pre-auth IP bucket"]
+  PreRate --> Bearer["OAuth bearer validation"]
   Bearer --> TokenRate["token + app buckets"]
   Bearer --> Scope["requiredScopes check"]
   Scope --> Resources["documents, issues, sprints, webhooks, me, FleetGraph context"]
 ```
 
-Production wiring uses the default webhook dependencies in `api/src/platform/webhooks/service.ts`: system clock, Postgres pool, `FetchWebhookDeliverer`, URL validation, and 5 second delivery timeout. Test wiring calls `configureWebhookServiceDependencies()` with a fake clock, fake or test database runner, and deterministic deliverer; retry tests advance injected time instead of sleeping with `setTimeout`.
+Production wiring uses the default webhook dependencies in `api/src/platform/webhooks/webhook-service-deps.ts`: system clock, Postgres pool, `FetchWebhookDeliverer`, URL validation, and 5 second delivery timeout. Test wiring calls `configureWebhookServiceDependencies()` with a fake clock, fake or test database runner, and deterministic deliverer; retry tests advance injected time instead of sleeping with `setTimeout`.
 
 ## Public/Internal Boundary
 
@@ -111,7 +111,7 @@ External issue links are public issue metadata, not a new table. `POST /api/v1/i
 
 ## OAuth Flows
 
-Authorization Code + PKCE is for browser apps. The consent page is in the web UI, but protocol state lives in `api/src/platform/oauth/provider.ts`.
+Authorization Code + PKCE is for browser apps. The consent page is in the web UI, while protocol state lives in `api/src/platform/oauth/authorization-code.ts` and token exchange/refresh state lives in `api/src/platform/oauth/refresh-rotation.ts`.
 
 ```mermaid
 sequenceDiagram
@@ -174,7 +174,7 @@ flowchart LR
   Retry --> DeliveryLog["delivery log + DLQ + replay"]
 ```
 
-The signature is computed immediately before outbound delivery in `api/src/platform/webhooks/service.ts` using `signWebhookPayload()` from `signature.ts`. Replay creates a new delivery attempt for the old event and preserves the original idempotency key, so subscribers can dedupe side effects.
+The signature is computed immediately before outbound delivery in `api/src/platform/webhooks/webhook-delivery.ts` using `signWebhookPayload()` from `signature.ts`. Replay creates a new delivery attempt for the old event and preserves the original idempotency key, so subscribers can dedupe side effects.
 
 ## SDK Surface
 
@@ -186,7 +186,7 @@ Stable public surface:
 - `client.issues.list/get/create/update/iterate`
 - `client.issues.upsertExternalLink(id, input)`
 - `client.sprints.list/get/listIssues/iterate`
-- `client.webhooks.list/create/listDeliveries/replay`
+- `client.webhooks.list/create/delete/deactivate/listDeliveries/replay`
 - `ShipClient.deviceLogin()` and `ShipClient.authorizationCodeFlow()`
 - `MemoryTokenStore`, `BrowserTokenStore`, `FileTokenStore`, `ITokenStore`
 - `ShipError` with `kind: auth | rate_limit | not_found | validation | network | server`

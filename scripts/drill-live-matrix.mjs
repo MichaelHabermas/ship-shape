@@ -24,7 +24,7 @@ try {
     flows: [
       liveJsonFlow('cli_ttfe', 'my-docs/evidence/plugforge-metrics/ttfe-timing.json'),
       liveJsonFlow('slack', 'my-docs/evidence/plugforge-integrations/live/slack.json'),
-      liveJsonFlow('browser', 'my-docs/evidence/plugforge-integrations/live/browser.json'),
+      liveJsonFlow('browser', 'my-docs/evidence/plugforge-integrations/live/browser-sdk.json'),
       liveJsonFlow('gitlab', 'my-docs/evidence/plugforge-integrations/live/gitlab.json'),
       proofFileFlow(
         'refresh_token_theft',

@@ -183,6 +183,25 @@ Evidence:
   - External link: provider `gitlab`, external id `michaelhabermas/plugforge-live-proof!1`, kind `merge_request`, status `opened`
 - Ledger implication: `W6-INT-010` and `W6-INT-011` can be marked proven with `behavior_live` evidence from `my-docs/evidence/plugforge-integrations/live/gitlab.json`.
 
+### W6-INT-001 - Final integration matrix rollup
+
+Status: proven.
+
+Evidence:
+
+- Command run from repo root: `pnpm plugforge:live:matrix`
+- Drill wrote live evidence JSON to `my-docs/evidence/plugforge-integrations/live/matrix.json`.
+- Live matrix run id: `matrix-live-mq2kc6wc`
+- Generated at: `2026-06-06T16:24:04.332Z`
+- Matrix status: `passed`; proof class: `live`.
+- Matrix includes live CLI TTFE evidence from `my-docs/evidence/plugforge-metrics/ttfe-timing.json`.
+- Matrix includes live Slack evidence from `my-docs/evidence/plugforge-integrations/live/slack.json`.
+- Matrix includes deployed browser SDK evidence from `my-docs/evidence/plugforge-integrations/live/browser-sdk.json`.
+- Matrix includes live GitLab evidence from `my-docs/evidence/plugforge-integrations/live/gitlab.json`.
+- Matrix includes refresh-token theft proof `api/src/platform/oauth/refresh-theft-drill.test.ts` with command `./scripts/run-api-tests.sh -- src/platform/oauth/refresh-theft-drill.test.ts`.
+- Matrix includes idempotency replay proof `api/src/platform/webhooks/service.test.ts` with command `./scripts/run-api-tests.sh -- src/platform/webhooks/service.test.ts`.
+- Ledger checker revalidates the referenced live evidence files instead of trusting the matrix JSON alone.
+
 ### Public API reference UI
 
 Status: proven.
