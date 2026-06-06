@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
+pnpm --filter @ship/shared build
+pnpm --filter @ship/sdk build
 pnpm lint
 pnpm type-check
 pnpm plugforge:ledger

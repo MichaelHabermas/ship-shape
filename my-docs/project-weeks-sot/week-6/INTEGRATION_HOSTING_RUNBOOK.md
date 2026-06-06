@@ -38,7 +38,7 @@ Use Slack app **PlugForge Live Proof** (`A0B8T4QDH9S`) only — not Hermes.
 
 1. Add Render OAuth redirect URL to the PlugForge Live Proof app.
 2. Visit `https://ship-shape-slack-integration.onrender.com/slack/install` and complete OAuth.
-3. Copy bot token → `SLACK_BOT_TOKEN` on Render; invite bot to `SLACK_CHANNEL_ID`.
+3. Copy **Bot User OAuth Token** from Slack app → OAuth & Permissions (`xoxb-…`) → Render `SLACK_BOT_TOKEN`. Invite bot to `SLACK_CHANNEL_ID`.
 4. In Ship Developer portal, create **persistent** webhook subscriptions:
    - `document.created` → `https://ship-shape-slack-integration.onrender.com/ship/webhooks`
    - `issue.assigned` → same URL

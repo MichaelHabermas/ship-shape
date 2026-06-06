@@ -34,7 +34,7 @@ const HOSTED_REQUIRED_ENV = [
   { name: 'SHIP_API_URL', secret: false, source: 'Deployed Ship API, e.g. https://ship-shape-api.onrender.com' },
   { name: 'SHIP_ACCESS_TOKEN', secret: true, source: 'Ship public API OAuth token' },
   { name: 'SLACK_INTEGRATION_PUBLIC_URL', secret: false, source: 'Hosted Slack integration origin on Render' },
-  { name: 'SLACK_BOT_TOKEN', secret: true, source: 'Slack bot token installed on the hosted integration' },
+  { name: 'SLACK_BOT_TOKEN', secret: true, source: 'Slack bot OAuth token (xoxb-…) — Slack app → OAuth & Permissions → Bot User OAuth Token; same as Render SLACK_BOT_TOKEN' },
   { name: 'SLACK_CHANNEL_ID', secret: false, source: 'Slack channel id for proof posts' },
   { name: 'SHIP_SLACK_DOCUMENT_SUBSCRIPTION_ID', secret: false, source: 'Persistent document.created webhook subscription id' },
   { name: 'SHIP_SLACK_ISSUE_SUBSCRIPTION_ID', secret: false, source: 'Persistent issue.assigned webhook subscription id' },

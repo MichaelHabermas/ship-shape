@@ -27,7 +27,9 @@ The important conclusion is not "AI was free." It is narrower: the FleetGraph pr
 | FleetGraph model tokens | 2,518 input; 2,346 output; 4,864 total |
 | FleetGraph persisted estimated model spend | $0.0510714 |
 | FleetGraph corrected estimated model spend | $0.0617114 |
+| Owner-confirmed development/platform cash committed | $537 |
 | Latest published FleetGraph proof packet | 2026-06-01T16:03:40.433Z; `target: local`; 0 model calls |
+| Latest deployed/both proof refresh attempt | 2026-06-06T20:38:35.664Z; verdict `fail`; not deployed |
 | Latest published reviewer chain latency | 865 ms |
 | Week 6 PlugForge platform model calls | 0 by design boundary |
 | Week 6 PlugForge metrics aggregate | 219,286 ms local command runtime |
@@ -84,16 +86,18 @@ Development was performed mostly through Codex Desktop/local coding-agent sessio
 
 | Cost basis | Value |
 | --- | --- |
-| Cash spend basis currently documented | $200/month Codex plan |
-| Render hosting tier currently documented | $7/month |
+| Codex subscriptions | 2 x $200/month = $400 |
+| Cursor subscriptions | 2 x $60/month = $120 |
+| Render hosting tier currently paid | $7/month |
 | OpenAI API credits purchased | $10 prepaid; not necessarily consumed |
-| Total committed cash basis currently documented | $217 |
+| Slack/GitLab Render integration services | $0 currently; free instances/services |
+| Total owner-confirmed committed cash basis | $537 |
 | Exact token-metered development invoice | Not available from local Codex records |
 | Claude/API development input/output split | Not available from local records |
 | Local Codex evidence source | `/Users/michaelhabermas/.codex/state_5.sqlite`, `threads` table |
 | Cursor/other assistant evidence treatment | Qualitative unless owner supplies usage export |
 
-The $217 figure should be treated as the currently documented cash basis, not a final invoice. It excludes any unreported ChatGPT/Cursor/Claude subscription charges, Render add-ons, always-on integration services, paid Slack/GitLab costs, and OpenAI dashboard usage outside the local FleetGraph ledger.
+The $537 figure is the owner-confirmed cash basis so far: two Codex subscriptions, two Cursor subscriptions, one paid Render tier, and prepaid OpenAI API credit. Slack and GitLab integration Render services are currently free. This still excludes any unreported Claude/ChatGPT subscriptions, future paid Render services, paid Slack/GitLab costs, and OpenAI dashboard usage outside the local FleetGraph ledger.
 
 ### Codex Local Usage
 
@@ -289,7 +293,28 @@ The currently published FleetGraph proof URL returns a local-target packet:
 | Reviewer chain model calls | 0 |
 | Reviewer chain cost source | `none` |
 
-This is not the same evidentiary posture as the earlier Week 5 deployed proof packet. For cost analysis, it still proves the latest published packet adds zero model spend. For final deployed FleetGraph proof claims, regenerate deployed/both proof if that claim needs to be current again.
+This is not the same evidentiary posture as the earlier Week 5 deployed proof packet. The public static file is local because commit `a5c3d066` replaced `web/public/fleetgraph-observability/proof/latest.json` with a local proof artifact and that static artifact later shipped with the web deployment. FleetGraph itself is not local-only; the proof artifact is. For final deployed FleetGraph proof claims, regenerate a deployed/both proof packet and deploy the refreshed static artifact.
+
+Proof refresh attempt on 2026-06-06:
+
+| Field | Value |
+| --- | ---: |
+| Command | `pnpm fleetgraph:proof -- --mode both --with-e2e` with Render Postgres evidence |
+| Generated at | 2026-06-06T20:38:35.664Z |
+| Target | `both` |
+| Verdict | `fail` |
+| Focused API proof tests | pass; 4 files, 34 tests |
+| Focused FleetGraph E2E | pass; 1 test |
+| Deployed configured | true |
+| Deployed graph invocations in packet | 100 |
+| Deployed model calls in packet | 0 |
+| Deployed estimated model spend in packet | $0.000000 |
+| Deployed signals observed | `blocked`, `stale` |
+| Missing deployed signal | `at_risk` |
+| Missing public trace links | `blocked`, `stale`, `at_risk`, `on_demand` |
+| Script mismatch | root `pnpm fleetgraph:eval:surface` is missing; API package has `fleetgraph:eval:surface` |
+
+The generated failed `both` packet should not be deployed as final proof. It is useful failure evidence: Render DB access works, the focused E2E path works, and the remaining deployed proof gaps are signal freshness plus public trace publication.
 
 ### Runtime Cost Controls
 
@@ -376,16 +401,18 @@ The budget pressure from PlugForge is database storage, public API traffic, webh
 | Public audit-log retention | 90 days for reviewer/demo analysis, then archive/prune policy required before production |
 | Normal demo webhook fanout | 1-2 matching subscriptions |
 | Load/proof target fanout | 10 matching subscriptions per `document.created` load-probe target |
-| Agent active rate used in prior projection | 20% monthly active users ask FleetGraph questions |
-| Average agent turns used in prior projection | 6 turns/month per active user |
-| Assignment normalized graph invocations | 30 graph invocations per user per 30-day month |
+| Product-usage sensitivity | 20% monthly active users ask 6 FleetGraph questions/month |
+| Canonical reviewer projection | 30 graph invocations per user per 30-day month |
 | Platform/integration model calls | 0 |
+| Slack/GitLab integration hosting | Currently free; deploy always-on receivers before relying on live external callbacks |
 
 If future PlugForge scope adds model-backed scope suggestions, webhook summaries, app-review copilots, portal copilots, or integration-debug assistants, that is new product scope and this report must be updated before shipping.
 
 ## Production Cost Projections
 
-Projection assumption from `FLEETGRAPH.md`: 30 graph invocations per user per month.
+Canonical projection assumption: 30 graph invocations per user per month. This is the reviewer-safe assumption because it matches `FLEETGRAPH.md`, the prior proof-generator framing, and the assignment's requested 100/1,000/10,000-user projections.
+
+The alternative `20% active users * 6 turns/month` assumption is a product-realism sensitivity, not the canonical reviewer projection. It averages to 1.2 model-eligible turns per total user per month, which is far lower and easier to under-defend during review.
 
 For projection purposes, this report interprets that as:
 
@@ -605,13 +632,15 @@ The largest development cost driver was broad repeated context. Source-of-truth 
 
 The runtime story is better: FleetGraph spends almost nothing when it can answer with SQL, dedupe state, and bounded deterministic policy. PM chat changes that. If users like chat and use it heavily, chat becomes the real production model budget, not the background worker.
 
-## Open Questions For Owner
+## Remaining Follow-Up
 
-I need these to make the report invoice-grade rather than evidence-grade:
+Resolved from owner input on 2026-06-06:
 
-1. Actual paid invoices or dashboard totals for Codex, ChatGPT, Cursor, Claude, OpenAI API, Render, Slack, and GitLab for 2026-05-18 through 2026-06-06.
-2. Whether the $200 Codex plan, $7 Render tier, and $10 OpenAI prepaid credit are still the complete cash basis.
-3. Whether the always-on `ship-shape-slack-integration` and `ship-shape-gitlab-integration` Render services are on paid instances, free instances, or not yet provisioned.
-4. Whether to regenerate FleetGraph deployed proof with `pnpm fleetgraph:proof -- --mode both --with-e2e`; the current public proof URL serves a `target: local` packet.
-5. The production assumption you actually want: all users get 30 graph invocations/month, or only 20% of monthly active users get 6 turns/month.
-6. Any Cursor/Claude session export with token/cost fields if you want non-Codex development AI costs represented numerically.
+- Cash basis is $537 so far: two $60 Cursor subscriptions, two $200 Codex subscriptions, $7 Render, and $10 OpenAI credit.
+- Slack/GitLab integration services are currently free.
+- Canonical production projection should stay reviewer-safe at 30 graph invocations/user/month; the lower active-user assumption remains sensitivity only.
+
+Still open:
+
+1. Refresh deployed FleetGraph proof until the packet verdict is `pass`, then deploy the refreshed static artifact. The 2026-06-06 attempt failed because deployed evidence lacked `at_risk`, lacked public LangSmith trace links, and the root `fleetgraph:eval:surface` script is missing.
+2. Provide any Claude/ChatGPT invoice or token export if there was paid usage beyond the confirmed $537 cash basis.

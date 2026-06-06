@@ -1,27 +1,27 @@
 # FleetGraph Reviewer Proof
 
-Generated: 2026-06-01T16:03:40.433Z
-Run: fleetgraph-proof-2026-06-01T16-03-40-433Z
-Target: local
-Verdict: pass
-Git: staging-out-of-the-box @ 8a5d67ace6acec804751e9e2e198c21a89f378c5
+Generated: 2026-06-06T20:38:35.664Z
+Run: fleetgraph-proof-2026-06-06T20-38-35-664Z
+Target: both
+Verdict: fail
+Git: master @ 4e5c58a79b65b45eb02160e68de78f74f980bc46
 
 ## Verdict
 
 Required scenarios: 0/9
 Current product surface: 8 pass / 0 fail
-Deployed signals: -
+Deployed signals: blocked, stale
 
 ## Attention Loop
 
 | Step | Status | Evidence |
 | --- | --- | --- |
-| Ship signal | pass | api/src/fleetgraph/eval/golden-cases.ts |
-| Detector policy | pass | api/src/fleetgraph/eval/executable-golden-cases.test.ts |
-| Finding lifecycle | pass | my-docs/evals/fleetgraph-product-surface/latest.json |
-| Notification state | skipped | e2e/fleetgraph-attention-loop.spec.ts |
-| Source and chat | skipped | my-docs/evidence/fleetgraph-proof/latest.html |
-| Human gate | skipped | my-docs/evidence/fleetgraph-proof/latest.md |
+| Ship signal | fail | api/src/fleetgraph/eval/golden-cases.ts |
+| Detector policy | fail | api/src/fleetgraph/eval/executable-golden-cases.test.ts |
+| Finding lifecycle | fail | my-docs/evals/fleetgraph-product-surface/latest.json |
+| Notification state | fail | e2e/fleetgraph-attention-loop.spec.ts |
+| Source and chat | fail | my-docs/evidence/fleetgraph-proof/latest.html |
+| Human gate | fail | my-docs/evidence/fleetgraph-proof/latest.md |
 
 ## Reviewer Test Cases
 
@@ -39,15 +39,15 @@ Deployed signals: -
 
 | Scenario | Proactive | On-demand | Update | Quiet | Human gate |
 | --- | --- | --- | --- | --- | --- |
-| Proactive blocked finding creates notification | defined | not applicable | not applicable | not applicable | defined |
-| Duplicate source updates existing finding | defined | not applicable | defined | not applicable | not applicable |
-| Proactive stale finding creates notification | defined | not applicable | not applicable | not applicable | defined |
-| Proactive at-risk finding creates notification | defined | not applicable | not applicable | not applicable | defined |
-| Done or cancelled work exits quietly | defined | not applicable | not applicable | defined | not applicable |
-| Restricted evidence does not leak | defined | not applicable | not applicable | defined | not applicable |
-| On-demand source explanation stays grounded | not applicable | defined | not applicable | not applicable | not applicable |
-| Next-action chat preserves human gate | not applicable | defined | not applicable | not applicable | defined |
-| Finding resolves when source condition disappears | defined | not applicable | not applicable | not applicable | not applicable |
+| Proactive blocked finding creates notification | missing | missing | missing | missing | missing |
+| Duplicate source updates existing finding | missing | missing | missing | missing | missing |
+| Proactive stale finding creates notification | missing | missing | missing | missing | missing |
+| Proactive at-risk finding creates notification | missing | missing | missing | missing | missing |
+| Done or cancelled work exits quietly | missing | missing | missing | missing | missing |
+| Restricted evidence does not leak | missing | missing | missing | missing | missing |
+| On-demand source explanation stays grounded | missing | missing | missing | missing | missing |
+| Next-action chat preserves human gate | missing | missing | missing | missing | missing |
+| Finding resolves when source condition disappears | missing | missing | missing | missing | missing |
 
 ## Current Findings
 
@@ -62,23 +62,25 @@ Deployed signals: -
 
 ## Deployed Runtime Evidence
 
-No deployed database evidence was configured.
+Worker ticks: 5; completed output ticks: 5; stuck running ticks: 7; signals: blocked, stale; scheduled-worker signals: blocked, stale
 
 ## Cost And Usage
 
-Graph invocations: 0
+Graph invocations: 100
 Model calls: 0
 Tokens: 0 input / 0 output / 0 total
-Deterministic runs: 0; real-model runs: 0
-Estimated FleetGraph model cost: not measured; no deployed run metadata was available
-Projection, 100 users: requires deployed telemetry
-Projection, 1,000 users: requires deployed telemetry
-Projection, 10,000 users: requires deployed telemetry
+Deterministic runs: 100; real-model runs: 0
+Estimated FleetGraph model cost: $0.000000 measured FleetGraph graph-runtime estimate
+Projection, 100 users: $0.000000 / month at 3000 graph invocations
+Projection, 1,000 users: $0.000000 / month at 30000 graph invocations
+Projection, 10,000 users: $0.000000 / month at 300000 graph invocations
 Excluded: Out-of-band coding assistant and development-wide Claude/API spend were not instrumented and are excluded.
 
 ## Deployed Runtime Trace Evidence
 
-No trace evidence was configured.
+Missing required trace links: blocked, stale, at_risk, on_demand
+- blocked: missing link (update_finding, deployed scheduled-worker runtime)
+- stale: missing link (update_finding, deployed scheduled-worker runtime)
 
 ## Safety
 
@@ -102,6 +104,9 @@ No trace evidence was configured.
 - Static dashboard: my-docs/evidence/fleetgraph-proof/latest.html
 - Proof JSON: my-docs/evidence/fleetgraph-proof/latest.json
 - Proof Markdown: my-docs/evidence/fleetgraph-proof/latest.md
+- Public proof dashboard: web/public/fleetgraph-observability/proof/latest.html
+- Public proof JSON: web/public/fleetgraph-observability/proof/latest.json
+- Public proof Markdown: web/public/fleetgraph-observability/proof/latest.md
 - Golden cases: api/src/fleetgraph/eval/golden-cases.ts
 - Executable golden-case tests: api/src/fleetgraph/eval/executable-golden-cases.test.ts
 - Product-surface eval: my-docs/evals/fleetgraph-product-surface/latest.html

@@ -1,5 +1,14 @@
 # Proof refresh — what you need before we run live proof together
 
+## Names (use these — no synonyms)
+
+| Plain name | Env var | Looks like | How you get it |
+| --- | --- | --- | --- |
+| **Ship API OAuth token** | `SHIP_ACCESS_TOKEN` | long opaque string | `pnpm ship login` → stored in `~/.ship/tokens.json` |
+| **Slack bot OAuth token** | `SLACK_BOT_TOKEN` | `xoxb-…` | **Slack app dashboard** → OAuth & Permissions → **Bot User OAuth Token** (not shown on the approve page until integration is redeployed) |
+
+`SLACK_BOT_TOKEN` **is** the Slack bot OAuth token. Not the Slack client secret. Not `SHIP_ACCESS_TOKEN`.
+
 Use this checklist once Render integration services are deployed. The repo command is:
 
 ```bash
@@ -29,14 +38,14 @@ Set in Render dashboard for `ship-shape-slack-integration`:
 | `SLACK_CLIENT_SECRET` | From Slack app |
 | `SLACK_REDIRECT_URI` | `https://ship-shape-slack-integration.onrender.com/slack/oauth/callback` |
 | `SLACK_CHANNEL_ID` | Channel where proof posts appear |
-| `SLACK_BOT_TOKEN` | `xoxb-…` after OAuth install (see step 3) |
+| `SLACK_BOT_TOKEN` | **Slack bot OAuth token** (`xoxb-…`) from step 4 |
 | `SHIP_WEBHOOK_SECRETS` | Comma-separated signing secrets from step 4 |
 
 ## 4. Slack OAuth on Render (one-time)
 
 1. Add OAuth redirect: `https://ship-shape-slack-integration.onrender.com/slack/oauth/callback`
-2. Visit `https://ship-shape-slack-integration.onrender.com/slack/install` and complete OAuth.
-3. Copy bot token → `SLACK_BOT_TOKEN` on Render. Redeploy if needed.
+2. Visit `https://ship-shape-slack-integration.onrender.com/slack/install` and complete OAuth (browser shows `{"ok":true,"team_id":"…"}` only — **no token there today**).
+3. Copy the **Slack bot OAuth token** from [api.slack.com/apps](https://api.slack.com/apps) → **PlugForge Live Proof** → **OAuth & Permissions** → **Bot User OAuth Token** (`xoxb-…`) → paste into Render `SLACK_BOT_TOKEN`. Redeploy.
 4. Invite bot to `SLACK_CHANNEL_ID`.
 
 ## 5. Persistent Ship webhooks (one-time)
@@ -61,16 +70,36 @@ On `michaelhabermas/plugforge-live-proof` at Gauntlet GitLab:
 - Token: same as `GITLAB_WEBHOOK_SECRET` on GitLab Render service
 - Merge request events: on
 
-## 7. Local env for refresh (export before drill)
+## 7. Get `SHIP_ACCESS_TOKEN` (one-time login)
+
+This is **not** in Render or Slack. It is a Ship API login token for the **PlugForge Slack Live Proof** OAuth app.
 
 ```bash
-# Ship API
+pnpm ship login \
+  --api-url https://ship-shape-api.onrender.com \
+  --client-id ship_app_653999d0a9745ee4e4007f374ec5d15a \
+  --scope 'documents:read documents:write issues:read issues:write webhooks:manage'
+```
+
+1. Terminal prints a link and code (e.g. `UPGL-XXXX`).
+2. Open the link while logged into https://ship-shape-web.onrender.com as demo admin.
+3. Approve the login. Terminal should say `Logged in as dev@ship.local`.
+
+Copy the token into your shell:
+
+```bash
+export SHIP_ACCESS_TOKEN="$(node -pe "JSON.parse(require('fs').readFileSync(require('path').join(require('os').homedir(),'.ship/tokens.json'),'utf8')).accessToken")"
+```
+
+## 8. Local env for refresh (export before drill)
+
+```bash
 export SHIP_API_URL='https://ship-shape-api.onrender.com'
-export SHIP_ACCESS_TOKEN='<your-long-lived-oauth-token>'
+# SHIP_ACCESS_TOKEN from step 7
 
 # Slack hosted drill
 export SLACK_INTEGRATION_PUBLIC_URL='https://ship-shape-slack-integration.onrender.com'
-export SLACK_BOT_TOKEN='xoxb-…'
+export SLACK_BOT_TOKEN='xoxb-…'   # Slack bot OAuth token from Render
 export SLACK_CHANNEL_ID='C…'
 export SHIP_SLACK_DOCUMENT_SUBSCRIPTION_ID='<uuid>'
 export SHIP_SLACK_ISSUE_SUBSCRIPTION_ID='<uuid>'
@@ -86,13 +115,13 @@ export GITLAB_KEEP_HOOK=1
 
 Optional: put these in a local file (gitignored) and `source` it before refresh.
 
-## 8. Screenshot (manual, after Slack drill)
+## 9. Screenshot (manual, after Slack drill)
 
 1. Open the Slack channel and screenshot the two proof messages.
 2. Run refresh with `--screenshot=…` or copy to `my-docs/evidence/plugforge-integrations/live/slack-proof.png`
 3. Set `slack-proof.meta.json` → `"source": "live_capture"`
 
-## 9. What I need from you in session
+## 10. What I need from you in session
 
 Paste or confirm (redact in chat if you prefer; use terminal export locally):
 

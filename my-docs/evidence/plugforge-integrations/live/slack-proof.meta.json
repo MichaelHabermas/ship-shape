@@ -1,4 +1,7 @@
 {
-  "source": "synthetic",
-  "note": "Replace with a real Slack channel screenshot after hosted live drill; set source to live_capture."
+  "source": "live_capture",
+  "captured_at": "2026-06-06T20:58:32.513Z",
+  "run_id": "slack-live-mq2u2npg",
+  "channel": "sb-inbox",
+  "note": "Hosted Render proof; document.created + issue.assigned for mq2u2npg"
 }

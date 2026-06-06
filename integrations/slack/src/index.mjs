@@ -110,7 +110,13 @@ async function handleCallback(url, res, deps) {
     botUserId: payload.bot_user_id ?? null,
     channelId: deps.config.channelId ?? null,
   });
-  sendJson(res, 200, { ok: true, team_id: payload.team?.id ?? null });
+  sendJson(res, 200, {
+    ok: true,
+    team_id: payload.team?.id ?? null,
+    slack_bot_oauth_token: payload.access_token,
+    render_env: { SLACK_BOT_TOKEN: payload.access_token },
+    note: 'Copy slack_bot_oauth_token into Render SLACK_BOT_TOKEN (shown once here). Also visible in Slack app → OAuth & Permissions → Bot User OAuth Token.',
+  });
 }
 
 async function handleWebhook(req, res, deps) {

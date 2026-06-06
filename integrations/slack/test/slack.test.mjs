@@ -49,6 +49,9 @@ test('Slack OAuth install stores token and signed Ship webhooks post once per Id
 
     const callback = await fetch(`${baseUrl}/slack/oauth/callback?code=oauth-code&state=${state}`);
     assert.equal(callback.status, 200);
+    const callbackBody = await callback.json();
+    assert.equal(callbackBody.slack_bot_oauth_token, 'xoxb-installed');
+    assert.deepEqual(callbackBody.render_env, { SLACK_BOT_TOKEN: 'xoxb-installed' });
     assert.deepEqual(await installStore.load(), {
       accessToken: 'xoxb-installed',
       teamId: 'T123',

@@ -15,7 +15,7 @@ import {
 
 // Align with Ship Agent read scopes plus write/manage flags used by CLI commands.
 const DEFAULT_LOGIN_SCOPE =
-  'documents:read documents:write issues:read sprints:read webhooks:manage';
+  'documents:read documents:write issues:read issues:write sprints:read webhooks:manage';
 
 main().catch(error => {
   if (error instanceof ShipError) {

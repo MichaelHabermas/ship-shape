@@ -36,6 +36,7 @@
     "docs:check:fleetgraph-chat": "node ./scripts/check-fleetgraph-chat-contract.mjs",
     "docs:facts:render": "node ./scripts/doc-sync/render-fact-blocks.mjs",
     "drill": "node ./scripts/drill.mjs",
+    "ship": "node ./integrations/cli/src/index.mjs",
     "plugforge:ledger": "node ./scripts/ci/check-plugforge-proof-ledger.mjs",
     "plugforge:ledger:enforce": "node ./scripts/ci/check-plugforge-proof-ledger.mjs --enforce",
     "plugforge:gate-honesty": "node ./scripts/ci/check-plugforge-gate-honesty.mjs",

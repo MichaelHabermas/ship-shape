@@ -12,6 +12,7 @@ import type {
 import {
   AppSelector,
   CreateAppForm,
+  DeveloperStats,
   formatDate,
   OneTimeSecretPanel,
   SimpleTable,
@@ -320,30 +321,12 @@ export function DeveloperSettingsTab() {
           <div className="text-sm text-muted">Select or create an app</div>
         ) : (
           <div className="space-y-5">
-            {/* Dashboard summary cards - makes the dev portal feel like a real platform dashboard */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-lg border border-border bg-paper p-3">
-                <div className="text-[10px] uppercase tracking-widest text-muted">Active Subscriptions</div>
-                <div className="mt-1 text-2xl font-semibold">{subscriptions.filter(s => s.active).length}</div>
-              </div>
-              <div className="rounded-lg border border-border bg-paper p-3">
-                <div className="text-[10px] uppercase tracking-widest text-muted">Deliveries (loaded)</div>
-                <div className="mt-1 text-2xl font-semibold">{deliveries.length}</div>
-                <div className="text-[10px] text-muted">{deliveries.filter(d => d.status === 'dlq').length} in DLQ</div>
-              </div>
-              <div className="rounded-lg border border-border bg-paper p-3">
-                <div className="text-[10px] uppercase tracking-widest text-muted">Audit Events</div>
-                <div className="mt-1 text-2xl font-semibold">{auditRows.length}</div>
-              </div>
-              <div className="rounded-lg border border-border bg-paper p-3">
-                <div className="text-[10px] uppercase tracking-widest text-muted">App Scopes</div>
-                <div className="mt-1 text-xs font-mono text-muted">{selectedApp.requested_scopes.join(', ')}</div>
-              </div>
-            </div>
-
-            <div className="rounded-md border border-accent/30 bg-accent/5 p-3 text-xs">
-              <strong>Human demo tip:</strong> Create a webhook subscription above for "document.created". Then create a document anywhere in the app. Come back here and refresh the Delivery Log — you will see the signed event appear with latency and status. Use the Replay button on any DLQ row.
-            </div>
+            <DeveloperStats
+              selectedApp={selectedApp}
+              subscriptions={subscriptions}
+              deliveries={deliveries}
+              auditRows={auditRows}
+            />
             <section className="space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
