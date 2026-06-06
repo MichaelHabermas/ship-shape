@@ -1,0 +1,41 @@
+{
+  "flow": "gitlab",
+  "proof_class": "live",
+  "status": "passed",
+  "run_id": "gitlab-live-mq2k4y3z",
+  "generated_at": "2026-06-06T16:18:31.874Z",
+  "api_url": "https://ship-shape-api.onrender.com",
+  "project_url": "https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof",
+  "webhook": {
+    "live": true,
+    "projectUrl": "https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof",
+    "hook_id": 9,
+    "target_url": "https://aaron-walks-headed-ram.trycloudflare.com/gitlab/webhook"
+  },
+  "observed_webhook": {
+    "object_kind": "merge_request",
+    "linked": 1,
+    "merge_request_iid": 1,
+    "project_url": "https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof"
+  },
+  "merge_request": {
+    "id": 5121,
+    "iid": 1,
+    "url": "https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof/-/merge_requests/1",
+    "title": "PlugForge live proof gitlab-live-mq2k4y3z",
+    "source_branch": "plugforge-live-gitlab-live-mq2k4y3z",
+    "target_branch": "master"
+  },
+  "issue": {
+    "id": "2b7000ba-ef72-4900-ba01-49f27db7956f",
+    "title": "PlugForge live GitLab gitlab-live-mq2k4y3z"
+  },
+  "external_link": {
+    "provider": "gitlab",
+    "external_id": "michaelhabermas/plugforge-live-proof!1",
+    "kind": "merge_request",
+    "url": "https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof/-/merge_requests/1",
+    "title": "PlugForge live proof gitlab-live-mq2k4y3z",
+    "status": "opened"
+  }
+}

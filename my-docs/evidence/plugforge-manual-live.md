@@ -148,6 +148,41 @@ Evidence:
 - Script explicitly reported: `Nothing was run. No evidence was written.`
 - Ledger implication: `W6-INT-003`, `W6-INT-004`, `W6-INT-005`, and `W6-INT-006` can be marked proven with `behavior_live` evidence from `my-docs/evidence/plugforge-integrations/live/slack.json`.
 
+### GitLab live proof setup note
+
+Status: proven.
+
+Evidence:
+
+- The live GitLab target is the Gauntlet GitLab instance at `https://labs.gauntletai.com`, not `https://gitlab.com`.
+- Personal access token validation failed against `https://gitlab.com/api/v4/user` with `401`.
+- The same token validated successfully against `https://labs.gauntletai.com/api/v4/user`.
+- Successful user response identified `username`: `michaelhabermas`, `id`: `99`, and `web_url`: `https://labs.gauntletai.com/michaelhabermas`.
+- GitLab live drill must set `GITLAB_API_URL=https://labs.gauntletai.com/api/v4`.
+- GitLab project check succeeded for `michaelhabermas/plugforge-live-proof`.
+- Project id: `1241`; default branch: `master`; web URL: `https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof`.
+- Successful drill command: `PLUGFORGE_LIVE_TIMEOUT_MS=240000 pnpm plugforge:live:gitlab`
+- Successful drill stages:
+  - Local GitLab receiver health passed at `http://127.0.0.1:8081/health`.
+  - Public GitLab webhook target health passed at `https://aaron-walks-headed-ram.trycloudflare.com/health`.
+  - Ship proof issue was created.
+  - GitLab project was read and project webhook was installed.
+  - Proof branch, file, and merge request were created in `https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof`.
+  - Ship issue `2b7000ba-ef72-4900-ba01-49f27db7956f` received a GitLab external link.
+  - Local receiver observed live GitLab merge request webhook `!1`.
+- Drill wrote live evidence JSON to `my-docs/evidence/plugforge-integrations/live/gitlab.json`.
+- Live evidence JSON details:
+  - Run id: `gitlab-live-mq2k4y3z`
+  - Generated at: `2026-06-06T16:18:31.874Z`
+  - GitLab project URL: `https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof`
+  - Webhook hook id: `9`
+  - Webhook target: `https://aaron-walks-headed-ram.trycloudflare.com/gitlab/webhook`
+  - Observed webhook kind: `merge_request`; linked count: `1`; merge request iid: `1`
+  - Merge request URL: `https://labs.gauntletai.com/michaelhabermas/plugforge-live-proof/-/merge_requests/1`
+  - Ship issue id: `2b7000ba-ef72-4900-ba01-49f27db7956f`
+  - External link: provider `gitlab`, external id `michaelhabermas/plugforge-live-proof!1`, kind `merge_request`, status `opened`
+- Ledger implication: `W6-INT-010` and `W6-INT-011` can be marked proven with `behavior_live` evidence from `my-docs/evidence/plugforge-integrations/live/gitlab.json`.
+
 ### Public API reference UI
 
 Status: proven.

@@ -1616,7 +1616,7 @@ requirements:
   - id: W6-SDK-001
     source: PRD.md:394-398; Plugforge-specs.txt:61-62,160-162
     section: TypeScript SDK
-    requirement: @ship/sdk package exists.
+    requirement: "@ship/sdk package exists."
     requirement_class: functional
     testability: unit
     priority: P0
@@ -1883,7 +1883,7 @@ requirements:
   - id: W6-CLI-001
     source: PRD.md:465-470; Plugforge-specs.txt:247-261
     section: CLI and Time-to-First-Event Drill
-    requirement: @ship/cli package exists and can be installed from packed artifacts.
+    requirement: "@ship/cli package exists and can be installed from packed artifacts."
     requirement_class: functional
     testability: unit
     priority: P0
@@ -2231,14 +2231,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: missing
+    status: proven
     proof_tier: live_required
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
-    manual_evidence: none
+    proof_command: pnpm plugforge:live:gitlab
+    proof_files: my-docs/evidence/plugforge-integrations/live/gitlab.json, scripts/drill-live-gitlab.mjs, integrations/gitlab/src/index.mjs
+    pending_test: none
+    manual_evidence: my-docs/evidence/plugforge-manual-live.md
     covered_by: none
-    gap: MR webhook payload was synthesized locally; no real GitLab instance involved.
+    gap: none
   - id: W6-INT-011
     source: PRD.md:574-579; Plugforge-specs.txt:363
     section: Selected Integrations and Drills
@@ -2246,14 +2246,14 @@ requirements:
     requirement_class: functional
     testability: api
     priority: P1
-    status: missing
+    status: proven
     proof_tier: live_required
-    proof_command: none
-    proof_files: none
-    pending_test: api/src/platform/plugforge-acceptance.todo.test.ts
-    manual_evidence: none
+    proof_command: pnpm plugforge:live:gitlab
+    proof_files: my-docs/evidence/plugforge-integrations/live/gitlab.json, scripts/drill-live-gitlab.mjs, integrations/gitlab/src/index.mjs
+    pending_test: none
+    manual_evidence: my-docs/evidence/plugforge-manual-live.md
     covered_by: none
-    gap: No real GitLab project webhook to Ship integration path proven.
+    gap: none
   - id: W6-INT-012
     source: PRD.md:581-584; Plugforge-specs.txt:364
     section: Selected Integrations and Drills
