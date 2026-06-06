@@ -1,12 +1,107 @@
 # Engineering Lessons
 
-Portable engineering lessons learned while building projects in this repo.
+Portable engineering lessons learned while building software. Copy this file to new projects; keep the rules, add examples from each codebase.
 
-Use this file for principles that should transfer to the next project, not for project-specific runbooks, status updates, or implementation notes. Write the general lesson first, then use a short anecdote from this repo only as evidence. A good entry should help a future human or agent avoid the same class of mistake in a different codebase.
+Use this file for principles that should transfer to the next project, not for project-specific runbooks, status updates, or implementation notes. Write the general lesson first, then use a short anecdote from a specific project only as evidence. A good entry should help a future human or agent avoid the same class of mistake in a different codebase.
 
 Add a lesson here when a bug, incident, or hard-won fix reveals a reusable engineering rule. Do not add narrow facts like file paths, command names, service IDs, or temporary decisions unless they clarify the broader point.
 
-## 1. Treat Durable Demo Data As Product Data, Not Deploy Debris
+Lessons are ordered roughly by importance (most costly mistakes first). Reorder as judgment changes; lesson titles are not numbered.
+
+## Green Health Checks Do Not Prove The New Code Is Live
+
+A healthy deployment only proves that something is serving traffic. It does not prove the latest artifact, route, migration, feature flag, worker, or frontend bundle is the thing currently serving users.
+
+For any meaningful release, verify the changed behavior directly. Check a route that only exists in the new build, a response shape that only the new code can produce, a migration-dependent query, a UI path that exercises the new bundle, or a version marker tied to the shipped artifact. Treat generic health checks as infrastructure smoke, not product proof.
+
+The transferable rules:
+
+- Verify the exact behavior that changed, not only `/health`.
+- Compare deployed artifact shape against local expectations when behavior is missing.
+- Check deploy status, logs, and live route inventory when health and behavior disagree.
+- Remember that many platforms keep serving the previous successful deploy after a failed update.
+- Record the deploy proof in terms a future reviewer can re-run.
+
+ShipShape example: the public API health check was green, but FleetGraph routes were missing. The real issue was that the newest API deploy had failed and Render kept serving the previous successful build. Route-specific verification exposed the truth: `/api/fleetgraph/...` returned Express 404, while the new build should have reached auth or validation.
+
+## Bootstrap Schemas And Migrations Are Different Tools
+
+Bootstrap schema is for creating a new empty database. Migrations are for evolving an existing database. Mixing those jobs makes deployments fragile because an existing database may be between historical shapes that the bootstrap file no longer represents.
+
+A bootstrap file can be useful as a snapshot, but it must not become an every-deploy migration runner for production-like databases. Existing databases should move through ordered, repeatable migrations that encode each evolution step.
+
+The transferable rules:
+
+- Run bootstrap DDL only when creating an empty database.
+- Run numbered migrations for existing databases.
+- Do not assume the latest schema snapshot can safely apply to every historical database shape.
+- Make the migration runner decide whether the database is empty before applying bootstrap.
+- Test migration behavior against an existing database, not only a fresh one.
+
+ShipShape example: a deploy failed because the migrator applied the bootstrap schema before numbered migrations. The bootstrap schema tried to create an index on a column that a later migration would have added, so the deploy failed before the app could start. The fix was to treat bootstrap schema as empty-database setup and let existing databases evolve through migrations.
+
+## Authorization Must Cover Related Data, Not Just The Primary Row
+
+Public read models often assemble one authorized resource plus labels, counts, owners, parents, or rollups from neighboring records. If those joins do not repeat the same visibility and ownership predicates, a safe primary-resource endpoint becomes a metadata leak or relationship oracle.
+
+The transferable rules:
+
+- Treat every joined label, count, filter, and webhook payload field as data that needs its own read authorization.
+- Apply same-tenant, non-deleted, visibility, and subject-specific predicates to related rows before they influence output or filters.
+- Avoid unsafe casts from user-editable JSON/properties fields; validate first and join on safe representations.
+- Do not fan out private resource webhooks through workspace-level subscriptions unless the subscription stores the read subject and scopes it was authorized with.
+
+ShipShape example (2026-06): public issue/sprint routes correctly authorized the primary document-backed resource, but related programs, weekly plans, retros, and accountability targets needed the same visibility predicates. The fix filtered those joins and suppressed private issue webhook fanout until webhook subscriptions can carry an explicit read-context snapshot.
+
+## Event Buses Must Encode Durable Post-Commit Boundaries
+
+Decoupling a domain service from a delivery service is good architecture only if it preserves the old persistence guarantee. Moving from "enqueue inside the transaction, dispatch after commit" to "publish in the background after commit" silently turns a durable outbox into a best-effort notification.
+
+When every caller must remember the same two-step sequence, the invariant will eventually be forgotten. Encode transactional publish and post-commit dispatch in one API on the deep module instead of copying flags or comments across mutations.
+
+The transferable rules:
+
+- Keep durable event/outbox writes inside the transaction that creates the domain fact.
+- Dispatch external side effects after commit, but persist retryable work before commit.
+- Pair transactional publish and post-commit dispatch in named functions; zero mutation call sites should pass magic flags like `dispatch: 'none'`.
+- Treat post-commit side effects like search indexing as independent; they must not suppress webhook/event publication.
+- Use event-unique idempotency keys, and compute lifecycle deltas from the row locked inside the write transaction.
+
+ShipShape example (2026-06): hardening the webhook event-bus boundary initially removed direct service imports but accidentally moved webhook persistence into fire-and-forget publication after commit. Issue and document mutations also duplicated the two-phase sequence. The fix kept durable webhook rows inside the domain transaction, hid delivery policy behind the event bus, and replaced duplicate call-site blocks with `publishWebhookEventInTransaction` and `commitAndDispatchWebhooks`.
+
+## Treat Proof Evidence As Hostile Input
+
+Evidence files sit between test automation and release claims, so they need the same suspicion as API input. A validator that trusts arbitrary paths, commands, screenshots, or token-looking fields can turn a proof gate into a data leak or a self-certified assertion.
+
+The transferable rules:
+
+- Reject secrets, cookies, auth headers, CSRF values, and token-shaped strings anywhere in evidence JSON.
+- Accept only repository-relative evidence paths, and verify containment with canonical path resolution.
+- Allowlist proof files and commands for security-sensitive matrix claims instead of accepting free-form citations.
+- Make screenshots opt-in for live drills unless the capture target is known to be redacted.
+- Fail before writing passed evidence when a live proof is missing the exact external artifact the claim requires.
+
+ShipShape example (2026-06): PlugForge live INT review found that live evidence validators needed stronger secret detection, exact matrix proof allowlists, canonical path containment, and opt-in browser screenshots before they could safely validate deployed browser, Slack, and GitLab proof artifacts.
+
+## Test-Only Workers Hide Production Gaps
+
+Background retry or reclaim logic that exists only in unit tests but is never wired at startup produces green CI for a feature that does not run in production. If the code path is required for reliability, something in the composition root must invoke it.
+
+The transferable rules:
+
+- Every due-queue processor needs an explicit startup registration or documented deferral.
+- Match worker shutdown to graceful cleanup alongside other background jobs.
+- Expand CI gates to cover the routes and services the worker protects.
+
+ShipShape example (2026-06): `processDueWebhookDeliveries` had full retry/DLQ tests but no production caller. Wiring a simple in-process interval at API startup closed the gap without waiting for a queue-backed worker.
+
+## Seeded Tokens Can Hide A Missing Front Door
+
+Tests that insert bearer tokens directly prove token validation, not credential issuance. For auth platforms, keep a separate proof that starts where users and clients start: authorization request, consent, credential exchange, and one real protected API call. Otherwise every downstream feature can accidentally build on a fictional login path.
+
+ShipShape example (2026-06): `/api/v1/me` accepted OAuth access tokens, but the first tests seeded those tokens directly. The route was real; the platform entrance was not. The fix was to add Authorization Code + PKCE, browser consent, one-time code exchange, refresh rotation, and a Playwright flow that mints the token before calling `/api/v1/me`.
+
+## Treat Durable Demo Data As Product Data, Not Deploy Debris
 
 If demo, fixture, evaluation, or reviewer data must persist across deploys and background automation, make it first-class data with explicit ownership, metadata, idempotent creation, and repair semantics.
 
@@ -24,39 +119,7 @@ The transferable rules:
 
 ShipShape example: FleetGraph demo findings were originally seeded like ordinary data while the FleetGraph worker kept running its normal stale-finding cleanup. As deploys and worker ticks progressed, mixed blocked/stale/at-risk demo findings disappeared or collapsed because the worker had no way to know they were intentional reviewer fixtures. We fixed it by moving the demo data into a dedicated idempotent demo seeder, marking demo findings with explicit metadata, teaching cleanup to preserve open demo fixtures, and adding regression tests that run the worker after seeding.
 
-## 2. Green Health Checks Do Not Prove The New Code Is Live
-
-A healthy deployment only proves that something is serving traffic. It does not prove the latest artifact, route, migration, feature flag, worker, or frontend bundle is the thing currently serving users.
-
-For any meaningful release, verify the changed behavior directly. Check a route that only exists in the new build, a response shape that only the new code can produce, a migration-dependent query, a UI path that exercises the new bundle, or a version marker tied to the shipped artifact. Treat generic health checks as infrastructure smoke, not product proof.
-
-The transferable rules:
-
-- Verify the exact behavior that changed, not only `/health`.
-- Compare deployed artifact shape against local expectations when behavior is missing.
-- Check deploy status, logs, and live route inventory when health and behavior disagree.
-- Remember that many platforms keep serving the previous successful deploy after a failed update.
-- Record the deploy proof in terms a future reviewer can re-run.
-
-ShipShape example: the public API health check was green, but FleetGraph routes were missing. The real issue was that the newest API deploy had failed and Render kept serving the previous successful build. Route-specific verification exposed the truth: `/api/fleetgraph/...` returned Express 404, while the new build should have reached auth or validation.
-
-## 3. Bootstrap Schemas And Migrations Are Different Tools
-
-Bootstrap schema is for creating a new empty database. Migrations are for evolving an existing database. Mixing those jobs makes deployments fragile because an existing database may be between historical shapes that the bootstrap file no longer represents.
-
-A bootstrap file can be useful as a snapshot, but it must not become an every-deploy migration runner for production-like databases. Existing databases should move through ordered, repeatable migrations that encode each evolution step.
-
-The transferable rules:
-
-- Run bootstrap DDL only when creating an empty database.
-- Run numbered migrations for existing databases.
-- Do not assume the latest schema snapshot can safely apply to every historical database shape.
-- Make the migration runner decide whether the database is empty before applying bootstrap.
-- Test migration behavior against an existing database, not only a fresh one.
-
-ShipShape example: a deploy failed because the migrator applied the bootstrap schema before numbered migrations. The bootstrap schema tried to create an index on a column that a later migration would have added, so the deploy failed before the app could start. The fix was to treat bootstrap schema as empty-database setup and let existing databases evolve through migrations.
-
-## 4. Background Workers Need A Stricter Safety Model Than Request Handlers
+## Background Workers Need A Stricter Safety Model Than Request Handlers
 
 Background automation runs without a human actively looking at the screen. That makes its safety boundary stricter than a normal request handler. Workers need explicit identity, ownership, locking, shutdown semantics, privacy rules, cost controls, and partial-failure accounting.
 
@@ -73,97 +136,34 @@ The transferable rules:
 
 ShipShape example: FleetGraph worker review found several real issues: system-principal scope was too broad, scheduled worker runs could accidentally use real model behavior, advisory-lock handling was coupled to graph write transactions, and shutdown could race active DB work. The fix was to narrow the worker identity, force deterministic no-user-present runs, isolate locking from graph persistence, and record durable worker tick metadata.
 
-## 5. Eval Headlines Must Separate Current Behavior From Historical Artifacts
+## Registry, OpenAPI, And Frontends Must Share One Contract Source
 
-An evaluation report should answer the first operational question clearly: "Is the current system passing?" Historical failures are useful, but they should not be mixed into the headline unless the report explicitly says it is measuring historical drift.
-
-When old persisted outputs, replay logs, cached runs, or archived samples share the same score as fresh runtime cases, the report becomes misleading. Teams waste time fixing already-fixed bugs, or worse, learn to distrust the eval.
+Route metadata, OpenAPI contracts, generated specs, and frontend DTOs are the same contract seen from different tiers. If each tier hand-rolls its own shape, drift becomes a runtime surprise instead of a compile-time failure.
 
 The transferable rules:
 
-- Put fresh/current runtime cases in the headline.
-- Put historical persisted samples in a separate section or trend appendix.
-- Label whether failures are current, historical, or replay-only.
-- Keep old failures visible when they teach something, but do not let them obscure present state.
-- Add regression tests for report semantics, not just model or product behavior.
+- Keep route metadata, OpenAPI contracts, and generated specs keyed by the same `operationId` set.
+- Register OpenAPI from shared wire factories; never duplicate Zod beside the factory.
+- Use generated OpenAPI aliases as the frontend source of truth for API responses.
+- Let local frontend types describe only UI-derived state that does not cross the wire.
+- Fail CI when registry keys, contract keys, generated specs, or frontend aliases drift.
 
-ShipShape example: the FleetGraph product-surface eval looked broken because old `fleetgraph_runs` snapshots from before a copy fix were counted with fresh runtime outputs. The current graph output passed, but the headline still showed failures. The fix was to split the report into current surface results and historical persisted samples, with the CLI headline based on current behavior.
+ShipShape example (2026-06): `route-metadata.test.ts` asserts registry ↔ contracts parity, `plugforge-verify.sh` regenerates and diffs `docs/openapi.json`, and Team/Reviews screens moved local response shapes to generated OpenAPI aliases after DTO drift.
 
-## 6. Login Works Is Not The Same As Demo World Works
+## Shared Mappers Must Produce Sanitized Wire Shapes
 
-Authentication proves only that credentials are accepted. It does not prove the user lands in the right workspace, has the right permissions, sees representative data, or can exercise the workflow the demo is supposed to prove.
-
-Demo accounts are product entry points, not just users in a table. They need a known landing context and enough realistic data behind them to support the intended test path. A sparse or wrong workspace can make a valid login feel like a broken product.
+When public API bodies, session/mutation responses, and webhook payloads each map the same storage row independently, field defaults and sparse-option rules diverge silently. Extract core fields once, but make that core mapper sanitize storage before any adapter reaches Zod or a public wire contract.
 
 The transferable rules:
 
-- Verify login, landing workspace, permissions, and representative data counts together.
-- Seed the demo user into the workspace that actually contains the useful data.
-- Add direct links or navigation targets for the workflows being demonstrated.
-- Check local and deployed databases independently.
-- Do not answer "yes, the demo exists" from authentication success alone.
+- Use one core mapper from row/properties JSON; keep boundary adapters thin for dates, URLs, and Zod validation.
+- Validate enums in the core mapper with canonical helpers, not loose `typeof x === 'string'` checks.
+- Keep read-model SQL and visibility filters in the read path; do not merge authorization into mutation mappers.
+- Skip or sanitize joined association types before array assembly, not only top-level fields.
 
-ShipShape example: the FleetGraph reviewer login worked, but it initially landed in a tiny FleetGraph-only workspace instead of the dense seeded workspace. The account authenticated successfully but did not expose the useful projects, issues, weeks, and controls needed for testing. The fix was to point the canonical reviewer at the loaded workspace when it exists and seed the FleetGraph controls there.
+ShipShape example (2026-06): `issue-core.ts` unified display ID, state, priority, and assignee defaults for public reads and webhook events, but review later found malformed `issue_state` and unknown `belongs_to.type` values could still 500 public paths. The fix kept the shared mapper and added canonical enum sanitization plus joined-association filtering.
 
-## 7. Put Verifier Semantics On The Wire Once
-
-When a dashboard and an API both interpret the same proof gates, duplicate pure helpers on the client will drift. The UI can format labels, but it should not maintain a second required-step list or product-path definition.
-
-The transferable rules:
-
-- Compute presentation flags on the authoritative server response.
-- Share only pure selection/label helpers that both tiers import from one package.
-- Add explicit wire fields (`productPath`, `missingLabels`, `preferredChainId`) instead of re-deriving status in React.
-- Test the shared helper once; test the API boundary for enrichment.
-
-ShipShape example: reviewer `productPathStatus` on web checked six steps while API `REQUIRED_STEP_KEYS` tracked eight. Moving enrichment into `shared/src/fleetgraph/reviewer-verifier.ts` and emitting `productPath` on each chain removed the split-brain metric.
-
-For long-running reviewer operations, progress UI must read the same refreshed chain steps the API just wrote, not a cosmetic timer or a one-shot snapshot taken at start. While status is `running`, bind the drawer to live chain data; only freeze a snapshot after completion.
-
-## 8. Clear ESLint Categories Before Tackling `no-unsafe-*`
-
-When a repo enables type-aware `@typescript-eslint/no-unsafe-*` rules, total warning count is dominated by those rules—not by `no-unused-vars`, `max-lines`, or `restrict-template-expressions`. Fix whole categories first: delete unused imports/destructures, turn param validators into type guards (`id is string`), and replace test `any` with `z.infer`, `unknown`, or shared mock types. Defer `seed.ts` non-null assertions and file splits until mechanical wins are exhausted.
-
-ShipShape example (2026-05-31): four unused-vars and four template-expression warnings cleared in minutes; ~45 `no-explicit-any` fixes in four API test files removed most of that category; non-null assertions in tests/e2e dropped ~41 while `api/src/db/seed.ts` stayed untouched for a later pass.
-
-## 9. Route Tests Should Prove The OpenAPI Contract, Not Just Parse JSON
-
-Integration tests that read `res.body.foo` without a schema catch lint noise at best. Tests that call `expectOpenApiResponse` with the same Zod schema registered in OpenAPI catch contract drift: missing fields, wrong nullability, and bulk/list shape mismatches before production or codegen do.
-
-ShipShape example (2026-05-31): migrating `api/src/routes/*.test.ts` surfaced that POST/PATCH issues omitted `assignee_name` while GET included it, and bulk updates returned explicit `null` for optional list fields. Fixing mappers (`extractIssueFromRow`, `mapIssueListItem` in bulk) aligned runtime JSON with the documented contract and cleared ~700 route-test `no-unsafe-*` warnings.
-
-## 10. E2E Needs Typed Boundaries Too — `readJsonAs` Alone Is Not Enough
-
-Playwright specs that call `readJsonAs` but still define loose inline types, or mix in raw `.json()`, keep most `no-unsafe-*` warnings. The fix is the same three-layer pattern as API routes: one parse helper (`typed-json.ts`), shared assertion-minimal types (`e2e-api-types.ts`), and typed SQL rows for Testcontainers seed code (`e2e-seed-rows.ts` in `isolated-env.ts`).
-
-ShipShape example (2026-05-31): Tier 3 cleared ~487 E2E warnings. Top file `weekly-accountability.spec.ts` had both `readJsonAs` and 27 raw `.json()` calls; migrating every parse site and deduplicating `PersonDocument` / weekly-plan types dropped it from 95 warnings to zero.
-
-## 11. Do Not Encode Product Chat As A Regex Template Router
-
-If users expect conversation, a deterministic intent classifier will feel robotic no matter how many branches you add. Tests that lock exact greeting strings, force `modelCalls: 0` on chat, or add a flag that disables the chat model will green-light a broken product. Separate concerns: keep detection, workers, and auth deterministic; use the model for PM chat when key and model name are configured; when unconfigured, fail honestly; assert outcomes (grounding, gates, no hallucination) instead of canned copy.
-
-ShipShape example (2026-06): FleetGraph `POST /api/fleetgraph/chat` fell back to an 800+ line template router whenever `OPENAI_API_KEY` was unset, while docs and evals treated zero-token chat as success. We removed the product router and the chat-deterministic env flag, return unavailable text without a key, and mock `@langchain/openai` in tests on the real `generateContextChatText` path.
-
-## 12. Seeded Tokens Can Hide A Missing Front Door
-
-Tests that insert bearer tokens directly prove token validation, not credential issuance. For auth platforms, keep a separate proof that starts where users and clients start: authorization request, consent, credential exchange, and one real protected API call. Otherwise every downstream feature can accidentally build on a fictional login path.
-
-ShipShape example (2026-06): `/api/v1/me` accepted OAuth access tokens, but the first tests seeded those tokens directly. The route was real; the platform entrance was not. The fix was to add Authorization Code + PKCE, browser consent, one-time code exchange, refresh rotation, and a Playwright flow that mints the token before calling `/api/v1/me`.
-
-## 13. A Packed Install Is A Different Product Than A Workspace Link
-
-Workspace links hide packaging mistakes. A CLI can import a sibling SDK perfectly in a monorepo and still fail for users when the packed tarball asks the package manager to fetch that private workspace dependency from a registry.
-
-The transferable rules:
-
-- Test developer tools from packed artifacts in a fresh temp project.
-- Make CLI packages depend on public SDKs the way users will install them: usually peer dependency plus dev workspace dependency.
-- Keep the demo path and test path on the same executable receiver whenever possible.
-- Treat "works with workspace symlink" as local convenience, not release proof.
-
-ShipShape example (2026-06): `ship webhooks tail` worked from the workspace, but `pnpm drill ttfe` failed because packed `@ship/cli` depended on `@ship/sdk` as `workspace:*` and fresh install tried npm. Moving `@ship/sdk` to a CLI peer dependency made the packed SDK+CLI drill real.
-
-## 14. Retry Logic Needs Injectable Time And Transport
+## Retry Logic Needs Injectable Time And Transport
 
 Backoff, timeout, retry, and dead-letter behavior cannot be tested well through real sleeps and real network calls. Those tests prove the wall clock moved, not that the retry state machine is correct. Put time, timers, transport, and persistence boundaries behind injectable seams; production uses real dependencies, tests advance fake time and return exact transport outcomes.
 
@@ -179,74 +179,73 @@ The transferable rules:
 
 ShipShape example (2026-06): webhook tests originally waited for deliveries with `setTimeout` polling. Refactoring delivery around an injected clock and deliverer made 2xx, 429/5xx, timeout, 4xx DLQ, six-failure DLQ, and replay `Idempotency-Key` behavior deterministic in milliseconds.
 
-## 15. Monorepos Should Not Type-Check Against Ignored Build Artifacts
+## Put Verifier Semantics On The Wire Once
 
-If one workspace package exports `dist/` and another package imports it during development, the consumer can silently type-check against stale or missing generated files. That makes local success depend on whether someone happened to build the producer package first.
-
-The transferable rules:
-
-- Resolve workspace-to-workspace imports to source in dev, test, and type-check tooling.
-- Keep published package exports pointed at build artifacts, but add monorepo aliases or references for sibling consumers.
-- Treat ignored `dist/` as disposable output, not as a source of truth for local verification.
-- Add a focused test or type-check after changing a public package surface so stale artifacts are caught immediately.
-
-ShipShape example (2026-06): web `/sdk-demo` initially failed type-check after the SDK gained issue/sprint clients because `@ship/sdk` resolved to ignored `sdk/dist` from a previous build. Adding source aliases in web TypeScript/Vite/Vitest made the app consume the current SDK source during development while keeping package exports stable for packed installs.
-
-## 16. Authorization Must Cover Related Data, Not Just The Primary Row
-
-Public read models often assemble one authorized resource plus labels, counts, owners, parents, or rollups from neighboring records. If those joins do not repeat the same visibility and ownership predicates, a safe primary-resource endpoint becomes a metadata leak or relationship oracle.
+When a dashboard and an API both interpret the same proof gates, duplicate pure helpers on the client will drift. The UI can format labels, but it should not maintain a second required-step list or product-path definition.
 
 The transferable rules:
 
-- Treat every joined label, count, filter, and webhook payload field as data that needs its own read authorization.
-- Apply same-tenant, non-deleted, visibility, and subject-specific predicates to related rows before they influence output or filters.
-- Avoid unsafe casts from user-editable JSON/properties fields; validate first and join on safe representations.
-- Do not fan out private resource webhooks through workspace-level subscriptions unless the subscription stores the read subject and scopes it was authorized with.
+- Compute presentation flags on the authoritative server response.
+- Share only pure selection/label helpers that both tiers import from one package.
+- Add explicit wire fields (`productPath`, `missingLabels`, `preferredChainId`) instead of re-deriving status in React.
+- Test the shared helper once; test the API boundary for enrichment.
 
-ShipShape example (2026-06): public issue/sprint routes correctly authorized the primary document-backed resource, but related programs, weekly plans, retros, and accountability targets needed the same visibility predicates. The fix filtered those joins and suppressed private issue webhook fanout until webhook subscriptions can carry an explicit read-context snapshot.
+ShipShape example: reviewer `productPathStatus` on web checked six steps while API `REQUIRED_STEP_KEYS` tracked eight. Moving enrichment into `shared/src/fleetgraph/reviewer-verifier.ts` and emitting `productPath` on each chain removed the split-brain metric.
 
-## 17. Event Buses Must Encode Durable Post-Commit Boundaries
+For long-running reviewer operations, progress UI must read the same refreshed chain steps the API just wrote, not a cosmetic timer or a one-shot snapshot taken at start. While status is `running`, bind the drawer to live chain data; only freeze a snapshot after completion.
 
-Decoupling a domain service from a delivery service is good architecture only if it preserves the old persistence guarantee. Moving from "enqueue inside the transaction, dispatch after commit" to "publish in the background after commit" silently turns a durable outbox into a best-effort notification.
+## Login Works Is Not The Same As Demo World Works
 
-When every caller must remember the same two-step sequence, the invariant will eventually be forgotten. Encode transactional publish and post-commit dispatch in one API on the deep module instead of copying flags or comments across mutations.
+Authentication proves only that credentials are accepted. It does not prove the user lands in the right workspace, has the right permissions, sees representative data, or can exercise the workflow the demo is supposed to prove.
 
-The transferable rules:
-
-- Keep durable event/outbox writes inside the transaction that creates the domain fact.
-- Dispatch external side effects after commit, but persist retryable work before commit.
-- Pair transactional publish and post-commit dispatch in named functions; zero mutation call sites should pass magic flags like `dispatch: 'none'`.
-- Treat post-commit side effects like search indexing as independent; they must not suppress webhook/event publication.
-- Use event-unique idempotency keys, and compute lifecycle deltas from the row locked inside the write transaction.
-
-ShipShape example (2026-06): hardening the webhook event-bus boundary initially removed direct service imports but accidentally moved webhook persistence into fire-and-forget publication after commit. Issue and document mutations also duplicated the two-phase sequence. The fix kept durable webhook rows inside the domain transaction, hid delivery policy behind the event bus, and replaced duplicate call-site blocks with `publishWebhookEventInTransaction` and `commitAndDispatchWebhooks`.
-
-## 18. Test-Only Workers Hide Production Gaps
-
-Background retry or reclaim logic that exists only in unit tests but is never wired at startup produces green CI for a feature that does not run in production. If the code path is required for reliability, something in the composition root must invoke it.
+Demo accounts are product entry points, not just users in a table. They need a known landing context and enough realistic data behind them to support the intended test path. A sparse or wrong workspace can make a valid login feel like a broken product.
 
 The transferable rules:
 
-- Every due-queue processor needs an explicit startup registration or documented deferral.
-- Match worker shutdown to graceful cleanup alongside other background jobs.
-- Expand CI gates to cover the routes and services the worker protects.
+- Verify login, landing workspace, permissions, and representative data counts together.
+- Seed the demo user into the workspace that actually contains the useful data.
+- Add direct links or navigation targets for the workflows being demonstrated.
+- Check local and deployed databases independently.
+- Do not answer "yes, the demo exists" from authentication success alone.
 
-ShipShape example (2026-06): `processDueWebhookDeliveries` had full retry/DLQ tests but no production caller. Wiring a simple in-process interval at API startup closed the gap without waiting for a queue-backed worker.
+ShipShape example: the FleetGraph reviewer login worked, but it initially landed in a tiny FleetGraph-only workspace instead of the dense seeded workspace. The account authenticated successfully but did not expose the useful projects, issues, weeks, and controls needed for testing. The fix was to point the canonical reviewer at the loaded workspace when it exists and seed the FleetGraph controls there.
 
-## 19. Shared Mappers Must Produce Sanitized Wire Shapes
+## Eval Headlines Must Separate Current Behavior From Historical Artifacts
 
-When public API bodies, session/mutation responses, and webhook payloads each map the same storage row independently, field defaults and sparse-option rules diverge silently. Extract core fields once, but make that core mapper sanitize storage before any adapter reaches Zod or a public wire contract.
+An evaluation report should answer the first operational question clearly: "Is the current system passing?" Historical failures are useful, but they should not be mixed into the headline unless the report explicitly says it is measuring historical drift.
+
+When old persisted outputs, replay logs, cached runs, or archived samples share the same score as fresh runtime cases, the report becomes misleading. Teams waste time fixing already-fixed bugs, or worse, learn to distrust the eval.
 
 The transferable rules:
 
-- Use one core mapper from row/properties JSON; keep boundary adapters thin for dates, URLs, and Zod validation.
-- Validate enums in the core mapper with canonical helpers, not loose `typeof x === 'string'` checks.
-- Keep read-model SQL and visibility filters in the read path; do not merge authorization into mutation mappers.
-- Skip or sanitize joined association types before array assembly, not only top-level fields.
+- Put fresh/current runtime cases in the headline.
+- Put historical persisted samples in a separate section or trend appendix.
+- Label whether failures are current, historical, or replay-only.
+- Keep old failures visible when they teach something, but do not let them obscure present state.
+- Add regression tests for report semantics, not just model or product behavior.
 
-ShipShape example (2026-06): `issue-core.ts` unified display ID, state, priority, and assignee defaults for public reads and webhook events, but review later found malformed `issue_state` and unknown `belongs_to.type` values could still 500 public paths. The fix kept the shared mapper and added canonical enum sanitization plus joined-association filtering.
+ShipShape example: the FleetGraph product-surface eval looked broken because old `fleetgraph_runs` snapshots from before a copy fix were counted with fresh runtime outputs. The current graph output passed, but the headline still showed failures. The fix was to split the report into current surface results and historical persisted samples, with the CLI headline based on current behavior.
 
-## 20. Public Conflicts Belong In PublicApiError.details
+## Do Not Encode Product Chat As A Regex Template Router
+
+If users expect conversation, a deterministic intent classifier will feel robotic no matter how many branches you add. Tests that lock exact greeting strings, force `modelCalls: 0` on chat, or add a flag that disables the chat model will green-light a broken product. Separate concerns: keep detection, workers, and auth deterministic; use the model for PM chat when key and model name are configured; when unconfigured, fail honestly; assert outcomes (grounding, gates, no hallucination) instead of canned copy.
+
+ShipShape example (2026-06): FleetGraph `POST /api/fleetgraph/chat` fell back to an 800+ line template router whenever `OPENAI_API_KEY` was unset, while docs and evals treated zero-token chat as success. We removed the product router and the chat-deterministic env flag, return unavailable text without a key, and mock `@langchain/openai` in tests on the real `generateContextChatText` path.
+
+## A Packed Install Is A Different Product Than A Workspace Link
+
+Workspace links hide packaging mistakes. A CLI can import a sibling SDK perfectly in a monorepo and still fail for users when the packed tarball asks the package manager to fetch that private workspace dependency from a registry.
+
+The transferable rules:
+
+- Test developer tools from packed artifacts in a fresh temp project.
+- Make CLI packages depend on public SDKs the way users will install them: usually peer dependency plus dev workspace dependency.
+- Keep the demo path and test path on the same executable receiver whenever possible.
+- Treat "works with workspace symlink" as local convenience, not release proof.
+
+ShipShape example (2026-06): `ship webhooks tail` worked from the workspace, but `pnpm drill ttfe` failed because packed `@ship/cli` depended on `@ship/sdk` as `workspace:*` and fresh install tried npm. Moving `@ship/sdk` to a CLI peer dependency made the packed SDK+CLI drill real.
+
+## Public Conflicts Belong In PublicApiError.details
 
 When internal mutations return rich 409 bodies (for example orphan sub-issues on close), public adapters must keep the public `ApiError.code` union closed. HTTP status can carry `409`; the machine conflict reason belongs in typed `details`.
 
@@ -258,83 +257,7 @@ The transferable rules:
 
 ShipShape example (2026-06): public `PATCH /api/v1/issues/:id` now returns HTTP `409` with `code: validation_failed`, `details.reason: "incomplete_children"`, `details.incomplete_children`, and `confirm_action`, matching the internal cascade warning while keeping the exact public error union.
 
-## 21. Registry, OpenAPI, And Frontends Must Share One Contract Source
-
-Route metadata, OpenAPI contracts, generated specs, and frontend DTOs are the same contract seen from different tiers. If each tier hand-rolls its own shape, drift becomes a runtime surprise instead of a compile-time failure.
-
-The transferable rules:
-
-- Keep route metadata, OpenAPI contracts, and generated specs keyed by the same `operationId` set.
-- Register OpenAPI from shared wire factories; never duplicate Zod beside the factory.
-- Use generated OpenAPI aliases as the frontend source of truth for API responses.
-- Let local frontend types describe only UI-derived state that does not cross the wire.
-- Fail CI when registry keys, contract keys, generated specs, or frontend aliases drift.
-
-ShipShape example (2026-06): `route-metadata.test.ts` asserts registry ↔ contracts parity, `plugforge-verify.sh` regenerates and diffs `docs/openapi.json`, and Team/Reviews screens moved local response shapes to generated OpenAPI aliases after DTO drift.
-
-## 22. Public API Tests Need One OAuth Fixture Harness
-
-When every `/api/v1` route test seeds workspaces, users, apps, and tokens independently, setup drift causes false failures and hides the real contract under copy-paste.
-
-The transferable rules:
-
-- Centralize workspace + OAuth app + token helpers for public route tests.
-- Keep route-specific cleanup (webhooks, issue iterations) as small add-ons.
-- Reuse the harness across documents, issues, sprints, fleetgraph, and webhooks suites.
-
-ShipShape example (2026-06): `api/src/test/public-api-fixtures.ts` provides `createPublicApiTestContext` and `issueToken()`; Plugforge route tests import it instead of duplicating `INSERT INTO oauth_apps`.
-
-## 23. Webhook Delivery Belongs In Named Modules, Not One Service File
-
-A single 900+ line webhook service mixes subscription CRUD, read-context fanout, signing, retries, and replay. Agents cannot test or change one concern without reading everything.
-
-The transferable rules:
-
-- Split by responsibility (subscriptions, fanout, delivery, target URL validation, replay) behind a stable facade import path.
-- Give domain mutations one publisher API (`publish` in transaction + `commit` dispatch) so call sites cannot forget half the pair.
-- Add at least one integration test from mutation/enqueue through a mocked deliverer.
-
-ShipShape example (2026-06): `webhook-subscriptions.ts`, `webhook-fanout.ts`, `webhook-delivery.ts`, and `mutation-publisher.ts` sit behind `webhooks/service.ts` re-exports; `pipeline.integration.test.ts` proves enqueue → delivery attempt.
-
-## 24. CLI Default Login Scopes Must Cover Every Shipped Command
-
-Device-grant login scopes are easy to under-specify: documents-only tokens pass document CLI but 403 on routes that require the same read triple as the Ship Agent (`documents:read`, `issues:read`, `sprints:read`).
-
-The transferable rules:
-
-- Derive default CLI scopes from the union of registry `requiredScopes` for commands you ship, not from the first resource you built.
-- Reuse the same canonical read scope list as the agent (`ship-agent-scopes.ts`) wherever a public route requires that triple.
-
-ShipShape example (2026-06): `ship login` default scope string includes issues/sprints read so `ship fleetgraph attention-contexts` works after a vanilla login; FleetGraph route metadata imports `SHIP_AGENT_READ_SCOPES` instead of a third literal copy.
-
-## 25. Reference Integrations Need Enforced Public Boundaries
-
-An integration that imports internal app modules is not a reference integration. It is a colocated feature pretending to be an external client. The proof must be mechanical: package dependency checks, static import checks, `require()` checks, dynamic import checks, and a negative fixture that fails when an integration reaches into app internals.
-
-The transferable rules:
-
-- Let integrations depend on the public SDK and ordinary platform packages, not app source trees.
-- Block internal packages and relative paths in package manifests and source files.
-- Test the boundary checker with a deliberately bad fixture, not only the real integrations.
-- Add the boundary check to the same final gate that proves the integration behavior.
-
-ShipShape example (2026-06): Slack and GitLab reference integrations live under `integrations/` and import Ship only through `@ship/sdk`. `scripts/ci/check-integration-boundary.mjs` blocks `api/src`, `web/src`, `shared`, `@ship/shared`, app aliases, `require()`, and dynamic internal imports; `pnpm plugforge:final` runs the checker and its negative fixture.
-
-## 26. Pending Tests Need Requirement IDs, Not Hope
-
-A large acceptance suite is not trustworthy just because it is large. For spec-driven work, keep a requirement ledger where every testable atom has an ID, status, proof command, and gap. Pending tests are useful only when the pending marker carries the same requirement ID and a checker verifies that traceability.
-
-The transferable rules:
-
-- Give each requirement atom a stable ID before writing broad proof.
-- Separate structural proof validation from final enforcement; enforcement can fail while the project is still honestly incomplete.
-- Make missing tests executable inventory with `todo` or `fixme`, not prose buried in docs.
-- Require each pending test to mention the exact ledger ID it is meant to retire.
-- Let metric probes report `not_measured` when calibration is missing instead of faking a green threshold.
-
-ShipShape example (2026-06): Week 6 PlugForge proof work upgraded `proof-ledger.yaml` into an atom ledger, with a checker that validates IDs/proof paths/covered-by targets/pending markers, Vitest and Playwright pending inventories, scoped enforcement filters, and report-first metric probes. The result is not "everything passes"; it is a reviewer-visible map of exactly what is proven, partial, manual, non-scope, open, and still missing.
-
-## 27. Metric Proof Must Measure Fresh Evidence
+## Metric Proof Must Measure Fresh Evidence
 
 A script that prints `not_measured` and exits zero is worse than no script: it gives CI a green square while preserving the risk. Checked-in metric JSON is useful evidence, but CI must not upload it as if it came from the current run.
 
@@ -348,20 +271,59 @@ The transferable rules:
 
 ShipShape example (2026-06): PlugForge OAuth and webhook P95 scripts originally emitted placeholder JSON while returning success. Replacing them with gated OAuth, webhook, TTFE, SDK size, verifier-speed, baseline probes, clean CI artifact directories, subprocess timeouts, and deterministic `ship_test_audit` resolution made `pnpm plugforge:metrics` the proof boundary instead of a transcript generator.
 
-## 28. Browser SDK Acceptance Must Exercise The Browser Runtime
+## Route Tests Should Prove The OpenAPI Contract, Not Just Parse JSON
 
-SDK unit tests can green-light Node behavior that breaks in the browser. Anything that claims browser-client acceptance must run through a real page, a real redirect, persisted client state, browser crypto/base64 APIs, and the public SDK surface.
+Integration tests that read `res.body.foo` without a schema catch lint noise at best. Tests that call `expectOpenApiResponse` with the same Zod schema registered in OpenAPI catch contract drift: missing fields, wrong nullability, and bulk/list shape mismatches before production or codegen do.
+
+ShipShape example (2026-05-31): migrating `api/src/routes/*.test.ts` surfaced that POST/PATCH issues omitted `assignee_name` while GET included it, and bulk updates returned explicit `null` for optional list fields. Fixing mappers (`extractIssueFromRow`, `mapIssueListItem` in bulk) aligned runtime JSON with the documented contract and cleared ~700 route-test `no-unsafe-*` warnings.
+
+## E2E Needs Typed Boundaries Too — `readJsonAs` Alone Is Not Enough
+
+Playwright specs that call `readJsonAs` but still define loose inline types, or mix in raw `.json()`, keep most `no-unsafe-*` warnings. The fix is the same three-layer pattern as API routes: one parse helper (`typed-json.ts`), shared assertion-minimal types (`e2e-api-types.ts`), and typed SQL rows for Testcontainers seed code (`e2e-seed-rows.ts` in `isolated-env.ts`).
+
+ShipShape example (2026-05-31): Tier 3 cleared ~487 E2E warnings. Top file `weekly-accountability.spec.ts` had both `readJsonAs` and 27 raw `.json()` calls; migrating every parse site and deduplicating `PersonDocument` / weekly-plan types dropped it from 95 warnings to zero.
+
+## Pending Tests Need Requirement IDs, Not Hope
+
+A large acceptance suite is not trustworthy just because it is large. For spec-driven work, keep a requirement ledger where every testable atom has an ID, status, proof command, and gap. Pending tests are useful only when the pending marker carries the same requirement ID and a checker verifies that traceability.
 
 The transferable rules:
 
-- Put browser SDK acceptance behind one command that fails closed and writes bounded current-run evidence.
-- Make the proof walk the actual OAuth redirect/callback/token path, not a seeded token shortcut.
-- Keep flow-level evidence separate from runner summaries so child transcripts cannot be overwritten by aggregate status files.
-- Treat package checks as prerequisites, not substitutes, for reference integration acceptance.
+- Give each requirement atom a stable ID before writing broad proof.
+- Separate structural proof validation from final enforcement; enforcement can fail while the project is still honestly incomplete.
+- Make missing tests executable inventory with `todo` or `fixme`, not prose buried in docs.
+- Require each pending test to mention the exact ledger ID it is meant to retire.
+- Let metric probes report `not_measured` when calibration is missing instead of faking a green threshold.
 
-ShipShape example (2026-06): `pnpm plugforge:integrations` caught `Buffer is not defined` in the browser PKCE path and a callback-state gap in `/sdk-demo`; the final proof now runs Slack, GitLab, Browser SDK, boundary checks, and the six-flow matrix with JSON evidence under `my-docs/evidence/plugforge-integrations/`.
+ShipShape example (2026-06): Week 6 PlugForge proof work upgraded `proof-ledger.yaml` into an atom ledger, with a checker that validates IDs/proof paths/covered-by targets/pending markers, Vitest and Playwright pending inventories, scoped enforcement filters, and report-first metric probes. The result is not "everything passes"; it is a reviewer-visible map of exactly what is proven, partial, manual, non-scope, open, and still missing.
 
-## 29. Live Evidence Needs A Per-Claim Schema
+## Monorepos Should Not Type-Check Against Ignored Build Artifacts
+
+If one workspace package exports `dist/` and another package imports it during development, the consumer can silently type-check against stale or missing generated files. That makes local success depend on whether someone happened to build the producer package first.
+
+The transferable rules:
+
+- Resolve workspace-to-workspace imports to source in dev, test, and type-check tooling.
+- Keep published package exports pointed at build artifacts, but add monorepo aliases or references for sibling consumers.
+- Treat ignored `dist/` as disposable output, not as a source of truth for local verification.
+- Add a focused test or type-check after changing a public package surface so stale artifacts are caught immediately.
+
+ShipShape example (2026-06): web `/sdk-demo` initially failed type-check after the SDK gained issue/sprint clients because `@ship/sdk` resolved to ignored `sdk/dist` from a previous build. Adding source aliases in web TypeScript/Vite/Vitest made the app consume the current SDK source during development while keeping package exports stable for packed installs.
+
+## Reference Integrations Need Enforced Public Boundaries
+
+An integration that imports internal app modules is not a reference integration. It is a colocated feature pretending to be an external client. The proof must be mechanical: package dependency checks, static import checks, `require()` checks, dynamic import checks, and a negative fixture that fails when an integration reaches into app internals.
+
+The transferable rules:
+
+- Let integrations depend on the public SDK and ordinary platform packages, not app source trees.
+- Block internal packages and relative paths in package manifests and source files.
+- Test the boundary checker with a deliberately bad fixture, not only the real integrations.
+- Add the boundary check to the same final gate that proves the integration behavior.
+
+ShipShape example (2026-06): Slack and GitLab reference integrations live under `integrations/` and import Ship only through `@ship/sdk`. `scripts/ci/check-integration-boundary.mjs` blocks `api/src`, `web/src`, `shared`, `@ship/shared`, app aliases, `require()`, and dynamic internal imports; `pnpm plugforge:final` runs the checker and its negative fixture.
+
+## Live Evidence Needs A Per-Claim Schema
 
 A `proofClass: live` flag proves only that a run claims to be live. It does not prove the run exercised the behavior a specific requirement names. Without per-claim evidence schemas, one honest live artifact can accidentally close unrelated ledger atoms.
 
@@ -374,7 +336,7 @@ The transferable rules:
 
 ShipShape example (2026-06): TTFE/CLI proof now requires live `/oauth/device` UI approval plus a verified `document.created` tail, while Slack, GitLab, and deployed browser SDK atoms have separate validator slots that cannot be satisfied by generic TTFE JSON.
 
-## 30. Live Drills Must Fail Before Writing Weak Evidence
+## Live Drills Must Fail Before Writing Weak Evidence
 
 A downstream validator is a seatbelt, not the brake pedal. If a live proof script can write `status: passed` before checking the exact external artifact fields a reviewer needs, it creates confusing evidence even when the final ledger later rejects it.
 
@@ -387,7 +349,7 @@ The transferable rules:
 
 ShipShape example (2026-06): PlugForge live Slack/GitLab drills now assert Slack message timestamps/permalinks and normalize GitLab webhook URLs before writing live evidence, while the ledger validator still enforces the per-atom proof schema.
 
-## 31. Live Proof Must Clean Up Its Own Subscriptions
+## Live Proof Must Clean Up Its Own Subscriptions
 
 A live integration drill that creates durable callbacks is not finished when it receives the first event. If cleanup is manual or hidden behind a database shortcut, the next run inherits state and deployed proof leaves residue.
 
@@ -401,21 +363,61 @@ The transferable rules:
 
 ShipShape example (2026-06): `DELETE /api/v1/webhooks/:id` now soft-deactivates public webhook subscriptions, cancels pending attempts, blocks inactive replay, the SDK exposes `webhooks.delete()`/`webhooks.deactivate()`, and the Slack live drill deactivates its Ship subscriptions by default after writing proof.
 
-## 32. Treat Proof Evidence As Hostile Input
+## Browser SDK Acceptance Must Exercise The Browser Runtime
 
-Evidence files sit between test automation and release claims, so they need the same suspicion as API input. A validator that trusts arbitrary paths, commands, screenshots, or token-looking fields can turn a proof gate into a data leak or a self-certified assertion.
+SDK unit tests can green-light Node behavior that breaks in the browser. Anything that claims browser-client acceptance must run through a real page, a real redirect, persisted client state, browser crypto/base64 APIs, and the public SDK surface.
 
 The transferable rules:
 
-- Reject secrets, cookies, auth headers, CSRF values, and token-shaped strings anywhere in evidence JSON.
-- Accept only repository-relative evidence paths, and verify containment with canonical path resolution.
-- Allowlist proof files and commands for security-sensitive matrix claims instead of accepting free-form citations.
-- Make screenshots opt-in for live drills unless the capture target is known to be redacted.
-- Fail before writing passed evidence when a live proof is missing the exact external artifact the claim requires.
+- Put browser SDK acceptance behind one command that fails closed and writes bounded current-run evidence.
+- Make the proof walk the actual OAuth redirect/callback/token path, not a seeded token shortcut.
+- Keep flow-level evidence separate from runner summaries so child transcripts cannot be overwritten by aggregate status files.
+- Treat package checks as prerequisites, not substitutes, for reference integration acceptance.
 
-ShipShape example (2026-06): PlugForge live INT review found that live evidence validators needed stronger secret detection, exact matrix proof allowlists, canonical path containment, and opt-in browser screenshots before they could safely validate deployed browser, Slack, and GitLab proof artifacts.
+ShipShape example (2026-06): `pnpm plugforge:integrations` caught `Buffer is not defined` in the browser PKCE path and a callback-state gap in `/sdk-demo`; the final proof now runs Slack, GitLab, Browser SDK, boundary checks, and the six-flow matrix with JSON evidence under `my-docs/evidence/plugforge-integrations/`.
 
-## 33. Orchestration Duplication Hides Bugs At Boundaries
+## Public API Tests Need One OAuth Fixture Harness
+
+When every `/api/v1` route test seeds workspaces, users, apps, and tokens independently, setup drift causes false failures and hides the real contract under copy-paste.
+
+The transferable rules:
+
+- Centralize workspace + OAuth app + token helpers for public route tests.
+- Keep route-specific cleanup (webhooks, issue iterations) as small add-ons.
+- Reuse the harness across documents, issues, sprints, fleetgraph, and webhooks suites.
+
+ShipShape example (2026-06): `api/src/test/public-api-fixtures.ts` provides `createPublicApiTestContext` and `issueToken()`; Plugforge route tests import it instead of duplicating `INSERT INTO oauth_apps`.
+
+## Webhook Delivery Belongs In Named Modules, Not One Service File
+
+A single 900+ line webhook service mixes subscription CRUD, read-context fanout, signing, retries, and replay. Agents cannot test or change one concern without reading everything.
+
+The transferable rules:
+
+- Split by responsibility (subscriptions, fanout, delivery, target URL validation, replay) behind a stable facade import path.
+- Give domain mutations one publisher API (`publish` in transaction + `commit` dispatch) so call sites cannot forget half the pair.
+- Add at least one integration test from mutation/enqueue through a mocked deliverer.
+
+ShipShape example (2026-06): `webhook-subscriptions.ts`, `webhook-fanout.ts`, `webhook-delivery.ts`, and `mutation-publisher.ts` sit behind `webhooks/service.ts` re-exports; `pipeline.integration.test.ts` proves enqueue → delivery attempt.
+
+## CLI Default Login Scopes Must Cover Every Shipped Command
+
+Device-grant login scopes are easy to under-specify: documents-only tokens pass document CLI but 403 on routes that require the same read triple as the Ship Agent (`documents:read`, `issues:read`, `sprints:read`).
+
+The transferable rules:
+
+- Derive default CLI scopes from the union of registry `requiredScopes` for commands you ship, not from the first resource you built.
+- Reuse the same canonical read scope list as the agent (`ship-agent-scopes.ts`) wherever a public route requires that triple.
+
+ShipShape example (2026-06): `ship login` default scope string includes issues/sprints read so `ship fleetgraph attention-contexts` works after a vanilla login; FleetGraph route metadata imports `SHIP_AGENT_READ_SCOPES` instead of a third literal copy.
+
+## Clear ESLint Categories Before Tackling `no-unsafe-*`
+
+When a repo enables type-aware `@typescript-eslint/no-unsafe-*` rules, total warning count is dominated by those rules—not by `no-unused-vars`, `max-lines`, or `restrict-template-expressions`. Fix whole categories first: delete unused imports/destructures, turn param validators into type guards (`id is string`), and replace test `any` with `z.infer`, `unknown`, or shared mock types. Defer `seed.ts` non-null assertions and file splits until mechanical wins are exhausted.
+
+ShipShape example (2026-05-31): four unused-vars and four template-expression warnings cleared in minutes; ~45 `no-explicit-any` fixes in four API test files removed most of that category; non-null assertions in tests/e2e dropped ~41 while `api/src/db/seed.ts` stayed untouched for a later pass.
+
+## Orchestration Duplication Hides Bugs At Boundaries
 
 When every script reimplements subprocess helpers, port discovery, and ledger parsers locally, the interface complexity equals the implementation complexity. Tests cover the pure validation pieces, but env/cwd/timing failures show up only in full manual runs.
 
@@ -428,7 +430,7 @@ The transferable rules:
 
 ShipShape example (2026-06): `scripts/` had five incompatible `runCommand` implementations, three `parseLedger` copies, and hand-listed PlugForge verify tests that drifted from the YAML ledger. Consolidating `scripts/lib/run-command.mjs`, `plugforge-gate-lib.mjs` parsing, and `plugforge-api-tests.manifest.json` reduced seam risk without collapsing Week 4 and Week 6 ledgers.
 
-## 34. Generate Reviewer Surfaces From Evidence JSON
+## Generate Reviewer Surfaces From Evidence JSON
 
 Hand-maintaining duplicate HTML copies of integration proof guarantees drift the moment live evidence JSON updates. Reviewer walkthroughs should render from the same artifacts the ledger validators trust.
 
